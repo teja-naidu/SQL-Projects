@@ -76,3 +76,165 @@ SELECT
     MAX(Time) AS maximum_time_seconds,
     ROUND((MAX(Time) - MIN(Time)) / 3600.0, 2) AS dataset_duration_hours
 FROM credit_card_transactions;
+
+-- ============================================================
+-- Day 2: Transaction Amount & Fraud Risk Analysis
+-- ============================================================
+
+
+-- 9. Median Transaction Amount by Transaction Type
+SELECT
+    CASE
+        WHEN Class = 0 THEN 'Legitimate'
+        WHEN Class = 1 THEN 'Fraud'
+    END AS transaction_type,
+    ROUND(MEDIAN(Amount), 2) AS median_transaction_amount,
+    ROUND(AVG(Amount), 2) AS average_transaction_amount
+FROM credit_card_transactions
+GROUP BY Class
+ORDER BY Class;
+
+
+-- 10. Transaction Distribution by Amount Band
+SELECT
+    CASE
+        WHEN Amount = 0 THEN '$0'
+        WHEN Amount <= 10 THEN '$0.01 - $10'
+        WHEN Amount <= 50 THEN '$10.01 - $50'
+        WHEN Amount <= 100 THEN '$50.01 - $100'
+        WHEN Amount <= 500 THEN '$100.01 - $500'
+        WHEN Amount <= 1000 THEN '$500.01 - $1,000'
+        ELSE 'Above $1,000'
+    END AS amount_band,
+
+    COUNT(*) AS total_transactions,
+
+    SUM(CASE WHEN Class = 1 THEN 1 ELSE 0 END)
+        AS fraudulent_transactions,
+
+    ROUND(
+        100.0 * SUM(CASE WHEN Class = 1 THEN 1 ELSE 0 END)
+        / COUNT(*),
+        4
+    ) AS fraud_rate_percentage
+
+FROM credit_card_transactions
+GROUP BY amount_band
+ORDER BY
+    CASE amount_band
+        WHEN '$0' THEN 1
+        WHEN '$0.01 - $10' THEN 2
+        WHEN '$10.01 - $50' THEN 3
+        WHEN '$50.01 - $100' THEN 4
+        WHEN '$100.01 - $500' THEN 5
+        WHEN '$500.01 - $1,000' THEN 6
+        WHEN 'Above $1,000' THEN 7
+    END;
+
+
+-- 11. Fraud Transaction Value by Amount Band
+SELECT
+    CASE
+        WHEN Amount = 0 THEN '$0'
+        WHEN Amount <= 10 THEN '$0.01 - $10'
+        WHEN Amount <= 50 THEN '$10.01 - $50'
+        WHEN Amount <= 100 THEN '$50.01 - $100'
+        WHEN Amount <= 500 THEN '$100.01 - $500'
+        WHEN Amount <= 1000 THEN '$500.01 - $1,000'
+        ELSE 'Above $1,000'
+    END AS amount_band,
+
+    COUNT(*) AS fraudulent_transactions,
+
+    ROUND(SUM(Amount), 2) AS fraudulent_amount,
+
+    ROUND(AVG(Amount), 2) AS average_fraud_amount
+
+FROM credit_card_transactions
+WHERE Class = 1
+GROUP BY amount_band
+ORDER BY fraudulent_amount DESC;
+
+
+-- 12. Fraud Share of Transaction Value
+SELECT
+    ROUND(SUM(Amount), 2) AS total_transaction_value,
+
+    ROUND(
+        SUM(CASE WHEN Class = 1 THEN Amount ELSE 0 END),
+        2
+    ) AS fraudulent_transaction_value,
+
+    ROUND(
+        100.0 *
+        SUM(CASE WHEN Class = 1 THEN Amount ELSE 0 END)
+        / SUM(Amount),
+        4
+    ) AS fraud_value_percentage
+
+FROM credit_card_transactions;
+
+
+-- 13. Zero-Value Transactions by Fraud Status
+SELECT
+    CASE
+        WHEN Class = 0 THEN 'Legitimate'
+        WHEN Class = 1 THEN 'Fraud'
+    END AS transaction_type,
+
+    COUNT(*) AS zero_value_transactions
+
+FROM credit_card_transactions
+WHERE Amount = 0
+GROUP BY Class
+ORDER BY Class;
+
+
+-- 14. Small-Value Transactions (Amount <= $10)
+SELECT
+    CASE
+        WHEN Class = 0 THEN 'Legitimate'
+        WHEN Class = 1 THEN 'Fraud'
+    END AS transaction_type,
+
+    COUNT(*) AS total_transactions,
+
+    ROUND(AVG(Amount), 2) AS average_amount,
+
+    ROUND(SUM(Amount), 2) AS total_amount
+
+FROM credit_card_transactions
+WHERE Amount > 0
+  AND Amount <= 10
+GROUP BY Class
+ORDER BY Class;
+
+
+-- 15. High-Value Transactions (Amount > $1,000)
+SELECT
+    CASE
+        WHEN Class = 0 THEN 'Legitimate'
+        WHEN Class = 1 THEN 'Fraud'
+    END AS transaction_type,
+
+    COUNT(*) AS total_transactions,
+
+    ROUND(AVG(Amount), 2) AS average_amount,
+
+    ROUND(MAX(Amount), 2) AS maximum_amount
+
+FROM credit_card_transactions
+WHERE Amount > 1000
+GROUP BY Class
+ORDER BY Class;
+
+
+-- 16. Top 10 Highest-Value Fraudulent Transactions
+SELECT
+    Time,
+    ROUND(Time / 3600.0, 2) AS hours_since_start,
+    ROUND(Amount, 2) AS transaction_amount
+FROM credit_card_transactions
+WHERE Class = 1
+ORDER BY Amount DESC
+LIMIT 10;
