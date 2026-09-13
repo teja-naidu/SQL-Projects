@@ -119,3 +119,105 @@ Therefore, extremely high transaction values were not necessarily associated wit
 5. Fraud represented approximately **0.239% of total transaction value**, compared with only **0.1727% of transaction volume**.
 
 6. Transaction value by itself is not sufficient to identify fraud. Both low-value and higher-value ranges exhibit distinct fraud patterns, suggesting that transaction amount should be combined with behavioral and temporal indicators for effective fraud detection.
+
+
+---
+
+## Day 3 - Time-Based Fraud Pattern Analysis
+
+### Fraud Distribution Across the Dataset
+
+The dataset covers approximately 48 hours of transaction activity.
+
+- Day 1 contained **144,786 transactions**, including **281 fraudulent transactions**.
+- Day 2 contained **140,021 transactions**, including **211 fraudulent transactions**.
+- Fraudulent transaction value was approximately **$33,239.11** on Day 1 and **$26,888.86** on Day 2.
+- Both fraud count and fraudulent transaction value were higher during the first 24-hour period.
+
+### Hourly Fraud Concentration
+
+Fraud activity was not evenly distributed throughout the observation period.
+
+The highest fraud transaction counts occurred during:
+
+- Hour 11: **43 fraud transactions**
+- Hour 26: **36 fraud transactions**
+- Hour 7: **23 fraud transactions**
+- Hour 2: **21 fraud transactions**
+- Hour 42: **18 fraud transactions**
+
+Hour 11 recorded the highest number of fraudulent transactions, with **43 fraud cases** and approximately **$5,393.83** in fraudulent transaction value.
+
+### Highest-Risk Hours
+
+When hourly fraud rate was considered instead of fraud count, a different pattern emerged.
+
+- Hour 26 recorded a fraud rate of **2.0548%**.
+- Hour 28 recorded a fraud rate of **1.5084%**.
+- Hour 2 recorded a fraud rate of **1.3325%**.
+- Hour 3 recorded a fraud rate of **0.7139%**.
+- Hour 7 recorded a fraud rate of **0.6829%**.
+
+This demonstrates an important distinction between transaction volume and fraud risk. An hour with the largest number of fraud cases is not necessarily the hour with the highest probability of fraud.
+
+### Fraudulent Transaction Value by Hour
+
+The largest fraudulent transaction value was recorded during Hour 11:
+
+- Fraud transactions: **43**
+- Fraudulent value: **$5,393.83**
+- Average fraudulent transaction: **$125.44**
+
+Other notable periods included:
+
+- Hour 42: **$3,367.58**
+- Hour 36: **$3,181.65**
+- Hour 18: **$2,977.56**
+- Hour 17: **$2,916.38**
+
+Hour 36 is particularly notable because only **8 fraud transactions** generated approximately **$3,181.65**, resulting in an average fraudulent transaction value of **$397.71**.
+
+### Repeated 24-Hour Pattern
+
+When the two-day dataset was grouped into repeated 24-hour positions, Hour 2 showed the strongest fraud-rate concentration.
+
+- Hour 2 contained **57 fraud transactions** among 3,328 total transactions.
+- The resulting fraud rate was approximately **1.7127%**.
+- Hour 4 had the second-highest repeated-hour fraud rate at approximately **1.0412%**.
+
+By comparison, several higher-volume periods showed considerably lower fraud rates.
+
+### Six-Hour Window Analysis
+
+The first six-hour window showed the highest fraud rate:
+
+| Time Window | Transactions | Fraud Transactions | Fraud Rate | Fraud Amount |
+|---|---:|---:|---:|---:|
+| 00:00 - 05:59 | 23,934 | 124 | 0.5181% | $10,816.15 |
+| 06:00 - 11:59 | 70,912 | 118 | 0.1664% | $14,371.84 |
+| 12:00 - 17:59 | 96,435 | 134 | 0.1390% | $19,355.18 |
+| 18:00 - 23:59 | 93,526 | 116 | 0.1240% | $15,584.80 |
+
+Although the **00:00-05:59** window had the lowest transaction volume, it recorded the highest fraud rate at **0.5181%**.
+
+The **12:00-17:59** window generated the largest fraudulent transaction value at approximately **$19,355.18**, but its fraud rate was only **0.1390%**.
+
+### Key Findings
+
+1. Fraud activity varied substantially across the 48-hour observation period rather than being evenly distributed.
+
+2. Hour 11 recorded the highest absolute fraud count with **43 fraudulent transactions**, while Hour 26 recorded the highest hourly fraud rate among the analyzed hourly groups at **2.0548%**.
+
+3. The difference between fraud count and fraud rate demonstrates why transaction volume must be considered when identifying high-risk periods.
+
+4. The repeated Hour 2 position showed particularly elevated risk, with **57 fraud transactions and a 1.7127% fraud rate** across the two-day dataset.
+
+5. The first six-hour window had a fraud rate of **0.5181%**, significantly higher than the other six-hour windows despite having the lowest transaction volume.
+
+6. High fraud count, high fraud rate, and high financial exposure do not always occur during the same periods. Effective fraud monitoring should therefore consider all three metrics rather than relying on transaction counts alone.
+
+### Analytical Note
+
+The `Time` field represents elapsed seconds from the first transaction in the dataset rather than an actual calendar timestamp.
+
+Therefore, labels such as `00:00 - 05:59` represent positions within a repeated 24-hour transaction cycle and should not be interpreted as confirmed real-world clock times or specific times of day.
