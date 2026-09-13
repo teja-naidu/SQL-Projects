@@ -238,3 +238,181 @@ FROM credit_card_transactions
 WHERE Class = 1
 ORDER BY Amount DESC
 LIMIT 10;
+
+-- ============================================================
+-- Day 3: Time-Based Fraud Pattern Analysis
+-- ============================================================
+
+
+-- 17. Transaction Distribution by Dataset Day
+SELECT
+    FLOOR(Time / 86400) + 1 AS dataset_day,
+    COUNT(*) AS total_transactions,
+    SUM(CASE WHEN Class = 1 THEN 1 ELSE 0 END) AS fraudulent_transactions,
+    ROUND(
+        100.0 * SUM(CASE WHEN Class = 1 THEN 1 ELSE 0 END) / COUNT(*),
+        4
+    ) AS fraud_rate_percentage,
+    ROUND(SUM(Amount), 2) AS total_transaction_amount,
+    ROUND(
+        SUM(CASE WHEN Class = 1 THEN Amount ELSE 0 END),
+        2
+    ) AS fraudulent_amount
+FROM credit_card_transactions
+GROUP BY dataset_day
+ORDER BY dataset_day;
+
+
+-- 18. Transactions by Hour Since Dataset Start
+SELECT
+    FLOOR(Time / 3600) AS hour_since_start,
+    COUNT(*) AS total_transactions,
+    SUM(CASE WHEN Class = 1 THEN 1 ELSE 0 END) AS fraudulent_transactions,
+    ROUND(
+        100.0 * SUM(CASE WHEN Class = 1 THEN 1 ELSE 0 END) / COUNT(*),
+        4
+    ) AS fraud_rate_percentage
+FROM credit_card_transactions
+GROUP BY hour_since_start
+ORDER BY hour_since_start;
+
+
+-- 19. Top 10 Hours by Fraud Transaction Count
+SELECT
+    FLOOR(Time / 3600) AS hour_since_start,
+    COUNT(*) AS total_transactions,
+    SUM(CASE WHEN Class = 1 THEN 1 ELSE 0 END) AS fraudulent_transactions,
+    ROUND(
+        100.0 * SUM(CASE WHEN Class = 1 THEN 1 ELSE 0 END) / COUNT(*),
+        4
+    ) AS fraud_rate_percentage
+FROM credit_card_transactions
+GROUP BY hour_since_start
+ORDER BY fraudulent_transactions DESC, fraud_rate_percentage DESC
+LIMIT 10;
+
+
+-- 20. Top 10 Hours by Fraud Rate
+-- Minimum transaction threshold prevents very small hourly groups
+-- from dominating the ranking.
+SELECT
+    FLOOR(Time / 3600) AS hour_since_start,
+    COUNT(*) AS total_transactions,
+    SUM(CASE WHEN Class = 1 THEN 1 ELSE 0 END) AS fraudulent_transactions,
+    ROUND(
+        100.0 * SUM(CASE WHEN Class = 1 THEN 1 ELSE 0 END) / COUNT(*),
+        4
+    ) AS fraud_rate_percentage
+FROM credit_card_transactions
+GROUP BY hour_since_start
+HAVING COUNT(*) >= 1000
+ORDER BY fraud_rate_percentage DESC
+LIMIT 10;
+
+
+-- 21. Fraud Amount by Hour
+SELECT
+    FLOOR(Time / 3600) AS hour_since_start,
+    SUM(CASE WHEN Class = 1 THEN 1 ELSE 0 END) AS fraudulent_transactions,
+    ROUND(
+        SUM(CASE WHEN Class = 1 THEN Amount ELSE 0 END),
+        2
+    ) AS fraudulent_amount,
+    ROUND(
+        AVG(CASE WHEN Class = 1 THEN Amount END),
+        2
+    ) AS average_fraud_amount
+FROM credit_card_transactions
+GROUP BY hour_since_start
+HAVING SUM(CASE WHEN Class = 1 THEN 1 ELSE 0 END) > 0
+ORDER BY fraudulent_amount DESC
+LIMIT 10;
+
+
+-- 22. Transaction Analysis by 6-Hour Time Window
+SELECT
+    CASE
+        WHEN MOD(FLOOR(Time / 3600), 24) BETWEEN 0 AND 5
+            THEN '00:00 - 05:59'
+        WHEN MOD(FLOOR(Time / 3600), 24) BETWEEN 6 AND 11
+            THEN '06:00 - 11:59'
+        WHEN MOD(FLOOR(Time / 3600), 24) BETWEEN 12 AND 17
+            THEN '12:00 - 17:59'
+        ELSE '18:00 - 23:59'
+    END AS time_window,
+
+    COUNT(*) AS total_transactions,
+
+    SUM(CASE WHEN Class = 1 THEN 1 ELSE 0 END)
+        AS fraudulent_transactions,
+
+    ROUND(
+        100.0 * SUM(CASE WHEN Class = 1 THEN 1 ELSE 0 END) / COUNT(*),
+        4
+    ) AS fraud_rate_percentage,
+
+    ROUND(
+        SUM(CASE WHEN Class = 1 THEN Amount ELSE 0 END),
+        2
+    ) AS fraudulent_amount
+
+FROM credit_card_transactions
+GROUP BY time_window
+ORDER BY
+    CASE time_window
+        WHEN '00:00 - 05:59' THEN 1
+        WHEN '06:00 - 11:59' THEN 2
+        WHEN '12:00 - 17:59' THEN 3
+        WHEN '18:00 - 23:59' THEN 4
+    END;
+
+
+-- 23. Fraud Statistics by Repeated Hour of Day
+SELECT
+    MOD(FLOOR(Time / 3600), 24) AS hour_of_day,
+
+    COUNT(*) AS total_transactions,
+
+    SUM(CASE WHEN Class = 1 THEN 1 ELSE 0 END)
+        AS fraudulent_transactions,
+
+    ROUND(
+        100.0 * SUM(CASE WHEN Class = 1 THEN 1 ELSE 0 END) / COUNT(*),
+        4
+    ) AS fraud_rate_percentage,
+
+    ROUND(
+        SUM(CASE WHEN Class = 1 THEN Amount ELSE 0 END),
+        2
+    ) AS fraudulent_amount
+
+FROM credit_card_transactions
+GROUP BY hour_of_day
+ORDER BY hour_of_day;
+
+
+-- 24. Peak Hour for Fraud Count, Rate, and Amount
+WITH hourly_fraud AS (
+    SELECT
+        FLOOR(Time / 3600) AS hour_since_start,
+        COUNT(*) AS total_transactions,
+        SUM(CASE WHEN Class = 1 THEN 1 ELSE 0 END)
+            AS fraudulent_transactions,
+        100.0 *
+            SUM(CASE WHEN Class = 1 THEN 1 ELSE 0 END)
+            / COUNT(*) AS fraud_rate_percentage,
+        SUM(CASE WHEN Class = 1 THEN Amount ELSE 0 END)
+            AS fraudulent_amount
+    FROM credit_card_transactions
+    GROUP BY hour_since_start
+)
+
+SELECT
+    'Highest Fraud Count' AS metric,
+    hour_since_start,
+    fraudulent_transactions,
+    ROUND(fraud_rate_percentage, 4) AS fraud_rate_percentage,
+    ROUND(fraudulent_amount, 2) AS fraudulent_amount
+FROM hourly_fraud
+ORDER BY fraudulent_transactions DESC
+LIMIT 1;
