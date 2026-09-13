@@ -221,3 +221,148 @@ The **12:00-17:59** window generated the largest fraudulent transaction value at
 The `Time` field represents elapsed seconds from the first transaction in the dataset rather than an actual calendar timestamp.
 
 Therefore, labels such as `00:00 - 05:59` represent positions within a repeated 24-hour transaction cycle and should not be interpreted as confirmed real-world clock times or specific times of day.
+
+---
+
+## Day 4 - Fraud Feature & Behavioral Risk Analysis
+
+### PCA Feature Separation
+
+The anonymized PCA features showed substantial differences between legitimate and fraudulent transactions.
+
+Ranking the features by the absolute difference between their average values identified the strongest separation in:
+
+| Rank | Feature | Absolute Average Difference |
+|---|---|---:|
+| 1 | V3 | 7.0455 |
+| 2 | V14 | 6.9838 |
+| 3 | V17 | 6.6774 |
+| 4 | V12 | 6.2702 |
+| 5 | V10 | 5.6867 |
+| 6 | V7 | 5.5784 |
+| 7 | V1 | 4.7802 |
+| 8 | V4 | 4.5499 |
+| 9 | V16 | 4.1471 |
+| 10 | V11 | 3.8067 |
+
+V3 produced the largest average separation between legitimate and fraudulent transactions, followed closely by V14 and V17.
+
+### Fraud vs Legitimate Feature Profiles
+
+Several of the strongest features showed large differences between the two transaction classes.
+
+For V3:
+
+- Legitimate average: **0.0122**
+- Fraud average: **-7.0333**
+- Legitimate median: **0.1822**
+- Fraud median: **-5.0753**
+
+For V14:
+
+- Legitimate average: **0.0121**
+- Fraud average: **-6.9717**
+- Legitimate median: **0.0519**
+- Fraud median: **-6.7297**
+
+For V17:
+
+- Legitimate average: **0.0115**
+- Fraud average: **-6.6658**
+- Legitimate median: **-0.0648**
+- Fraud median: **-5.3029**
+
+Both average and median values show substantial separation, suggesting these anonymized features contain strong signals associated with fraud classification.
+
+### V14 Risk Segmentation
+
+Transactions were divided into four equal-sized groups based on V14 values.
+
+The lowest V14 quartile contained:
+
+- **71,202 total transactions**
+- **463 fraudulent transactions**
+- Fraud rate: **0.6503%**
+- Fraudulent transaction value: **$52,896.91**
+
+The remaining V14 quartiles contained only 29 fraud transactions combined.
+
+This means approximately **94.1% of all fraud cases** were concentrated in the lowest V14 quartile.
+
+The lowest V14 quartile also contained approximately **88.0% of total fraudulent transaction value**.
+
+### V17 Risk Segmentation
+
+The lowest V17 quartile also showed substantial fraud concentration:
+
+- **71,202 total transactions**
+- **381 fraudulent transactions**
+- Fraud rate: **0.5351%**
+- Fraudulent transaction value: **$47,647.37**
+
+Approximately **77.4% of all fraud cases** occurred in the lowest V17 quartile.
+
+Unlike V14, however, the highest V17 quartile still contained **83 fraud transactions**, showing that V17 alone does not capture all fraudulent activity.
+
+### Combined V14 and V17 Risk Segment
+
+A particularly strong pattern emerged when the two features were combined.
+
+Transactions falling into both the lowest V14 and lowest V17 quartiles produced:
+
+- **10,194 total transactions**
+- **372 fraudulent transactions**
+- Fraud rate: **3.6492%**
+- Fraudulent transaction value: **$46,646.49**
+
+All other transactions combined contained:
+
+- **274,613 total transactions**
+- **120 fraudulent transactions**
+- Fraud rate: **0.0437%**
+- Fraudulent transaction value: **$13,481.48**
+
+Therefore, the combined low-V14/low-V17 segment represented only approximately **3.6% of all transactions**, while capturing approximately **75.6% of all fraud cases**.
+
+The fraud rate in this segment was more than **80 times higher** than the fraud rate among all other transactions.
+
+It also captured approximately **77.6% of total fraudulent transaction value**.
+
+### High-Value Fraudulent Transactions
+
+Ranking fraudulent transactions by transaction amount showed that many high-value fraud cases also had strongly negative V14 and/or V17 values.
+
+The largest fraudulent transaction was **$2,125.87**, although its V14 and V17 values did not follow the strongly negative pattern seen in many other high-value fraud cases.
+
+Other examples included:
+
+- **$1,809.68** with V14 = -3.7380 and V17 = -5.1361
+- **$1,504.93** with V14 = -6.1062 and V17 = -2.0841
+- **$1,402.16** with V14 = -6.0434 and V17 = -10.0756
+- **$1,218.89** with V14 = -10.1402 and V17 = -17.5066
+
+This demonstrates that strong feature signals can identify many high-risk transactions, but no single feature pattern captures every fraudulent transaction.
+
+### Key Findings
+
+1. V3, V14, V17, V12, and V10 produced the five largest average differences between legitimate and fraudulent transactions.
+
+2. V14 showed particularly strong fraud concentration, with approximately **94.1% of all fraud cases** occurring in its lowest quartile.
+
+3. The lowest V17 quartile captured approximately **77.4% of fraudulent transactions**.
+
+4. Combining V14 and V17 created a much more concentrated risk segment: only approximately **3.6% of transactions** accounted for approximately **75.6% of all fraud cases**.
+
+5. The combined low-V14/low-V17 segment recorded a **3.6492% fraud rate**, compared with only **0.0437%** among all other transactions.
+
+6. Approximately **$46.65K of the dataset's $60.13K fraudulent transaction value** was concentrated in the combined high-risk segment.
+
+7. Feature-based segmentation provides significantly stronger fraud discrimination than transaction amount alone, demonstrating the value of combining behavioral signals with transaction-level characteristics.
+
+### Analytical Note
+
+The features V1 through V28 are anonymized PCA-transformed variables.
+
+Their original business meanings are not available in the dataset. Therefore, this analysis evaluates their statistical relationship with fraud but does not assign real-world interpretations such as customer behavior, merchant type, geography, or transaction channel to individual PCA features.
+
+The identified relationships represent descriptive associations within this dataset and should not be interpreted as proof that individual features independently cause or perfectly predict fraudulent activity.
