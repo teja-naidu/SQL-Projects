@@ -366,3 +366,132 @@ The features V1 through V28 are anonymized PCA-transformed variables.
 Their original business meanings are not available in the dataset. Therefore, this analysis evaluates their statistical relationship with fraud but does not assign real-world interpretations such as customer behavior, merchant type, geography, or transaction channel to individual PCA features.
 
 The identified relationships represent descriptive associations within this dataset and should not be interpreted as proof that individual features independently cause or perfectly predict fraudulent activity.
+
+---
+
+## Day 5 - Final Fraud Risk Segmentation & Executive Summary
+
+### Multi-Factor Risk Segmentation
+
+A final analytical risk segmentation was created using V14, V17, and transaction amount.
+
+Transactions were classified into four analytical segments:
+
+- Critical Risk
+- High Risk
+- Elevated Risk
+- Standard Risk
+
+These categories were created specifically for this portfolio analysis and do not represent a production fraud policy or financial institution risk framework.
+
+### Risk Segment Performance
+
+| Risk Segment | Transactions | Fraud Transactions | Fraud Rate | Fraudulent Amount |
+|---|---:|---:|---:|---:|
+| Critical Risk | 2,004 | 104 | 5.1896% | $40,215.87 |
+| High Risk | 8,190 | 268 | 3.2723% | $6,430.62 |
+| Elevated Risk | 122,016 | 100 | 0.0820% | $7,251.30 |
+| Standard Risk | 152,597 | 20 | 0.0131% | $6,230.18 |
+
+The Critical Risk segment recorded the highest fraud rate at **5.1896%**, substantially above the overall dataset fraud rate of **0.1727%**.
+
+### Fraud Capture Efficiency
+
+The High Risk segment represented only **2.88% of all transactions** but captured **54.47% of all fraud cases**.
+
+The Critical Risk segment represented only **0.70% of transactions** while capturing another **21.14% of fraud cases**.
+
+Combined, Critical Risk and High Risk contained:
+
+- **10,194 transactions**
+- Approximately **3.58% of the transaction population**
+- **372 fraudulent transactions**
+- Approximately **75.61% of all fraud cases**
+
+This demonstrates that a relatively small transaction population contained the majority of fraudulent activity.
+
+### Fraudulent Value Concentration
+
+The Critical Risk segment alone accounted for:
+
+- **$40,215.87** in fraudulent transaction value
+- **66.88% of total fraudulent value**
+
+Fraud value capture across the remaining segments was:
+
+- Elevated Risk: **12.06%**
+- High Risk: **10.69%**
+- Standard Risk: **10.36%**
+
+Critical Risk therefore represented a particularly important segment from a financial exposure perspective.
+
+### Combined V14/V17 Risk Signal
+
+The broader combined low-V14 and low-V17 population contained:
+
+- **10,194 transactions**
+- **372 fraud cases**
+- **$46,646.49** in fraudulent transaction value
+
+This represented approximately:
+
+- **3.58% of all transactions**
+- **75.61% of all fraud cases**
+- **77.58% of total fraudulent transaction value**
+
+The result demonstrates strong fraud concentration within a relatively small subset of the overall transaction population.
+
+### Transaction Amount Profile
+
+The Critical Risk segment also had the highest transaction amounts:
+
+- Average transaction amount: **$423.07**
+- Median transaction amount: **$211.67**
+- Maximum transaction amount: **$25,691.16**
+
+The High Risk segment, in comparison, had:
+
+- Average transaction amount: **$23.44**
+- Median transaction amount: **$11.98**
+- Maximum transaction amount: **$100.00**
+
+This shows that fraud risk can appear across very different transaction-value profiles.
+
+### Overall Portfolio Summary
+
+Across the full dataset:
+
+- Total transactions: **284,807**
+- Fraudulent transactions: **492**
+- Overall fraud rate: **0.1727%**
+- Total transaction value: **$25,162,590.01**
+- Total fraudulent transaction value: **$60,127.97**
+- Fraudulent value represented approximately **0.2390%** of total transaction value.
+
+### Final Key Findings
+
+1. Fraud was extremely rare at the portfolio level, representing only **0.1727% of transactions**.
+
+2. Transaction amount alone was insufficient for identifying fraud because fraudulent activity occurred across both small and large transaction values.
+
+3. V3, V14, V17, V12, and V10 showed the largest average differences between legitimate and fraudulent transactions.
+
+4. V14 and V17 together provided particularly strong fraud segmentation.
+
+5. Approximately **3.58% of transactions captured 75.61% of all fraud cases** when the lowest V14 and V17 quartiles were combined.
+
+6. The same population captured approximately **77.58% of total fraudulent transaction value**.
+
+7. The Critical Risk segment recorded a **5.1896% fraud rate**, approximately 30 times the overall portfolio fraud rate.
+
+8. High fraud count, fraud probability, and financial exposure are different dimensions of risk and should be evaluated together.
+
+9. Multi-factor segmentation produced substantially stronger fraud concentration than using transaction amount alone.
+
+10. A practical fraud-monitoring strategy could prioritize highly concentrated risk segments for further investigation while still maintaining broader controls for fraud cases outside those segments.
+
+### Final Analytical Note
+
+This project is a descriptive SQL analytics exercise rather than a production fraud detection model.
+
+The V1-V28 variables are anonymized PCA-transformed features, so their original business meanings are unavailable. The analytical risk segments used in this project were created to demonstrate SQL-based segmentation and should not be interpreted as production fraud rules or causal relationships.
