@@ -888,3 +888,371 @@ SELECT
 FROM fraud_rankings
 ORDER BY amount_rank
 LIMIT 15;
+
+-- ============================================================
+-- Day 5: Final Fraud Risk Segmentation & Executive Summary
+-- ============================================================
+
+
+-- 33. Build Multi-Factor Fraud Risk Segments
+WITH transaction_features AS (
+    SELECT
+        Amount,
+        Class,
+        V14,
+        V17,
+
+        NTILE(4) OVER (ORDER BY V14) AS v14_quartile,
+        NTILE(4) OVER (ORDER BY V17) AS v17_quartile
+
+    FROM credit_card_transactions
+),
+
+risk_classification AS (
+    SELECT
+        *,
+        CASE
+            WHEN v14_quartile = 1
+                 AND v17_quartile = 1
+                 AND Amount > 100
+                THEN 'Critical Risk'
+
+            WHEN v14_quartile = 1
+                 AND v17_quartile = 1
+                THEN 'High Risk'
+
+            WHEN v14_quartile = 1
+                 OR v17_quartile = 1
+                THEN 'Elevated Risk'
+
+            ELSE 'Standard Risk'
+        END AS risk_segment
+
+    FROM transaction_features
+)
+
+SELECT
+    risk_segment,
+    COUNT(*) AS total_transactions,
+
+    SUM(CASE WHEN Class = 1 THEN 1 ELSE 0 END)
+        AS fraudulent_transactions,
+
+    ROUND(
+        100.0 *
+        SUM(CASE WHEN Class = 1 THEN 1 ELSE 0 END)
+        / COUNT(*),
+        4
+    ) AS fraud_rate_percentage,
+
+    ROUND(
+        SUM(CASE WHEN Class = 1 THEN Amount ELSE 0 END),
+        2
+    ) AS fraudulent_amount
+
+FROM risk_classification
+GROUP BY risk_segment
+ORDER BY fraud_rate_percentage DESC;
+
+
+-- 34. Fraud Capture Rate by Risk Segment
+WITH transaction_features AS (
+    SELECT
+        Amount,
+        Class,
+
+        NTILE(4) OVER (ORDER BY V14) AS v14_quartile,
+        NTILE(4) OVER (ORDER BY V17) AS v17_quartile
+
+    FROM credit_card_transactions
+),
+
+risk_classification AS (
+    SELECT
+        *,
+        CASE
+            WHEN v14_quartile = 1
+                 AND v17_quartile = 1
+                 AND Amount > 100
+                THEN 'Critical Risk'
+
+            WHEN v14_quartile = 1
+                 AND v17_quartile = 1
+                THEN 'High Risk'
+
+            WHEN v14_quartile = 1
+                 OR v17_quartile = 1
+                THEN 'Elevated Risk'
+
+            ELSE 'Standard Risk'
+        END AS risk_segment
+
+    FROM transaction_features
+),
+
+segment_summary AS (
+    SELECT
+        risk_segment,
+        COUNT(*) AS total_transactions,
+        SUM(CASE WHEN Class = 1 THEN 1 ELSE 0 END)
+            AS fraudulent_transactions
+    FROM risk_classification
+    GROUP BY risk_segment
+)
+
+SELECT
+    risk_segment,
+    total_transactions,
+    fraudulent_transactions,
+
+    ROUND(
+        100.0 * total_transactions /
+        SUM(total_transactions) OVER (),
+        2
+    ) AS transaction_share_percentage,
+
+    ROUND(
+        100.0 * fraudulent_transactions /
+        SUM(fraudulent_transactions) OVER (),
+        2
+    ) AS fraud_capture_percentage
+
+FROM segment_summary
+ORDER BY fraud_capture_percentage DESC;
+
+
+-- 35. Fraud Value Capture by Risk Segment
+WITH transaction_features AS (
+    SELECT
+        Amount,
+        Class,
+
+        NTILE(4) OVER (ORDER BY V14) AS v14_quartile,
+        NTILE(4) OVER (ORDER BY V17) AS v17_quartile
+
+    FROM credit_card_transactions
+),
+
+risk_classification AS (
+    SELECT
+        *,
+        CASE
+            WHEN v14_quartile = 1
+                 AND v17_quartile = 1
+                 AND Amount > 100
+                THEN 'Critical Risk'
+
+            WHEN v14_quartile = 1
+                 AND v17_quartile = 1
+                THEN 'High Risk'
+
+            WHEN v14_quartile = 1
+                 OR v17_quartile = 1
+                THEN 'Elevated Risk'
+
+            ELSE 'Standard Risk'
+        END AS risk_segment
+
+    FROM transaction_features
+),
+
+segment_values AS (
+    SELECT
+        risk_segment,
+
+        SUM(
+            CASE
+                WHEN Class = 1 THEN Amount
+                ELSE 0
+            END
+        ) AS fraudulent_amount
+
+    FROM risk_classification
+    GROUP BY risk_segment
+)
+
+SELECT
+    risk_segment,
+
+    ROUND(fraudulent_amount, 2)
+        AS fraudulent_amount,
+
+    ROUND(
+        100.0 * fraudulent_amount /
+        SUM(fraudulent_amount) OVER (),
+        2
+    ) AS fraud_value_capture_percentage
+
+FROM segment_values
+ORDER BY fraudulent_amount DESC;
+
+
+-- 36. Amount Profile by Risk Segment
+WITH transaction_features AS (
+    SELECT
+        Amount,
+        Class,
+
+        NTILE(4) OVER (ORDER BY V14) AS v14_quartile,
+        NTILE(4) OVER (ORDER BY V17) AS v17_quartile
+
+    FROM credit_card_transactions
+),
+
+risk_classification AS (
+    SELECT
+        *,
+        CASE
+            WHEN v14_quartile = 1
+                 AND v17_quartile = 1
+                 AND Amount > 100
+                THEN 'Critical Risk'
+
+            WHEN v14_quartile = 1
+                 AND v17_quartile = 1
+                THEN 'High Risk'
+
+            WHEN v14_quartile = 1
+                 OR v17_quartile = 1
+                THEN 'Elevated Risk'
+
+            ELSE 'Standard Risk'
+        END AS risk_segment
+
+    FROM transaction_features
+)
+
+SELECT
+    risk_segment,
+
+    COUNT(*) AS total_transactions,
+
+    ROUND(AVG(Amount), 2)
+        AS average_transaction_amount,
+
+    ROUND(MEDIAN(Amount), 2)
+        AS median_transaction_amount,
+
+    ROUND(MAX(Amount), 2)
+        AS maximum_transaction_amount
+
+FROM risk_classification
+GROUP BY risk_segment
+ORDER BY average_transaction_amount DESC;
+
+
+-- 37. Overall Portfolio Fraud Summary
+SELECT
+    COUNT(*) AS total_transactions,
+
+    SUM(CASE WHEN Class = 1 THEN 1 ELSE 0 END)
+        AS total_fraud_transactions,
+
+    ROUND(
+        100.0 *
+        SUM(CASE WHEN Class = 1 THEN 1 ELSE 0 END)
+        / COUNT(*),
+        4
+    ) AS overall_fraud_rate,
+
+    ROUND(SUM(Amount), 2)
+        AS total_transaction_value,
+
+    ROUND(
+        SUM(CASE WHEN Class = 1 THEN Amount ELSE 0 END),
+        2
+    ) AS total_fraud_value,
+
+    ROUND(
+        100.0 *
+        SUM(CASE WHEN Class = 1 THEN Amount ELSE 0 END)
+        / SUM(Amount),
+        4
+    ) AS fraud_value_percentage
+
+FROM credit_card_transactions;
+
+
+-- 38. Final Risk Monitoring Summary
+WITH transaction_features AS (
+    SELECT
+        Amount,
+        Class,
+
+        NTILE(4) OVER (ORDER BY V14) AS v14_quartile,
+        NTILE(4) OVER (ORDER BY V17) AS v17_quartile
+
+    FROM credit_card_transactions
+),
+
+summary AS (
+    SELECT
+        COUNT(*) AS total_transactions,
+
+        SUM(CASE WHEN Class = 1 THEN 1 ELSE 0 END)
+            AS total_fraud,
+
+        SUM(
+            CASE
+                WHEN v14_quartile = 1
+                     AND v17_quartile = 1
+                THEN 1 ELSE 0
+            END
+        ) AS combined_risk_transactions,
+
+        SUM(
+            CASE
+                WHEN Class = 1
+                     AND v14_quartile = 1
+                     AND v17_quartile = 1
+                THEN 1 ELSE 0
+            END
+        ) AS fraud_captured,
+
+        SUM(
+            CASE
+                WHEN Class = 1
+                     AND v14_quartile = 1
+                     AND v17_quartile = 1
+                THEN Amount ELSE 0
+            END
+        ) AS fraud_value_captured,
+
+        SUM(
+            CASE
+                WHEN Class = 1
+                THEN Amount ELSE 0
+            END
+        ) AS total_fraud_value
+
+    FROM transaction_features
+)
+
+SELECT
+    total_transactions,
+    total_fraud,
+    combined_risk_transactions,
+    fraud_captured,
+
+    ROUND(
+        100.0 * combined_risk_transactions /
+        total_transactions,
+        2
+    ) AS transaction_population_percentage,
+
+    ROUND(
+        100.0 * fraud_captured /
+        total_fraud,
+        2
+    ) AS fraud_capture_percentage,
+
+    ROUND(fraud_value_captured, 2)
+        AS fraud_value_captured,
+
+    ROUND(
+        100.0 * fraud_value_captured /
+        total_fraud_value,
+        2
+    ) AS fraud_value_capture_percentage
+
+FROM summary;
