@@ -196,3 +196,110 @@ Repeat users represent the majority of the customer base, providing an opportuni
 Device behavior is relatively balanced, while referral-source performance requires conversion-rate analysis rather than comparison based solely on purchase volume.
 
 These findings establish the behavioral foundation for detailed conversion funnel and stage-level drop-off analysis.
+
+---
+
+## Day 3 – Conversion Funnel & Drop-Off Analysis
+
+### Overall Conversion Funnel
+
+The session-level customer journey shows a progressive decline as users move through the purchasing funnel:
+
+- Home: 5,000 sessions (100.00%)
+- Product Page: 3,987 sessions (79.74%)
+- Cart: 1,599 sessions (31.98%)
+- Checkout: 1,123 sessions (22.46%)
+- Confirmation: 1,010 sessions (20.20%)
+
+Out of 5,000 total sessions, 1,010 completed a purchase, producing an overall session conversion rate of 20.20%.
+
+### Stage-to-Stage Funnel Performance
+
+The conversion and drop-off rates between funnel stages were:
+
+| Funnel Transition | Conversion Rate | Drop-Off Rate |
+|---|---:|---:|
+| Home → Product Page | 79.74% | 20.26% |
+| Product Page → Cart | 40.11% | 59.89% |
+| Cart → Checkout | 70.23% | 29.77% |
+| Checkout → Confirmation | 89.94% | 10.06% |
+
+The Product Page → Cart transition represents the largest funnel bottleneck.
+
+Only 40.11% of product-page sessions progressed to the cart, while 59.89% abandoned the journey at this stage.
+
+### Product Page Abandonment
+
+A total of 3,987 sessions reached a product page.
+
+Of these, 2,388 sessions did not continue to the cart, resulting in a product-page abandonment rate of 59.89%.
+
+This represents the largest loss of potential customers within the conversion funnel.
+
+From a business perspective, product-page experience, product information, pricing, purchase intent, and add-to-cart behavior would be important areas for further investigation. The dataset identifies the location of the drop-off but does not establish its cause.
+
+### Cart Abandonment
+
+A total of 1,599 sessions reached the cart.
+
+Of these, 476 sessions did not proceed to checkout.
+
+This resulted in a cart abandonment rate of 29.77%.
+
+Although cart abandonment remains significant, the loss is considerably smaller than the Product Page → Cart drop-off.
+
+### Checkout Abandonment
+
+A total of 1,123 sessions reached checkout, and 1,010 continued through purchase confirmation.
+
+Only 113 sessions abandoned the journey during checkout.
+
+The checkout abandonment rate was 10.06%, meaning 89.94% of sessions that reached checkout successfully progressed to confirmation.
+
+This indicates that the later portion of the purchase funnel performs substantially better than the earlier product-to-cart stage.
+
+### Device Conversion Performance
+
+Conversion rates were highly consistent across device types:
+
+- Desktop: 20.35%
+- Mobile: 20.17%
+- Tablet: 20.08%
+
+The narrow difference between device conversion rates suggests that no single device category shows a major conversion disadvantage within this dataset.
+
+### Referral Source Conversion
+
+Session-level conversion rates by referral source were:
+
+- Google: 21.64%
+- Email: 20.06%
+- Direct: 19.82%
+- Social Media: 19.23%
+
+Google recorded both the highest traffic volume and the highest observed conversion rate among the four referral sources.
+
+The difference between the highest and lowest referral conversion rates, however, is relatively modest.
+
+### Repeat vs Single-Session Users
+
+Repeat-user sessions recorded a conversion rate of 20.28%, compared with 19.36% for sessions belonging to single-session users.
+
+The results show a slightly higher observed conversion rate among repeat users, although the difference is less than one percentage point.
+
+### Day 3 Business Insights
+
+The funnel analysis identifies the Product Page → Cart transition as the primary conversion bottleneck.
+
+Nearly 60% of sessions reaching a product page fail to progress to the cart, representing 2,388 lost sessions.
+
+Once customers enter the cart, progression improves considerably:
+
+- 70.23% continue from Cart → Checkout
+- 89.94% continue from Checkout → Confirmation
+
+Therefore, the largest opportunity indicated by the funnel is improving progression from product consideration to cart addition rather than focusing only on the checkout process.
+
+Device conversion rates are nearly identical, while referral-source conversion varies modestly, with Google recording the highest observed rate.
+
+Overall, the platform converts 20.20% of sessions into completed purchases, providing a clear baseline for subsequent customer-segment and channel-level analysis.
