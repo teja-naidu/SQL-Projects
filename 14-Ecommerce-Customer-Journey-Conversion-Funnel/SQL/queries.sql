@@ -648,3 +648,276 @@ JOIN user_sessions u
     ON s.UserID = u.UserID
 GROUP BY user_type
 ORDER BY conversion_rate_percentage DESC;
+
+
+-- ============================================================
+-- Day 4: Segment, Channel & Trend Analysis
+-- ============================================================
+
+
+-- 31. Conversion Rate by Country
+WITH session_metrics AS (
+    SELECT
+        SessionID,
+        MAX(Country) AS country,
+        MAX(Purchased) AS purchased
+    FROM customer_journey
+    GROUP BY SessionID
+)
+SELECT
+    country,
+    COUNT(*) AS total_sessions,
+    SUM(purchased) AS purchased_sessions,
+    ROUND(
+        SUM(purchased) * 100.0 / COUNT(*),
+        2
+    ) AS conversion_rate_percentage
+FROM session_metrics
+GROUP BY country
+ORDER BY conversion_rate_percentage DESC;
+
+
+-- 32. Conversion by Device and Referral Source
+WITH session_metrics AS (
+    SELECT
+        SessionID,
+        MAX(DeviceType) AS device_type,
+        MAX(ReferralSource) AS referral_source,
+        MAX(Purchased) AS purchased
+    FROM customer_journey
+    GROUP BY SessionID
+)
+SELECT
+    device_type,
+    referral_source,
+    COUNT(*) AS total_sessions,
+    SUM(purchased) AS purchased_sessions,
+    ROUND(
+        SUM(purchased) * 100.0 / COUNT(*),
+        2
+    ) AS conversion_rate_percentage
+FROM session_metrics
+GROUP BY device_type, referral_source
+ORDER BY conversion_rate_percentage DESC;
+
+
+-- 33. Monthly Traffic and Conversion Trend
+WITH session_metrics AS (
+    SELECT
+        SessionID,
+        DATE_TRUNC('month', MIN(Timestamp)) AS session_month,
+        MAX(Purchased) AS purchased
+    FROM customer_journey
+    GROUP BY SessionID
+)
+SELECT
+    session_month,
+    COUNT(*) AS total_sessions,
+    SUM(purchased) AS purchased_sessions,
+    ROUND(
+        SUM(purchased) * 100.0 / COUNT(*),
+        2
+    ) AS conversion_rate_percentage
+FROM session_metrics
+GROUP BY session_month
+ORDER BY session_month;
+
+
+-- 34. Day-of-Week Conversion Performance
+WITH session_metrics AS (
+    SELECT
+        SessionID,
+        MIN(Timestamp) AS session_start,
+        MAX(Purchased) AS purchased
+    FROM customer_journey
+    GROUP BY SessionID
+)
+SELECT
+    DAYNAME(session_start) AS day_of_week,
+    COUNT(*) AS total_sessions,
+    SUM(purchased) AS purchased_sessions,
+    ROUND(
+        SUM(purchased) * 100.0 / COUNT(*),
+        2
+    ) AS conversion_rate_percentage
+FROM session_metrics
+GROUP BY
+    DAYNAME(session_start),
+    DAYOFWEEK(session_start)
+ORDER BY DAYOFWEEK(session_start);
+
+
+-- 35. Conversion by Time of Day
+WITH session_metrics AS (
+    SELECT
+        SessionID,
+        MIN(Timestamp) AS session_start,
+        MAX(Purchased) AS purchased
+    FROM customer_journey
+    GROUP BY SessionID
+)
+SELECT
+    CASE
+        WHEN EXTRACT(HOUR FROM session_start) BETWEEN 0 AND 5
+            THEN 'Late Night'
+        WHEN EXTRACT(HOUR FROM session_start) BETWEEN 6 AND 11
+            THEN 'Morning'
+        WHEN EXTRACT(HOUR FROM session_start) BETWEEN 12 AND 17
+            THEN 'Afternoon'
+        ELSE 'Evening'
+    END AS time_period,
+    COUNT(*) AS total_sessions,
+    SUM(purchased) AS purchased_sessions,
+    ROUND(
+        SUM(purchased) * 100.0 / COUNT(*),
+        2
+    ) AS conversion_rate_percentage
+FROM session_metrics
+GROUP BY time_period
+ORDER BY conversion_rate_percentage DESC;
+
+
+-- 36. Conversion by Number of Events in Session
+WITH session_metrics AS (
+    SELECT
+        SessionID,
+        COUNT(*) AS events_in_session,
+        MAX(Purchased) AS purchased
+    FROM customer_journey
+    GROUP BY SessionID
+)
+SELECT
+    events_in_session,
+    COUNT(*) AS total_sessions,
+    SUM(purchased) AS purchased_sessions,
+    ROUND(
+        SUM(purchased) * 100.0 / COUNT(*),
+        2
+    ) AS conversion_rate_percentage
+FROM session_metrics
+GROUP BY events_in_session
+ORDER BY events_in_session;
+
+
+-- 37. Conversion by Total Engagement Time
+WITH session_metrics AS (
+    SELECT
+        SessionID,
+        SUM(TimeOnPage_seconds) AS total_engagement_seconds,
+        MAX(Purchased) AS purchased
+    FROM customer_journey
+    GROUP BY SessionID
+),
+engagement_segments AS (
+    SELECT
+        *,
+        CASE
+            WHEN total_engagement_seconds < 120
+                THEN 'Under 2 Minutes'
+            WHEN total_engagement_seconds < 300
+                THEN '2-5 Minutes'
+            WHEN total_engagement_seconds < 600
+                THEN '5-10 Minutes'
+            ELSE '10+ Minutes'
+        END AS engagement_segment
+    FROM session_metrics
+)
+SELECT
+    engagement_segment,
+    COUNT(*) AS total_sessions,
+    SUM(purchased) AS purchased_sessions,
+    ROUND(
+        SUM(purchased) * 100.0 / COUNT(*),
+        2
+    ) AS conversion_rate_percentage
+FROM engagement_segments
+GROUP BY engagement_segment
+ORDER BY conversion_rate_percentage DESC;
+
+
+-- 38. Product-to-Cart Rate by Country
+WITH session_funnel AS (
+    SELECT
+        SessionID,
+        MAX(Country) AS country,
+        MAX(CASE
+            WHEN PageType = 'product_page' THEN 1
+            ELSE 0
+        END) AS reached_product,
+        MAX(CASE
+            WHEN PageType = 'cart' THEN 1
+            ELSE 0
+        END) AS reached_cart
+    FROM customer_journey
+    GROUP BY SessionID
+)
+SELECT
+    country,
+    SUM(reached_product) AS product_sessions,
+    SUM(reached_cart) AS cart_sessions,
+    ROUND(
+        SUM(reached_cart) * 100.0 /
+        NULLIF(SUM(reached_product), 0),
+        2
+    ) AS product_to_cart_rate_percentage
+FROM session_funnel
+GROUP BY country
+ORDER BY product_to_cart_rate_percentage DESC;
+
+
+-- 39. Cart-to-Purchase Rate by Referral Source
+WITH session_funnel AS (
+    SELECT
+        SessionID,
+        MAX(ReferralSource) AS referral_source,
+        MAX(CASE
+            WHEN PageType = 'cart' THEN 1
+            ELSE 0
+        END) AS reached_cart,
+        MAX(Purchased) AS purchased
+    FROM customer_journey
+    GROUP BY SessionID
+)
+SELECT
+    referral_source,
+    SUM(reached_cart) AS cart_sessions,
+    SUM(purchased) AS purchased_sessions,
+    ROUND(
+        SUM(purchased) * 100.0 /
+        NULLIF(SUM(reached_cart), 0),
+        2
+    ) AS cart_to_purchase_rate_percentage
+FROM session_funnel
+GROUP BY referral_source
+ORDER BY cart_to_purchase_rate_percentage DESC;
+
+
+-- 40. Monthly Funnel Performance
+WITH session_funnel AS (
+    SELECT
+        SessionID,
+        DATE_TRUNC('month', MIN(Timestamp)) AS session_month,
+        MAX(CASE WHEN PageType = 'product_page' THEN 1 ELSE 0 END)
+            AS reached_product,
+        MAX(CASE WHEN PageType = 'cart' THEN 1 ELSE 0 END)
+            AS reached_cart,
+        MAX(CASE WHEN PageType = 'checkout' THEN 1 ELSE 0 END)
+            AS reached_checkout,
+        MAX(Purchased) AS purchased
+    FROM customer_journey
+    GROUP BY SessionID
+)
+SELECT
+    session_month,
+    COUNT(*) AS total_sessions,
+    SUM(reached_product) AS product_sessions,
+    SUM(reached_cart) AS cart_sessions,
+    SUM(reached_checkout) AS checkout_sessions,
+    SUM(purchased) AS purchased_sessions,
+    ROUND(
+        SUM(purchased) * 100.0 / COUNT(*),
+        2
+    ) AS conversion_rate_percentage
+FROM session_funnel
+GROUP BY session_month
+ORDER BY session_month;
