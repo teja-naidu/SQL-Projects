@@ -453,3 +453,178 @@ Monthly conversion remained relatively stable, suggesting no major sustained det
 Most importantly, the Product Page → Cart bottleneck identified in Day 3 appears across countries rather than being concentrated in one geographic market.
 
 Engagement depth and session duration are strongly associated with conversion, but these metrics are also consequences of progressing further through the funnel and should not be interpreted as causal drivers of purchase behavior.
+
+---
+
+## Day 5 – Executive KPI & Funnel Opportunity Analysis
+
+### Executive KPI Summary
+
+The final analysis covers:
+
+- 5,000 customer sessions
+- 1,872 unique users
+- 1,010 purchased sessions
+- 3,990 non-purchased sessions
+- 20.20% overall session conversion rate
+- 2.54 average events per session
+- 247.84 average engagement seconds per session
+- 1.74 average maximum cart items per session
+
+These metrics provide the overall baseline for evaluating customer journey and funnel performance.
+
+### Funnel Loss Summary
+
+The number of sessions lost at each transition was:
+
+| Funnel Transition | Lost Sessions | Drop-Off Rate |
+|---|---:|---:|
+| Product Page → Cart | 2,388 | 59.89% |
+| Home → Product Page | 1,013 | 20.26% |
+| Cart → Checkout | 476 | 29.77% |
+| Checkout → Confirmation | 113 | 10.06% |
+
+The Product Page → Cart transition generated the largest absolute and percentage loss in the funnel.
+
+### Distribution of Non-Conversions
+
+Among the 3,990 sessions that did not convert:
+
+- Product Page exits: 2,388 (59.85%)
+- Home exits: 1,013 (25.39%)
+- Cart exits: 476 (11.93%)
+- Checkout exits: 113 (2.83%)
+
+Nearly 60% of all non-converted sessions exited after reaching the product page.
+
+This reinforces the Product Page → Cart transition as the primary funnel opportunity identified in the analysis.
+
+### Product-to-Cart Improvement Scenario
+
+The current Product Page → Cart rate is 40.11%.
+
+A scenario analysis was performed to estimate the potential impact of increasing this rate to 45%, while holding the observed downstream Cart → Purchase behavior constant.
+
+Under this assumption:
+
+- Current Product Sessions: 3,987
+- Current Cart Sessions: 1,599
+- Current Purchases: 1,010
+- Estimated Purchases at 45% Product-to-Cart Rate: 1,133
+- Estimated Incremental Purchases: 123
+
+This represents approximately 123 additional purchases over the observed dataset period under the scenario assumptions.
+
+This result is a what-if estimate rather than a forecast. It assumes that downstream conversion behavior remains unchanged as additional sessions enter the cart.
+
+### Cart Size and Conversion
+
+Conversion performance by maximum cart size was:
+
+| Maximum Cart Items | Sessions | Purchased Sessions | Conversion Rate |
+|---:|---:|---:|---:|
+| 0 | 2,088 | 0 | 0.00% |
+| 1 | 568 | 214 | 37.68% |
+| 2 | 569 | 197 | 34.62% |
+| 3 | 668 | 255 | 38.17% |
+| 4 | 561 | 175 | 31.19% |
+| 5 | 546 | 169 | 30.95% |
+
+Three-item sessions recorded the highest observed conversion rate at 38.17%.
+
+Larger cart sizes did not consistently produce higher conversion rates, indicating that cart quantity alone is not a reliable indicator of purchase completion.
+
+### Converted Session Profile by Device
+
+Converted sessions were distributed almost evenly across devices:
+
+- Desktop: 339 converted sessions
+- Mobile: 337 converted sessions
+- Tablet: 334 converted sessions
+
+Average engagement among converted sessions was also similar:
+
+- Desktop: 481.02 seconds
+- Mobile: 493.84 seconds
+- Tablet: 480.03 seconds
+
+The results reinforce the earlier finding that device type is not a major differentiator of conversion performance in this dataset.
+
+### Converted Session Profile by Referral Source
+
+Converted sessions by acquisition source were:
+
+- Google: 277
+- Email: 251
+- Direct: 243
+- Social Media: 239
+
+Average engagement among converted sessions ranged from 470.00 seconds for Direct traffic to 497.65 seconds for Social Media traffic.
+
+Google generated the highest number of converted sessions, while converted Social Media sessions recorded the highest average engagement time.
+
+### Monthly Conversion Movement
+
+Monthly conversion rates were:
+
+- January: 19.18%
+- February: 18.55% (-0.63 pp)
+- March: 21.43% (+2.88 pp)
+- April: 20.92% (-0.51 pp)
+- May: 20.35% (-0.57 pp)
+- June: 20.32% (-0.03 pp)
+- July: 20.27% (-0.05 pp)
+- August: 20.60% (+0.33 pp)
+
+March recorded the largest positive month-over-month movement at +2.88 percentage points.
+
+From May through August, conversion remained relatively stable around 20%.
+
+### High-Converting Observed Segments
+
+Among country-device-referral combinations with at least 40 sessions, some of the highest observed conversion rates included:
+
+- Australia + Tablet + Email: 31.58%
+- France + Mobile + Direct: 31.58%
+- France + Mobile + Google: 31.43%
+- USA + Tablet + Google: 29.03%
+- UK + Tablet + Direct: 27.78%
+
+These segments identify areas of observed strength within the dataset.
+
+However, because these groups contain substantially fewer sessions than the overall dataset, their conversion rates should be interpreted as descriptive segment results rather than evidence that these combinations inherently cause higher conversion.
+
+### Final Funnel KPI Summary
+
+The final customer journey performance was:
+
+- Home → Product Page: 79.74%
+- Product Page → Cart: 40.11%
+- Cart → Checkout: 70.23%
+- Checkout → Confirmation: 89.94%
+- Overall Session Conversion: 20.20%
+
+The funnel becomes progressively stronger after customers add a product to their cart.
+
+### Final Business Conclusions
+
+The analysis identifies the Product Page → Cart transition as the primary conversion bottleneck.
+
+Of all non-converted sessions, 59.85% exited after reaching a product page. This loss is substantially larger than abandonment during the cart or checkout stages.
+
+Once customers reach checkout, funnel performance is strong, with 89.94% progressing to confirmation. This suggests that the largest opportunity indicated by the dataset lies earlier in the purchase journey rather than at final checkout.
+
+A scenario increasing the Product Page → Cart rate from 40.11% to 45%, while holding downstream behavior constant, produces an estimated 123 additional purchases across the observed dataset.
+
+Potential areas for further investigation include:
+
+- Product page usability
+- Product information quality
+- Pricing and promotional presentation
+- Add-to-cart call-to-action effectiveness
+- Product recommendation strategy
+- Customer purchase intent
+
+The available dataset identifies where customers leave the funnel but does not contain enough information to establish why those customers abandon. Additional experimentation or behavioral data would be required to determine causal drivers.
+
+Overall, the project demonstrates how session-level SQL analysis can transform raw clickstream data into actionable funnel metrics, customer behavior insights, segmentation analysis, and business opportunity scenarios.
