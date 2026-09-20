@@ -921,3 +921,416 @@ SELECT
 FROM session_funnel
 GROUP BY session_month
 ORDER BY session_month;
+
+-- ============================================================
+-- Day 5: Executive KPIs & Funnel Opportunity Analysis
+-- ============================================================
+
+
+-- 41. Executive KPI Summary
+WITH session_metrics AS (
+    SELECT
+        SessionID,
+        UserID,
+        COUNT(*) AS total_events,
+        SUM(TimeOnPage_seconds) AS total_engagement_seconds,
+        MAX(ItemsInCart) AS max_items_in_cart,
+        MAX(Purchased) AS purchased
+    FROM customer_journey
+    GROUP BY SessionID, UserID
+)
+SELECT
+    COUNT(*) AS total_sessions,
+    COUNT(DISTINCT UserID) AS unique_users,
+    SUM(purchased) AS purchased_sessions,
+    COUNT(*) - SUM(purchased) AS non_purchased_sessions,
+    ROUND(SUM(purchased) * 100.0 / COUNT(*), 2)
+        AS conversion_rate_percentage,
+    ROUND(AVG(total_events), 2)
+        AS avg_events_per_session,
+    ROUND(AVG(total_engagement_seconds), 2)
+        AS avg_engagement_seconds,
+    ROUND(AVG(max_items_in_cart), 2)
+        AS avg_max_items_in_cart
+FROM session_metrics;
+
+
+-- 42. Funnel Loss Summary
+WITH session_stages AS (
+    SELECT
+        SessionID,
+        MAX(CASE WHEN PageType = 'home' THEN 1 ELSE 0 END)
+            AS reached_home,
+        MAX(CASE WHEN PageType = 'product_page' THEN 1 ELSE 0 END)
+            AS reached_product,
+        MAX(CASE WHEN PageType = 'cart' THEN 1 ELSE 0 END)
+            AS reached_cart,
+        MAX(CASE WHEN PageType = 'checkout' THEN 1 ELSE 0 END)
+            AS reached_checkout,
+        MAX(CASE WHEN PageType = 'confirmation' THEN 1 ELSE 0 END)
+            AS reached_confirmation
+    FROM customer_journey
+    GROUP BY SessionID
+),
+funnel AS (
+    SELECT
+        SUM(reached_home) AS home_sessions,
+        SUM(reached_product) AS product_sessions,
+        SUM(reached_cart) AS cart_sessions,
+        SUM(reached_checkout) AS checkout_sessions,
+        SUM(reached_confirmation) AS confirmation_sessions
+    FROM session_stages
+)
+SELECT
+    'Home -> Product Page' AS transition,
+    home_sessions - product_sessions AS lost_sessions,
+    ROUND(
+        (home_sessions - product_sessions) * 100.0 /
+        home_sessions,
+        2
+    ) AS loss_rate_percentage
+FROM funnel
+
+UNION ALL
+
+SELECT
+    'Product Page -> Cart',
+    product_sessions - cart_sessions,
+    ROUND(
+        (product_sessions - cart_sessions) * 100.0 /
+        product_sessions,
+        2
+    )
+FROM funnel
+
+UNION ALL
+
+SELECT
+    'Cart -> Checkout',
+    cart_sessions - checkout_sessions,
+    ROUND(
+        (cart_sessions - checkout_sessions) * 100.0 /
+        cart_sessions,
+        2
+    )
+FROM funnel
+
+UNION ALL
+
+SELECT
+    'Checkout -> Confirmation',
+    checkout_sessions - confirmation_sessions,
+    ROUND(
+        (checkout_sessions - confirmation_sessions) * 100.0 /
+        checkout_sessions,
+        2
+    )
+FROM funnel
+
+ORDER BY lost_sessions DESC;
+
+
+-- 43. Share of Total Non-Conversions by Exit Stage
+WITH session_exit AS (
+    SELECT
+        SessionID,
+        CASE
+            WHEN MAX(CASE WHEN PageType = 'confirmation'
+                          THEN 1 ELSE 0 END) = 1
+                THEN 'Converted'
+
+            WHEN MAX(CASE WHEN PageType = 'checkout'
+                          THEN 1 ELSE 0 END) = 1
+                THEN 'Checkout'
+
+            WHEN MAX(CASE WHEN PageType = 'cart'
+                          THEN 1 ELSE 0 END) = 1
+                THEN 'Cart'
+
+            WHEN MAX(CASE WHEN PageType = 'product_page'
+                          THEN 1 ELSE 0 END) = 1
+                THEN 'Product Page'
+
+            ELSE 'Home'
+        END AS exit_stage
+    FROM customer_journey
+    GROUP BY SessionID
+),
+non_converted AS (
+    SELECT *
+    FROM session_exit
+    WHERE exit_stage <> 'Converted'
+)
+SELECT
+    exit_stage,
+    COUNT(*) AS lost_sessions,
+    ROUND(
+        COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (),
+        2
+    ) AS share_of_non_conversions_percentage
+FROM non_converted
+GROUP BY exit_stage
+ORDER BY lost_sessions DESC;
+
+
+-- 44. Product-to-Cart Opportunity Scenario
+WITH funnel AS (
+    SELECT
+        COUNT(DISTINCT CASE
+            WHEN PageType = 'product_page'
+            THEN SessionID
+        END) AS product_sessions,
+
+        COUNT(DISTINCT CASE
+            WHEN PageType = 'cart'
+            THEN SessionID
+        END) AS cart_sessions,
+
+        COUNT(DISTINCT CASE
+            WHEN PageType = 'confirmation'
+            THEN SessionID
+        END) AS purchased_sessions
+    FROM customer_journey
+),
+metrics AS (
+    SELECT
+        *,
+        cart_sessions * 1.0 / product_sessions
+            AS current_product_to_cart_rate,
+
+        purchased_sessions * 1.0 / cart_sessions
+            AS current_cart_to_purchase_rate
+    FROM funnel
+)
+SELECT
+    product_sessions,
+    cart_sessions,
+    purchased_sessions,
+
+    ROUND(current_product_to_cart_rate * 100, 2)
+        AS current_product_to_cart_rate_percentage,
+
+    ROUND(current_cart_to_purchase_rate * 100, 2)
+        AS current_cart_to_purchase_rate_percentage,
+
+    ROUND(product_sessions * 0.45)
+        AS cart_sessions_at_45_percent,
+
+    ROUND(
+        product_sessions * 0.45 *
+        current_cart_to_purchase_rate
+    ) AS estimated_purchases_at_45_percent,
+
+    ROUND(
+        product_sessions * 0.45 *
+        current_cart_to_purchase_rate
+        - purchased_sessions
+    ) AS estimated_incremental_purchases
+
+FROM metrics;
+
+
+-- 45. Conversion Performance by Cart Size
+WITH session_metrics AS (
+    SELECT
+        SessionID,
+        MAX(ItemsInCart) AS max_items_in_cart,
+        MAX(Purchased) AS purchased
+    FROM customer_journey
+    GROUP BY SessionID
+)
+SELECT
+    max_items_in_cart,
+    COUNT(*) AS total_sessions,
+    SUM(purchased) AS purchased_sessions,
+    COUNT(*) - SUM(purchased) AS non_purchased_sessions,
+    ROUND(
+        SUM(purchased) * 100.0 / COUNT(*),
+        2
+    ) AS conversion_rate_percentage
+FROM session_metrics
+GROUP BY max_items_in_cart
+ORDER BY max_items_in_cart;
+
+
+-- 46. Converted Session Profile by Device
+WITH converted_sessions AS (
+    SELECT
+        SessionID,
+        MAX(DeviceType) AS device_type,
+        SUM(TimeOnPage_seconds) AS engagement_seconds,
+        MAX(ItemsInCart) AS max_items_in_cart,
+        MAX(Purchased) AS purchased
+    FROM customer_journey
+    GROUP BY SessionID
+)
+SELECT
+    device_type,
+    COUNT(*) AS converted_sessions,
+    ROUND(AVG(engagement_seconds), 2)
+        AS avg_engagement_seconds,
+    ROUND(AVG(max_items_in_cart), 2)
+        AS avg_max_items_in_cart
+FROM converted_sessions
+WHERE purchased = 1
+GROUP BY device_type
+ORDER BY converted_sessions DESC;
+
+
+-- 47. Converted Session Profile by Referral Source
+WITH converted_sessions AS (
+    SELECT
+        SessionID,
+        MAX(ReferralSource) AS referral_source,
+        SUM(TimeOnPage_seconds) AS engagement_seconds,
+        MAX(ItemsInCart) AS max_items_in_cart,
+        MAX(Purchased) AS purchased
+    FROM customer_journey
+    GROUP BY SessionID
+)
+SELECT
+    referral_source,
+    COUNT(*) AS converted_sessions,
+    ROUND(AVG(engagement_seconds), 2)
+        AS avg_engagement_seconds,
+    ROUND(AVG(max_items_in_cart), 2)
+        AS avg_max_items_in_cart
+FROM converted_sessions
+WHERE purchased = 1
+GROUP BY referral_source
+ORDER BY converted_sessions DESC;
+
+
+-- 48. Monthly Conversion Change
+WITH monthly_metrics AS (
+    SELECT
+        DATE_TRUNC('month', session_start) AS session_month,
+        COUNT(*) AS total_sessions,
+        SUM(purchased) AS purchased_sessions
+    FROM (
+        SELECT
+            SessionID,
+            MIN(Timestamp) AS session_start,
+            MAX(Purchased) AS purchased
+        FROM customer_journey
+        GROUP BY SessionID
+    )
+    GROUP BY session_month
+),
+conversion_metrics AS (
+    SELECT
+        session_month,
+        total_sessions,
+        purchased_sessions,
+        ROUND(
+            purchased_sessions * 100.0 / total_sessions,
+            2
+        ) AS conversion_rate
+    FROM monthly_metrics
+)
+SELECT
+    session_month,
+    total_sessions,
+    purchased_sessions,
+    conversion_rate,
+    ROUND(
+        conversion_rate -
+        LAG(conversion_rate) OVER (ORDER BY session_month),
+        2
+    ) AS conversion_rate_change_pp
+FROM conversion_metrics
+ORDER BY session_month;
+
+
+-- 49. Best Observed Conversion Segments
+WITH session_metrics AS (
+    SELECT
+        SessionID,
+        MAX(Country) AS country,
+        MAX(DeviceType) AS device_type,
+        MAX(ReferralSource) AS referral_source,
+        MAX(Purchased) AS purchased
+    FROM customer_journey
+    GROUP BY SessionID
+)
+SELECT
+    country,
+    device_type,
+    referral_source,
+    COUNT(*) AS total_sessions,
+    SUM(purchased) AS purchased_sessions,
+    ROUND(
+        SUM(purchased) * 100.0 / COUNT(*),
+        2
+    ) AS conversion_rate_percentage
+FROM session_metrics
+GROUP BY
+    country,
+    device_type,
+    referral_source
+HAVING COUNT(*) >= 40
+ORDER BY conversion_rate_percentage DESC
+LIMIT 10;
+
+
+-- 50. Final Funnel KPI Summary
+WITH session_stages AS (
+    SELECT
+        SessionID,
+        MAX(CASE WHEN PageType = 'home'
+                 THEN 1 ELSE 0 END) AS home,
+        MAX(CASE WHEN PageType = 'product_page'
+                 THEN 1 ELSE 0 END) AS product,
+        MAX(CASE WHEN PageType = 'cart'
+                 THEN 1 ELSE 0 END) AS cart,
+        MAX(CASE WHEN PageType = 'checkout'
+                 THEN 1 ELSE 0 END) AS checkout,
+        MAX(CASE WHEN PageType = 'confirmation'
+                 THEN 1 ELSE 0 END) AS confirmation
+    FROM customer_journey
+    GROUP BY SessionID
+),
+funnel AS (
+    SELECT
+        SUM(home) AS home_sessions,
+        SUM(product) AS product_sessions,
+        SUM(cart) AS cart_sessions,
+        SUM(checkout) AS checkout_sessions,
+        SUM(confirmation) AS confirmation_sessions
+    FROM session_stages
+)
+SELECT
+    home_sessions AS total_sessions,
+    confirmation_sessions AS converted_sessions,
+
+    ROUND(
+        confirmation_sessions * 100.0 /
+        home_sessions,
+        2
+    ) AS overall_conversion_rate,
+
+    ROUND(
+        product_sessions * 100.0 /
+        home_sessions,
+        2
+    ) AS home_to_product_rate,
+
+    ROUND(
+        cart_sessions * 100.0 /
+        product_sessions,
+        2
+    ) AS product_to_cart_rate,
+
+    ROUND(
+        checkout_sessions * 100.0 /
+        cart_sessions,
+        2
+    ) AS cart_to_checkout_rate,
+
+    ROUND(
+        confirmation_sessions * 100.0 /
+        checkout_sessions,
+        2
+    ) AS checkout_to_confirmation_rate
+
+FROM funnel;
