@@ -637,3 +637,274 @@ Rather than representing risk through a single borrower characteristic, the segm
 7. High and Elevated Risk customers represent approximately **38.76% of the portfolio but account for 56.84% of all defaults**.
 
 8. The results demonstrate the value of combining credit scores, employment stability, age, and payment burden to identify concentrated areas of portfolio risk.
+
+---
+
+# Day 4 — Previous Application History & Default Risk Analysis
+
+## 1. Previous Application Outcomes
+
+The previous application dataset contains a large history of customer credit applications.
+
+Application outcomes were:
+
+- Approved: **1,036,781 (62.07%)**
+- Canceled: **316,319 (18.94%)**
+- Refused: **290,678 (17.40%)**
+- Unused offer: **26,436 (1.58%)**
+
+Approved applications represent the majority of historical applications.
+
+However, refused applications still account for a meaningful portion of historical activity and provide useful information for analyzing future credit risk.
+
+---
+
+## 2. Previous Contract Types
+
+Historical applications were primarily concentrated in three contract types.
+
+### Cash Loans
+
+- Previous applications: **747,553**
+- Unique customers: **200,825**
+- Average requested amount: **274,760.43**
+- Average credit amount: **304,061.49**
+
+### Consumer Loans
+
+- Previous applications: **729,151**
+- Unique customers: **313,316**
+- Average requested amount: **93,787.83**
+- Average credit amount: **91,524.59**
+
+### Revolving Loans
+
+- Previous applications: **193,164**
+- Unique customers: **123,445**
+- Average requested amount: **97,816.24**
+- Average credit amount: **173,505.60**
+
+Cash loans involve substantially larger average requested amounts than consumer loans.
+
+Consumer loans, however, reach the largest number of unique historical customers.
+
+---
+
+## 3. Previous Product Categories
+
+The largest identified historical product categories include:
+
+- Mobile: **224,708 applications**
+- Consumer Electronics: **121,576**
+- Computers: **105,769**
+- Audio/Video: **99,441**
+- Furniture: **53,656**
+
+A very large number of historical applications are classified as `XNA`, with **950,809 records**.
+
+Because `XNA` does not identify a meaningful product category, it should be treated separately rather than interpreted as an actual loan purpose.
+
+Among identified categories, mobile-related financing represents the largest volume.
+
+---
+
+## 4. Previous Application Rejection Reasons
+
+Among refused historical applications, the largest rejection codes were:
+
+- HC: **175,231 (60.28%)**
+- LIMIT: **55,680 (19.16%)**
+- SCO: **37,467 (12.89%)**
+- SCOFR: **12,811 (4.41%)**
+- VERIF: **3,535 (1.22%)**
+- SYSTEM: **717 (0.25%)**
+
+The `HC` code accounts for more than 60% of historical refusals.
+
+The dataset output provides rejection codes rather than descriptive definitions, so these codes should not be assigned business meanings without supporting documentation.
+
+---
+
+## 5. Requested vs Credit Amount
+
+Historical application outcomes show differences between requested and recorded credit amounts.
+
+### Approved Applications
+
+- Average requested: **180,567.18**
+- Average credit: **202,564.18**
+- Average difference: **+21,997.01**
+
+### Refused Applications
+
+- Average requested: **331,760.51**
+- Average credit: **371,689.84**
+- Average difference: **+39,929.33**
+
+Refused applications involve considerably larger average requested amounts than approved applications.
+
+The average credit fields are also higher for refused applications in this dataset.
+
+These figures describe historical application records and should not be interpreted as actual disbursed credit for refused applications.
+
+---
+
+## 6. Previous Application Frequency
+
+Historical customers show substantial variation in the number of previous applications.
+
+- 1 previous application: **60,458 customers**
+- 2–3 previous applications: **98,703**
+- 4–5 previous applications: **69,045**
+- 6+ previous applications: **110,651**
+
+Customers in the 6+ group average **9.57 previous applications**, making repeat application activity common within the historical dataset.
+
+---
+
+## 7. Application Frequency vs Current Default Risk
+
+After linking previous application history to current applicants:
+
+- 6+ previous applications: **8.73%** current default rate
+- 1 previous application: **8.38%**
+- 2–3 previous applications: **7.84%**
+- 4–5 previous applications: **7.70%**
+
+Application frequency alone does not produce a consistent risk gradient.
+
+The 6+ application group has the highest observed current default rate, but customers with only one previous application also show higher risk than the 2–5 application groups.
+
+Therefore, the number of historical applications alone is not sufficient to classify current borrower risk.
+
+---
+
+## 8. Previous Refusals vs Current Default Risk
+
+Previous refusal history produces a much clearer risk pattern.
+
+- No previous refusals: **7.07%**
+- 1 previous refusal: **8.83%**
+- 2–3 previous refusals: **10.65%**
+- 4+ previous refusals: **13.34%**
+
+Observed current default risk increases consistently as the number of historical refusals increases.
+
+Customers with four or more previous refusals have approximately **1.9 times** the current default rate of customers with no previous refusals.
+
+This makes historical refusal count one of the strongest behavioral risk indicators identified in Day 4.
+
+---
+
+## 9. Previous Approvals vs Current Default Risk
+
+Historical approval count also shows differences in current default behavior.
+
+- No previous approvals: **8.67%**
+- 1 previous approval: **9.38%**
+- 2–3 previous approvals: **8.38%**
+- 4+ previous approvals: **6.97%**
+
+Customers with four or more historical approvals show the lowest observed current default rate.
+
+However, the relationship is not perfectly linear because customers with one historical approval have a higher default rate than customers with no previous approvals.
+
+The no-approval group also contains only **992 customers**, so comparisons involving this segment should be interpreted cautiously.
+
+---
+
+## 10. Historical Approval Rate
+
+Historical approval percentage produces particularly strong risk differentiation.
+
+- 1–25% approved: **14.65%** current default rate
+- 26–50% approved: **10.42%**
+- 0% approved: **8.67%**
+- 51–75% approved: **7.57%**
+- 76–100% approved: **6.95%**
+
+Among customers with at least some historical approvals, current default risk generally declines as historical approval rate increases.
+
+The **1–25% approval group has more than twice the observed default rate of the 76–100% approval group**.
+
+The 0% approval segment contains only 992 customers and does not follow the broader pattern, so it should be interpreted separately.
+
+---
+
+## 11. Historical Product Categories and Current Risk
+
+Previous product history also shows variation in current default rates.
+
+Higher observed default rates include:
+
+- Vehicles: **9.63%**
+- Auto Accessories: **8.95%**
+- Jewelry: **8.79%**
+- Mobile: **8.61%**
+- Office Appliances: **8.33%**
+
+Lower observed rates include:
+
+- Furniture: **5.93%**
+- Other: **5.75%**
+- Clothing and Accessories: **5.63%**
+- Medical Supplies: **5.48%**
+- Tourism: **4.37%**
+
+These categories describe customers who historically had applications associated with each product.
+
+A customer may appear in multiple product categories, so these groups are not mutually exclusive.
+
+Product history may provide useful additional segmentation information but should not be interpreted as a direct cause of default.
+
+---
+
+## 12. Historical Status Profile
+
+Combining previous approval and refusal history creates another useful customer segmentation.
+
+### Refused History Only
+
+- Customers: **599**
+- Current default rate: **10.85%**
+
+### Mixed Approval/Refusal History
+
+- Customers: **99,695**
+- Current default rate: **10.32%**
+
+### Approved History Only
+
+- Customers: **190,370**
+- Current default rate: **7.08%**
+
+### Other Historical Status
+
+- Customers: **393**
+- Current default rate: **5.34%**
+
+Customers with mixed approval/refusal histories have a substantially higher observed default rate than customers with approved-only histories.
+
+The refused-only segment also has a high default rate but contains only 599 customers, so its result should be interpreted with greater caution.
+
+---
+
+## Day 4 Key Takeaways
+
+1. **Historical credit behavior provides meaningful information about current default risk.**
+
+2. Previous refusal count shows a clear risk gradient: current default rates increase from **7.07% with no previous refusals to 13.34% with four or more refusals**.
+
+3. Historical approval rate is another strong indicator. Customers with a **1–25% historical approval rate have a 14.65% current default rate**, compared with **6.95% among customers with a 76–100% approval rate**.
+
+4. Customers with **four or more previous approvals** have a relatively low current default rate of **6.97%**.
+
+5. Previous application frequency by itself is less predictive because default rates do not increase consistently with application count.
+
+6. Customers with both approval and refusal history show a **10.32%** current default rate compared with **7.08%** for customers with approved-only histories.
+
+7. Previous product history shows meaningful variation, but product groups can overlap and should not be interpreted as independent customer segments.
+
+8. Historical application behavior can complement the demographic, financial, employment, and external credit indicators identified during Days 2 and 3.
+
+9. The results support using both **current applicant characteristics and historical credit behavior** when constructing more comprehensive borrower-risk segmentation.
