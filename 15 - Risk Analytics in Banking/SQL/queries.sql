@@ -574,3 +574,482 @@ FROM applications
 WHERE EXT_SOURCE_2 IS NOT NULL
 GROUP BY external_score_band
 ORDER BY external_score_band;
+
+-- ============================================================
+-- DAY 3: DEFAULT DRIVERS & RISK SEGMENTATION
+-- ============================================================
+
+
+-- ============================================================
+-- QUERY 26: Default Risk by Gender
+-- ============================================================
+
+SELECT
+    CODE_GENDER,
+
+    COUNT(*) AS total_applications,
+
+    SUM(CASE WHEN TARGET = 1 THEN 1 ELSE 0 END)
+        AS defaulted_applications,
+
+    ROUND(AVG(TARGET) * 100, 2)
+        AS default_rate_percentage
+
+FROM applications
+GROUP BY CODE_GENDER
+ORDER BY default_rate_percentage DESC;
+
+
+-- ============================================================
+-- QUERY 27: Default Risk by Applicant Accompaniment Type
+-- ============================================================
+
+SELECT
+    NAME_TYPE_SUITE,
+
+    COUNT(*) AS total_applications,
+
+    ROUND(AVG(AMT_CREDIT), 2)
+        AS average_credit_amount,
+
+    SUM(CASE WHEN TARGET = 1 THEN 1 ELSE 0 END)
+        AS defaulted_applications,
+
+    ROUND(AVG(TARGET) * 100, 2)
+        AS default_rate_percentage
+
+FROM applications
+WHERE NAME_TYPE_SUITE IS NOT NULL
+GROUP BY NAME_TYPE_SUITE
+ORDER BY default_rate_percentage DESC;
+
+
+-- ============================================================
+-- QUERY 28: Family Size and Financial Dependents
+-- ============================================================
+
+SELECT
+    CASE
+        WHEN CNT_FAM_MEMBERS <= 1 THEN '1. Single Member'
+        WHEN CNT_FAM_MEMBERS = 2 THEN '2. Two Members'
+        WHEN CNT_FAM_MEMBERS = 3 THEN '3. Three Members'
+        WHEN CNT_FAM_MEMBERS = 4 THEN '4. Four Members'
+        ELSE '5. Five+ Members'
+    END AS family_size_group,
+
+    COUNT(*) AS total_applications,
+
+    ROUND(AVG(AMT_INCOME_TOTAL), 2)
+        AS average_household_income,
+
+    ROUND(AVG(AMT_ANNUITY), 2)
+        AS average_annuity,
+
+    ROUND(AVG(TARGET) * 100, 2)
+        AS default_rate_percentage
+
+FROM applications
+WHERE CNT_FAM_MEMBERS IS NOT NULL
+GROUP BY family_size_group
+ORDER BY family_size_group;
+
+
+-- ============================================================
+-- QUERY 29: Age + Income Combined Risk
+-- ============================================================
+
+WITH customer_profile AS (
+    SELECT
+        TARGET,
+
+        CASE
+            WHEN ABS(DAYS_BIRTH) / 365.25 < 30 THEN 'Under 30'
+            WHEN ABS(DAYS_BIRTH) / 365.25 < 40 THEN '30 - 39'
+            WHEN ABS(DAYS_BIRTH) / 365.25 < 50 THEN '40 - 49'
+            WHEN ABS(DAYS_BIRTH) / 365.25 < 60 THEN '50 - 59'
+            ELSE '60+'
+        END AS age_group,
+
+        CASE
+            WHEN AMT_INCOME_TOTAL < 150000 THEN 'Below 150K'
+            WHEN AMT_INCOME_TOTAL < 300000 THEN '150K - 300K'
+            ELSE '300K+'
+        END AS income_group
+
+    FROM applications
+)
+
+SELECT
+    age_group,
+    income_group,
+
+    COUNT(*) AS total_applications,
+
+    ROUND(AVG(TARGET) * 100, 2)
+        AS default_rate_percentage
+
+FROM customer_profile
+GROUP BY age_group, income_group
+HAVING COUNT(*) >= 500
+ORDER BY
+    default_rate_percentage DESC;
+
+
+-- ============================================================
+-- QUERY 30: Age + Employment Stability Risk
+-- ============================================================
+
+WITH employment_profile AS (
+    SELECT
+        TARGET,
+
+        CASE
+            WHEN ABS(DAYS_BIRTH) / 365.25 < 30 THEN 'Under 30'
+            WHEN ABS(DAYS_BIRTH) / 365.25 < 40 THEN '30 - 39'
+            WHEN ABS(DAYS_BIRTH) / 365.25 < 50 THEN '40 - 49'
+            WHEN ABS(DAYS_BIRTH) / 365.25 < 60 THEN '50 - 59'
+            ELSE '60+'
+        END AS age_group,
+
+        CASE
+            WHEN DAYS_EMPLOYED = 365243 THEN 'Unknown / Not employed'
+            WHEN ABS(DAYS_EMPLOYED) / 365.25 < 3 THEN 'Less than 3 years'
+            WHEN ABS(DAYS_EMPLOYED) / 365.25 < 10 THEN '3 - 10 years'
+            ELSE '10+ years'
+        END AS employment_group
+
+    FROM applications
+)
+
+SELECT
+    age_group,
+    employment_group,
+
+    COUNT(*) AS total_applications,
+
+    ROUND(AVG(TARGET) * 100, 2)
+        AS default_rate_percentage
+
+FROM employment_profile
+GROUP BY age_group, employment_group
+HAVING COUNT(*) >= 500
+ORDER BY default_rate_percentage DESC;
+
+
+-- ============================================================
+-- QUERY 31: External Score + Employment Risk
+-- ============================================================
+
+WITH risk_profile AS (
+    SELECT
+        TARGET,
+
+        CASE
+            WHEN EXT_SOURCE_2 < 0.30 THEN 'Low Score'
+            WHEN EXT_SOURCE_2 < 0.50 THEN 'Medium-Low Score'
+            WHEN EXT_SOURCE_2 < 0.70 THEN 'Medium-High Score'
+            ELSE 'High Score'
+        END AS external_score_group,
+
+        CASE
+            WHEN DAYS_EMPLOYED = 365243 THEN 'Unknown / Not employed'
+            WHEN ABS(DAYS_EMPLOYED) / 365.25 < 3 THEN 'Less than 3 years'
+            WHEN ABS(DAYS_EMPLOYED) / 365.25 < 10 THEN '3 - 10 years'
+            ELSE '10+ years'
+        END AS employment_group
+
+    FROM applications
+    WHERE EXT_SOURCE_2 IS NOT NULL
+)
+
+SELECT
+    external_score_group,
+    employment_group,
+
+    COUNT(*) AS total_applications,
+
+    ROUND(AVG(TARGET) * 100, 2)
+        AS default_rate_percentage
+
+FROM risk_profile
+GROUP BY
+    external_score_group,
+    employment_group
+HAVING COUNT(*) >= 500
+ORDER BY default_rate_percentage DESC;
+
+
+-- ============================================================
+-- QUERY 32: Financial Stress Indicators
+-- ============================================================
+
+WITH financial_stress AS (
+    SELECT
+        TARGET,
+
+        AMT_CREDIT / NULLIF(AMT_INCOME_TOTAL, 0)
+            AS credit_income_ratio,
+
+        AMT_ANNUITY / NULLIF(AMT_INCOME_TOTAL, 0)
+            AS annuity_income_ratio
+
+    FROM applications
+    WHERE
+        AMT_INCOME_TOTAL > 0
+        AND AMT_ANNUITY IS NOT NULL
+)
+
+SELECT
+    CASE
+        WHEN credit_income_ratio >= 4
+             AND annuity_income_ratio >= 0.25
+            THEN 'High Financial Stress'
+
+        WHEN credit_income_ratio >= 4
+             OR annuity_income_ratio >= 0.25
+            THEN 'Moderate Financial Stress'
+
+        ELSE 'Low Financial Stress'
+    END AS financial_stress_segment,
+
+    COUNT(*) AS total_applications,
+
+    ROUND(
+        AVG(credit_income_ratio),
+        2
+    ) AS average_credit_income_ratio,
+
+    ROUND(
+        AVG(annuity_income_ratio) * 100,
+        2
+    ) AS average_annuity_income_percentage,
+
+    ROUND(
+        AVG(TARGET) * 100,
+        2
+    ) AS default_rate_percentage
+
+FROM financial_stress
+GROUP BY financial_stress_segment
+ORDER BY default_rate_percentage DESC;
+
+
+-- ============================================================
+-- QUERY 33: Multi-Factor Risk Segmentation
+--
+-- Risk indicators:
+-- 1. EXT_SOURCE_2 < 0.50
+-- 2. Employment history < 3 years
+-- 3. Age < 40
+-- 4. Annuity-to-income ratio >= 25%
+-- ============================================================
+
+WITH risk_factors AS (
+    SELECT
+        SK_ID_CURR,
+        TARGET,
+        AMT_CREDIT,
+
+        (
+            CASE
+                WHEN EXT_SOURCE_2 < 0.50 THEN 1
+                ELSE 0
+            END
+
+            +
+
+            CASE
+                WHEN DAYS_EMPLOYED != 365243
+                     AND ABS(DAYS_EMPLOYED) / 365.25 < 3
+                    THEN 1
+                ELSE 0
+            END
+
+            +
+
+            CASE
+                WHEN ABS(DAYS_BIRTH) / 365.25 < 40
+                    THEN 1
+                ELSE 0
+            END
+
+            +
+
+            CASE
+                WHEN AMT_ANNUITY /
+                     NULLIF(AMT_INCOME_TOTAL, 0) >= 0.25
+                    THEN 1
+                ELSE 0
+            END
+        ) AS risk_factor_count
+
+    FROM applications
+)
+
+SELECT
+    CASE
+        WHEN risk_factor_count = 0 THEN 'Low Risk'
+        WHEN risk_factor_count = 1 THEN 'Moderate Risk'
+        WHEN risk_factor_count = 2 THEN 'Elevated Risk'
+        ELSE 'High Risk'
+    END AS risk_segment,
+
+    COUNT(*) AS total_applications,
+
+    SUM(CASE WHEN TARGET = 1 THEN 1 ELSE 0 END)
+        AS defaulted_applications,
+
+    ROUND(AVG(TARGET) * 100, 2)
+        AS default_rate_percentage,
+
+    ROUND(SUM(AMT_CREDIT), 2)
+        AS total_credit_exposure
+
+FROM risk_factors
+GROUP BY risk_segment
+ORDER BY default_rate_percentage DESC;
+
+
+-- ============================================================
+-- QUERY 34: Risk Segment Share of Portfolio
+-- ============================================================
+
+WITH risk_factors AS (
+    SELECT
+        TARGET,
+
+        (
+            CASE WHEN EXT_SOURCE_2 < 0.50 THEN 1 ELSE 0 END
+            +
+            CASE
+                WHEN DAYS_EMPLOYED != 365243
+                     AND ABS(DAYS_EMPLOYED) / 365.25 < 3
+                THEN 1 ELSE 0
+            END
+            +
+            CASE
+                WHEN ABS(DAYS_BIRTH) / 365.25 < 40
+                THEN 1 ELSE 0
+            END
+            +
+            CASE
+                WHEN AMT_ANNUITY /
+                     NULLIF(AMT_INCOME_TOTAL, 0) >= 0.25
+                THEN 1 ELSE 0
+            END
+        ) AS risk_factor_count
+
+    FROM applications
+),
+
+segments AS (
+    SELECT
+        TARGET,
+
+        CASE
+            WHEN risk_factor_count = 0 THEN 'Low Risk'
+            WHEN risk_factor_count = 1 THEN 'Moderate Risk'
+            WHEN risk_factor_count = 2 THEN 'Elevated Risk'
+            ELSE 'High Risk'
+        END AS risk_segment
+
+    FROM risk_factors
+)
+
+SELECT
+    risk_segment,
+
+    COUNT(*) AS total_applications,
+
+    ROUND(
+        COUNT(*) * 100.0 /
+        SUM(COUNT(*)) OVER (),
+        2
+    ) AS portfolio_percentage,
+
+    SUM(CASE WHEN TARGET = 1 THEN 1 ELSE 0 END)
+        AS total_defaults,
+
+    ROUND(
+        SUM(CASE WHEN TARGET = 1 THEN 1 ELSE 0 END)
+        * 100.0 /
+        SUM(
+            SUM(CASE WHEN TARGET = 1 THEN 1 ELSE 0 END)
+        ) OVER (),
+        2
+    ) AS share_of_all_defaults_percentage
+
+FROM segments
+GROUP BY risk_segment
+ORDER BY
+    share_of_all_defaults_percentage DESC;
+
+
+-- ============================================================
+-- QUERY 35: High-Risk Customer Profile
+-- ============================================================
+
+WITH risk_factors AS (
+    SELECT
+        *,
+
+        (
+            CASE WHEN EXT_SOURCE_2 < 0.50 THEN 1 ELSE 0 END
+            +
+            CASE
+                WHEN DAYS_EMPLOYED != 365243
+                     AND ABS(DAYS_EMPLOYED) / 365.25 < 3
+                THEN 1 ELSE 0
+            END
+            +
+            CASE
+                WHEN ABS(DAYS_BIRTH) / 365.25 < 40
+                THEN 1 ELSE 0
+            END
+            +
+            CASE
+                WHEN AMT_ANNUITY /
+                     NULLIF(AMT_INCOME_TOTAL, 0) >= 0.25
+                THEN 1 ELSE 0
+            END
+        ) AS risk_factor_count
+
+    FROM applications
+)
+
+SELECT
+    COUNT(*) AS high_risk_customers,
+
+    ROUND(
+        AVG(ABS(DAYS_BIRTH) / 365.25),
+        1
+    ) AS average_age,
+
+    ROUND(
+        AVG(AMT_INCOME_TOTAL),
+        2
+    ) AS average_income,
+
+    ROUND(
+        AVG(AMT_CREDIT),
+        2
+    ) AS average_credit,
+
+    ROUND(
+        AVG(AMT_ANNUITY),
+        2
+    ) AS average_annuity,
+
+    ROUND(
+        AVG(AMT_CREDIT /
+            NULLIF(AMT_INCOME_TOTAL, 0)),
+        2
+    ) AS average_credit_income_ratio,
+
+    ROUND(
+        AVG(TARGET) * 100,
+        2
+    ) AS default_rate_percentage
+
+FROM risk_factors
+WHERE risk_factor_count >= 3;
