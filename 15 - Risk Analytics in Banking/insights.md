@@ -348,3 +348,292 @@ This makes EXT_SOURCE_2 a particularly useful candidate for deeper risk segmenta
 7. Customers with **3+ children** and customers owning neither a car nor real estate show higher observed default rates than their respective comparison groups.
 
 8. Overall, Day 2 demonstrates that **credit risk is multidimensional**. Age, employment stability, external credit information, occupation, income, household characteristics, and financial burden should be considered together rather than independently.
+
+
+---
+
+# Day 3 — Default Drivers & Risk Segmentation
+
+## 1. Gender and Default Risk
+
+Default rates differ across gender groups in the portfolio.
+
+- Male applicants: **10.14%**
+- Female applicants: **7.00%**
+
+Male applicants show a higher observed default rate than female applicants in this dataset.
+
+The `XNA` category contains only four records and therefore should not be used to draw meaningful conclusions.
+
+---
+
+## 2. Applicant Accompaniment Type
+
+Default rates also vary based on who accompanied the applicant during the application process.
+
+- Other_B: **9.83%**
+- Other_A: **8.78%**
+- Group of people: **8.49%**
+- Unaccompanied: **8.18%**
+- Spouse/partner: **7.87%**
+- Family: **7.49%**
+- Children: **7.38%**
+
+Unaccompanied applicants represent by far the largest segment with **248,526 applications**.
+
+The differences between the major accompaniment groups are relatively modest, suggesting this variable may be more useful when combined with stronger risk indicators.
+
+---
+
+## 3. Family Size and Default Risk
+
+Observed default rates by household size are:
+
+- Single member: **8.36%**
+- Two members: **7.58%**
+- Three members: **8.76%**
+- Four members: **8.65%**
+- Five or more members: **9.91%**
+
+Two-member households have the lowest observed default rate.
+
+Applicants from households containing five or more members have the highest rate at 9.91%.
+
+This supports the Day 2 observation that larger dependent or household structures may be associated with additional financial pressure.
+
+---
+
+## 4. Combined Age and Income Risk
+
+Combining age and income produces stronger segmentation than examining either variable independently.
+
+The highest observed default rate occurs among:
+
+**Under 30 + Income below 150K → 12.47%**
+
+Other higher-risk combinations include:
+
+- Under 30 + 150K–300K: **10.60%**
+- Age 30–39 + Below 150K: **10.44%**
+- Age 30–39 + 150K–300K: **9.30%**
+
+At the opposite end:
+
+**Age 60+ + Income 300K+ → 3.81%**
+
+Within younger age groups, higher income is associated with substantially lower observed default rates.
+
+The results demonstrate that combining demographic and financial characteristics provides more useful risk differentiation than relying on a single variable.
+
+---
+
+## 5. Combined Age and Employment Risk
+
+Age and employment stability also produce clear differences in default behavior.
+
+Higher-risk combinations include:
+
+- Under 30 + less than 3 years employment: **12.34%**
+- Age 30–39 + less than 3 years employment: **12.00%**
+- Under 30 + 3–10 years employment: **10.35%**
+- Age 40–49 + less than 3 years employment: **9.95%**
+
+Lower-risk combinations include:
+
+- Age 60+ + 10+ years employment: **3.54%**
+- Age 50–59 + 10+ years employment: **4.49%**
+- Age 60+ + less than 3 years employment: **4.80%**
+- Age 40–49 + 10+ years employment: **5.13%**
+
+Younger borrowers with short employment histories show particularly elevated default rates.
+
+Longer employment history generally reduces observed risk, especially when combined with greater age.
+
+---
+
+## 6. External Credit Score + Employment Stability
+
+Combining external credit information with employment history creates one of the strongest risk separations in the analysis.
+
+### Highest-Risk Combination
+
+**Low external score + less than 3 years employment**
+
+- Applications: **17,258**
+- Default rate: **20.54%**
+
+Other high-risk combinations include:
+
+- Low score + 3–10 years employment: **16.99%**
+- Medium-low score + less than 3 years employment: **12.43%**
+- Low score + 10+ years employment: **10.50%**
+
+### Lower-Risk Combinations
+
+- High score + less than 3 years employment: **4.53%**
+- High score + 3–10 years employment: **3.40%**
+- High score + 10+ years employment: **2.52%**
+- High score + unknown/not employed: **2.38%**
+
+External credit score remains a strong differentiator even after employment stability is considered.
+
+The difference between the highest and lowest observed groups is substantial: **20.54% versus 2.38%**.
+
+---
+
+## 7. Financial Stress Segmentation
+
+Customers were segmented using two financial burden indicators:
+
+- Credit-to-income ratio
+- Annuity-to-income ratio
+
+Results:
+
+### High Financial Stress
+
+- Applications: **49,841**
+- Average credit-to-income ratio: **8.04x**
+- Average annuity-to-income ratio: **33.60%**
+- Default rate: **8.41%**
+
+### Moderate Financial Stress
+
+- Applications: **79,477**
+- Average credit-to-income ratio: **5.21x**
+- Average annuity-to-income ratio: **20.43%**
+- Default rate: **7.49%**
+
+### Low Financial Stress
+
+- Applications: **178,181**
+- Average credit-to-income ratio: **2.26x**
+- Average annuity-to-income ratio: **12.71%**
+- Default rate: **8.24%**
+
+Although the High Financial Stress group has the highest observed default rate, the Low Financial Stress group still records an 8.24% rate.
+
+The relationship is therefore not monotonic.
+
+This reinforces the conclusion that financial burden metrics alone are insufficient to classify borrower risk and should be combined with broader credit and customer characteristics.
+
+---
+
+## 8. Multi-Factor Risk Segmentation
+
+A custom risk framework was created using four indicators:
+
+1. EXT_SOURCE_2 below 0.50
+2. Employment history below 3 years
+3. Customer age below 40
+4. Annuity-to-income ratio of at least 25%
+
+Customers were classified based on the number of risk indicators present.
+
+### High Risk
+
+- Applications: **38,217**
+- Defaults: **5,917**
+- Default rate: **15.48%**
+- Credit exposure: approximately **22.06 billion**
+
+### Elevated Risk
+
+- Applications: **80,972**
+- Defaults: **8,195**
+- Default rate: **10.12%**
+- Credit exposure: approximately **48.17 billion**
+
+### Moderate Risk
+
+- Applications: **112,141**
+- Defaults: **7,526**
+- Default rate: **6.71%**
+- Credit exposure: approximately **68.19 billion**
+
+### Low Risk
+
+- Applications: **76,181**
+- Defaults: **3,187**
+- Default rate: **4.18%**
+- Credit exposure: approximately **45.78 billion**
+
+The custom segmentation produces a clear risk gradient:
+
+**4.18% → 6.71% → 10.12% → 15.48%**
+
+The High Risk segment has approximately **3.7 times** the observed default rate of the Low Risk segment.
+
+This demonstrates how combining several moderate risk indicators can produce substantially stronger borrower segmentation.
+
+---
+
+## 9. Portfolio Risk Concentration
+
+Risk is not distributed evenly throughout the portfolio.
+
+### Elevated Risk
+
+- **26.33%** of applications
+- **33.01%** of all defaults
+
+### Moderate Risk
+
+- **36.47%** of applications
+- **30.32%** of all defaults
+
+### High Risk
+
+- **12.43%** of applications
+- **23.83%** of all defaults
+
+### Low Risk
+
+- **24.77%** of applications
+- Only **12.84%** of all defaults
+
+The High Risk segment represents only 12.43% of the portfolio but contributes 23.83% of all defaults.
+
+Combining High and Elevated Risk segments:
+
+- They represent approximately **38.76% of applications**.
+- They account for approximately **56.84% of all defaults**.
+
+This demonstrates meaningful concentration of defaults within the higher-risk segments.
+
+---
+
+## 10. High-Risk Customer Profile
+
+The custom segmentation identifies **38,217 High Risk customers**.
+
+Their profile includes:
+
+- Average age: **31.9 years**
+- Average annuity: **28,598.06**
+- Average credit-to-income ratio: **4.51x**
+- Default rate: **15.48%**
+
+This segment is characterized by the presence of at least three of the four selected risk indicators.
+
+Rather than representing risk through a single borrower characteristic, the segment captures customers with overlapping demographic, employment, financial burden, and external credit-risk signals.
+
+---
+
+## Day 3 Key Takeaways
+
+1. **Risk becomes much clearer when variables are combined rather than analyzed independently.**
+
+2. Younger customers with lower incomes show elevated default rates, with under-30 applicants earning below 150K reaching **12.47%**.
+
+3. Younger borrowers with short employment histories also show elevated risk, reaching **12.34%** for under-30 customers employed for less than three years.
+
+4. **External credit score combined with employment stability provides particularly strong risk separation.** Low-score borrowers with short employment histories have a **20.54%** default rate.
+
+5. Financial burden alone does not produce a clean risk gradient, reinforcing the importance of multi-dimensional credit analysis.
+
+6. The custom multi-factor segmentation successfully separates the portfolio from **4.18% default risk in the Low Risk segment to 15.48% in the High Risk segment**.
+
+7. High and Elevated Risk customers represent approximately **38.76% of the portfolio but account for 56.84% of all defaults**.
+
+8. The results demonstrate the value of combining credit scores, employment stability, age, and payment burden to identify concentrated areas of portfolio risk.
