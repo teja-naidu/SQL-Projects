@@ -1053,3 +1053,495 @@ SELECT
 
 FROM risk_factors
 WHERE risk_factor_count >= 3;
+
+-- ============================================================
+-- DAY 4: PREVIOUS APPLICATION HISTORY & RISK ANALYSIS
+-- ============================================================
+
+
+-- ============================================================
+-- QUERY 36: Previous Application Status Overview
+-- ============================================================
+
+SELECT
+    NAME_CONTRACT_STATUS,
+
+    COUNT(*) AS total_previous_applications,
+
+    COUNT(DISTINCT SK_ID_CURR) AS unique_customers,
+
+    ROUND(
+        COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (),
+        2
+    ) AS application_percentage
+
+FROM previous_applications
+GROUP BY NAME_CONTRACT_STATUS
+ORDER BY total_previous_applications DESC;
+
+
+-- ============================================================
+-- QUERY 37: Previous Contract Type Analysis
+-- ============================================================
+
+SELECT
+    NAME_CONTRACT_TYPE,
+
+    COUNT(*) AS total_previous_applications,
+
+    COUNT(DISTINCT SK_ID_CURR) AS unique_customers,
+
+    ROUND(AVG(AMT_APPLICATION), 2)
+        AS average_requested_amount,
+
+    ROUND(AVG(AMT_CREDIT), 2)
+        AS average_credit_amount
+
+FROM previous_applications
+GROUP BY NAME_CONTRACT_TYPE
+ORDER BY total_previous_applications DESC;
+
+
+-- ============================================================
+-- QUERY 38: Previous Application Product Type
+-- ============================================================
+
+SELECT
+    NAME_GOODS_CATEGORY,
+
+    COUNT(*) AS total_previous_applications,
+
+    ROUND(AVG(AMT_APPLICATION), 2)
+        AS average_requested_amount,
+
+    ROUND(AVG(AMT_CREDIT), 2)
+        AS average_credit_amount
+
+FROM previous_applications
+GROUP BY NAME_GOODS_CATEGORY
+HAVING COUNT(*) >= 1000
+ORDER BY total_previous_applications DESC;
+
+
+-- ============================================================
+-- QUERY 39: Previous Application Rejection Reasons
+-- Only refused applications are included
+-- ============================================================
+
+SELECT
+    CODE_REJECT_REASON,
+
+    COUNT(*) AS refused_applications,
+
+    ROUND(
+        COUNT(*) * 100.0 /
+        SUM(COUNT(*)) OVER (),
+        2
+    ) AS percentage_of_refusals
+
+FROM previous_applications
+WHERE NAME_CONTRACT_STATUS = 'Refused'
+GROUP BY CODE_REJECT_REASON
+ORDER BY refused_applications DESC;
+
+
+-- ============================================================
+-- QUERY 40: Requested vs Approved Credit
+-- ============================================================
+
+SELECT
+    NAME_CONTRACT_STATUS,
+
+    COUNT(*) AS total_applications,
+
+    ROUND(AVG(AMT_APPLICATION), 2)
+        AS average_requested_amount,
+
+    ROUND(AVG(AMT_CREDIT), 2)
+        AS average_credit_amount,
+
+    ROUND(
+        AVG(AMT_CREDIT - AMT_APPLICATION),
+        2
+    ) AS average_credit_difference
+
+FROM previous_applications
+WHERE
+    AMT_APPLICATION IS NOT NULL
+    AND AMT_CREDIT IS NOT NULL
+GROUP BY NAME_CONTRACT_STATUS
+ORDER BY total_applications DESC;
+
+
+-- ============================================================
+-- QUERY 41: Number of Previous Applications per Customer
+-- ============================================================
+
+WITH customer_history AS (
+    SELECT
+        SK_ID_CURR,
+        COUNT(*) AS previous_application_count
+    FROM previous_applications
+    GROUP BY SK_ID_CURR
+)
+
+SELECT
+    CASE
+        WHEN previous_application_count = 1
+            THEN '1 Previous Application'
+
+        WHEN previous_application_count BETWEEN 2 AND 3
+            THEN '2-3 Previous Applications'
+
+        WHEN previous_application_count BETWEEN 4 AND 5
+            THEN '4-5 Previous Applications'
+
+        ELSE '6+ Previous Applications'
+    END AS application_history_group,
+
+    COUNT(*) AS total_customers,
+
+    ROUND(
+        AVG(previous_application_count),
+        2
+    ) AS average_previous_applications
+
+FROM customer_history
+GROUP BY application_history_group
+ORDER BY average_previous_applications;
+
+
+-- ============================================================
+-- QUERY 42: Previous Application Count vs Current Default Risk
+-- ============================================================
+
+WITH customer_history AS (
+    SELECT
+        SK_ID_CURR,
+        COUNT(*) AS previous_application_count
+    FROM previous_applications
+    GROUP BY SK_ID_CURR
+)
+
+SELECT
+    CASE
+        WHEN h.previous_application_count = 1
+            THEN '1 Previous Application'
+
+        WHEN h.previous_application_count BETWEEN 2 AND 3
+            THEN '2-3 Previous Applications'
+
+        WHEN h.previous_application_count BETWEEN 4 AND 5
+            THEN '4-5 Previous Applications'
+
+        ELSE '6+ Previous Applications'
+    END AS application_history_group,
+
+    COUNT(*) AS current_customers,
+
+    SUM(
+        CASE WHEN a.TARGET = 1 THEN 1 ELSE 0 END
+    ) AS defaulted_customers,
+
+    ROUND(
+        AVG(a.TARGET) * 100,
+        2
+    ) AS current_default_rate_percentage
+
+FROM applications a
+
+INNER JOIN customer_history h
+    ON a.SK_ID_CURR = h.SK_ID_CURR
+
+GROUP BY application_history_group
+ORDER BY current_default_rate_percentage DESC;
+
+
+-- ============================================================
+-- QUERY 43: Previous Refusal History vs Current Default Risk
+-- ============================================================
+
+WITH refusal_history AS (
+    SELECT
+        SK_ID_CURR,
+
+        SUM(
+            CASE
+                WHEN NAME_CONTRACT_STATUS = 'Refused'
+                THEN 1
+                ELSE 0
+            END
+        ) AS previous_refusals
+
+    FROM previous_applications
+    GROUP BY SK_ID_CURR
+)
+
+SELECT
+    CASE
+        WHEN previous_refusals = 0
+            THEN 'No Previous Refusals'
+
+        WHEN previous_refusals = 1
+            THEN '1 Previous Refusal'
+
+        WHEN previous_refusals BETWEEN 2 AND 3
+            THEN '2-3 Previous Refusals'
+
+        ELSE '4+ Previous Refusals'
+    END AS refusal_history_group,
+
+    COUNT(*) AS total_customers,
+
+    SUM(
+        CASE WHEN a.TARGET = 1 THEN 1 ELSE 0 END
+    ) AS defaulted_customers,
+
+    ROUND(
+        AVG(a.TARGET) * 100,
+        2
+    ) AS current_default_rate_percentage
+
+FROM applications a
+
+INNER JOIN refusal_history r
+    ON a.SK_ID_CURR = r.SK_ID_CURR
+
+GROUP BY refusal_history_group
+ORDER BY current_default_rate_percentage DESC;
+
+
+-- ============================================================
+-- QUERY 44: Previous Approval History vs Current Default Risk
+-- ============================================================
+
+WITH approval_history AS (
+    SELECT
+        SK_ID_CURR,
+
+        SUM(
+            CASE
+                WHEN NAME_CONTRACT_STATUS = 'Approved'
+                THEN 1
+                ELSE 0
+            END
+        ) AS previous_approvals
+
+    FROM previous_applications
+    GROUP BY SK_ID_CURR
+)
+
+SELECT
+    CASE
+        WHEN previous_approvals = 0
+            THEN 'No Previous Approvals'
+
+        WHEN previous_approvals = 1
+            THEN '1 Previous Approval'
+
+        WHEN previous_approvals BETWEEN 2 AND 3
+            THEN '2-3 Previous Approvals'
+
+        ELSE '4+ Previous Approvals'
+    END AS approval_history_group,
+
+    COUNT(*) AS total_customers,
+
+    SUM(
+        CASE WHEN a.TARGET = 1 THEN 1 ELSE 0 END
+    ) AS defaulted_customers,
+
+    ROUND(
+        AVG(a.TARGET) * 100,
+        2
+    ) AS current_default_rate_percentage
+
+FROM applications a
+
+INNER JOIN approval_history h
+    ON a.SK_ID_CURR = h.SK_ID_CURR
+
+GROUP BY approval_history_group
+ORDER BY current_default_rate_percentage DESC;
+
+
+-- ============================================================
+-- QUERY 45: Historical Approval Rate vs Current Default Risk
+-- ============================================================
+
+WITH historical_performance AS (
+    SELECT
+        SK_ID_CURR,
+
+        COUNT(*) AS total_previous_applications,
+
+        SUM(
+            CASE
+                WHEN NAME_CONTRACT_STATUS = 'Approved'
+                THEN 1
+                ELSE 0
+            END
+        ) AS approved_applications
+
+    FROM previous_applications
+    GROUP BY SK_ID_CURR
+),
+
+approval_rate AS (
+    SELECT
+        SK_ID_CURR,
+
+        approved_applications * 1.0 /
+        NULLIF(total_previous_applications, 0)
+            AS historical_approval_rate
+
+    FROM historical_performance
+)
+
+SELECT
+    CASE
+        WHEN historical_approval_rate = 0
+            THEN '0% Approved'
+
+        WHEN historical_approval_rate <= 0.25
+            THEN '1-25% Approved'
+
+        WHEN historical_approval_rate <= 0.50
+            THEN '26-50% Approved'
+
+        WHEN historical_approval_rate <= 0.75
+            THEN '51-75% Approved'
+
+        ELSE '76-100% Approved'
+    END AS historical_approval_band,
+
+    COUNT(*) AS total_customers,
+
+    ROUND(
+        AVG(a.TARGET) * 100,
+        2
+    ) AS current_default_rate_percentage
+
+FROM applications a
+
+INNER JOIN approval_rate h
+    ON a.SK_ID_CURR = h.SK_ID_CURR
+
+GROUP BY historical_approval_band
+ORDER BY current_default_rate_percentage DESC;
+
+
+-- ============================================================
+-- QUERY 46: Previous Loan Purpose vs Current Default Risk
+--
+-- One customer may have multiple historical product categories.
+-- This query analyzes customer-product history combinations.
+-- ============================================================
+
+WITH customer_product_history AS (
+    SELECT DISTINCT
+        SK_ID_CURR,
+        NAME_GOODS_CATEGORY
+    FROM previous_applications
+    WHERE
+        NAME_GOODS_CATEGORY IS NOT NULL
+        AND NAME_GOODS_CATEGORY <> 'XNA'
+)
+
+SELECT
+    p.NAME_GOODS_CATEGORY,
+
+    COUNT(*) AS customers_with_history,
+
+    SUM(
+        CASE WHEN a.TARGET = 1 THEN 1 ELSE 0 END
+    ) AS defaulted_customers,
+
+    ROUND(
+        AVG(a.TARGET) * 100,
+        2
+    ) AS current_default_rate_percentage
+
+FROM applications a
+
+INNER JOIN customer_product_history p
+    ON a.SK_ID_CURR = p.SK_ID_CURR
+
+GROUP BY p.NAME_GOODS_CATEGORY
+HAVING COUNT(*) >= 1000
+ORDER BY current_default_rate_percentage DESC;
+
+
+-- ============================================================
+-- QUERY 47: Previous Application Status Profile
+-- vs Current Default Risk
+-- ============================================================
+
+WITH historical_status AS (
+    SELECT
+        SK_ID_CURR,
+
+        COUNT(*) AS total_previous_applications,
+
+        SUM(
+            CASE
+                WHEN NAME_CONTRACT_STATUS = 'Approved'
+                THEN 1 ELSE 0
+            END
+        ) AS approvals,
+
+        SUM(
+            CASE
+                WHEN NAME_CONTRACT_STATUS = 'Refused'
+                THEN 1 ELSE 0
+            END
+        ) AS refusals
+
+    FROM previous_applications
+    GROUP BY SK_ID_CURR
+),
+
+status_profile AS (
+    SELECT
+        SK_ID_CURR,
+
+        CASE
+            WHEN refusals = 0
+                 AND approvals > 0
+                THEN 'Approved History Only'
+
+            WHEN approvals = 0
+                 AND refusals > 0
+                THEN 'Refused History Only'
+
+            WHEN approvals > 0
+                 AND refusals > 0
+                THEN 'Mixed Approval/Refusal History'
+
+            ELSE 'Other Historical Status'
+        END AS historical_status_profile
+
+    FROM historical_status
+)
+
+SELECT
+    historical_status_profile,
+
+    COUNT(*) AS total_customers,
+
+    SUM(
+        CASE WHEN a.TARGET = 1 THEN 1 ELSE 0 END
+    ) AS defaulted_customers,
+
+    ROUND(
+        AVG(a.TARGET) * 100,
+        2
+    ) AS current_default_rate_percentage
+
+FROM applications a
+
+INNER JOIN status_profile h
+    ON a.SK_ID_CURR = h.SK_ID_CURR
+
+GROUP BY historical_status_profile
+ORDER BY current_default_rate_percentage DESC;
