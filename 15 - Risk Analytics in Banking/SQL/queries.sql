@@ -1545,3 +1545,444 @@ INNER JOIN status_profile h
 
 GROUP BY historical_status_profile
 ORDER BY current_default_rate_percentage DESC;
+
+
+-- ============================================================
+-- DAY 5: ADVANCED RISK ANALYTICS & PORTFOLIO SUMMARY
+-- ============================================================
+
+
+-- ============================================================
+-- QUERY 48: Overall Current Portfolio Risk Summary
+-- ============================================================
+
+SELECT
+    COUNT(*) AS total_applications,
+
+    SUM(CASE WHEN TARGET = 1 THEN 1 ELSE 0 END)
+        AS total_defaults,
+
+    ROUND(AVG(TARGET) * 100, 2)
+        AS overall_default_rate_percentage,
+
+    ROUND(SUM(AMT_CREDIT), 2)
+        AS total_credit_exposure,
+
+    ROUND(
+        SUM(
+            CASE
+                WHEN TARGET = 1 THEN AMT_CREDIT
+                ELSE 0
+            END
+        ),
+        2
+    ) AS defaulted_credit_exposure
+
+FROM applications;
+
+
+-- ============================================================
+-- QUERY 49: Credit Exposure by Default Status
+-- ============================================================
+
+SELECT
+    CASE
+        WHEN TARGET = 0 THEN 'Non-Default'
+        WHEN TARGET = 1 THEN 'Default'
+    END AS risk_status,
+
+    COUNT(*) AS total_applications,
+
+    ROUND(SUM(AMT_CREDIT), 2)
+        AS total_credit_exposure,
+
+    ROUND(AVG(AMT_CREDIT), 2)
+        AS average_credit_amount,
+
+    ROUND(
+        SUM(AMT_CREDIT) * 100.0 /
+        SUM(SUM(AMT_CREDIT)) OVER (),
+        2
+    ) AS exposure_percentage
+
+FROM applications
+GROUP BY TARGET
+ORDER BY TARGET;
+
+
+-- ============================================================
+-- QUERY 50: External Score 2 + Age Combined Risk
+-- ============================================================
+
+WITH customer_risk AS (
+    SELECT
+        TARGET,
+
+        CASE
+            WHEN EXT_SOURCE_2 < 0.30 THEN 'Low Score'
+            WHEN EXT_SOURCE_2 < 0.50 THEN 'Medium-Low Score'
+            WHEN EXT_SOURCE_2 < 0.70 THEN 'Medium-High Score'
+            ELSE 'High Score'
+        END AS external_score_group,
+
+        CASE
+            WHEN ABS(DAYS_BIRTH) / 365.25 < 40
+                THEN 'Under 40'
+            WHEN ABS(DAYS_BIRTH) / 365.25 < 60
+                THEN '40 - 59'
+            ELSE '60+'
+        END AS age_group
+
+    FROM applications
+    WHERE EXT_SOURCE_2 IS NOT NULL
+)
+
+SELECT
+    external_score_group,
+    age_group,
+
+    COUNT(*) AS total_applications,
+
+    SUM(CASE WHEN TARGET = 1 THEN 1 ELSE 0 END)
+        AS defaulted_applications,
+
+    ROUND(AVG(TARGET) * 100, 2)
+        AS default_rate_percentage
+
+FROM customer_risk
+GROUP BY
+    external_score_group,
+    age_group
+HAVING COUNT(*) >= 500
+ORDER BY default_rate_percentage DESC;
+
+
+-- ============================================================
+-- QUERY 51: External Score 2 + Previous Refusal Risk
+-- ============================================================
+
+WITH refusal_history AS (
+    SELECT
+        SK_ID_CURR,
+
+        SUM(
+            CASE
+                WHEN NAME_CONTRACT_STATUS = 'Refused'
+                THEN 1
+                ELSE 0
+            END
+        ) AS previous_refusals
+
+    FROM previous_applications
+    GROUP BY SK_ID_CURR
+),
+
+combined_risk AS (
+    SELECT
+        a.TARGET,
+        a.EXT_SOURCE_2,
+        r.previous_refusals
+
+    FROM applications a
+
+    INNER JOIN refusal_history r
+        ON a.SK_ID_CURR = r.SK_ID_CURR
+
+    WHERE a.EXT_SOURCE_2 IS NOT NULL
+)
+
+SELECT
+    CASE
+        WHEN EXT_SOURCE_2 < 0.30 THEN 'Low Score'
+        WHEN EXT_SOURCE_2 < 0.50 THEN 'Medium-Low Score'
+        WHEN EXT_SOURCE_2 < 0.70 THEN 'Medium-High Score'
+        ELSE 'High Score'
+    END AS external_score_group,
+
+    CASE
+        WHEN previous_refusals = 0
+            THEN 'No Previous Refusals'
+        WHEN previous_refusals = 1
+            THEN '1 Previous Refusal'
+        WHEN previous_refusals BETWEEN 2 AND 3
+            THEN '2-3 Previous Refusals'
+        ELSE '4+ Previous Refusals'
+    END AS refusal_history_group,
+
+    COUNT(*) AS total_customers,
+
+    ROUND(AVG(TARGET) * 100, 2)
+        AS current_default_rate_percentage
+
+FROM combined_risk
+GROUP BY
+    external_score_group,
+    refusal_history_group
+HAVING COUNT(*) >= 500
+ORDER BY current_default_rate_percentage DESC;
+
+
+-- ============================================================
+-- QUERY 52: External Score 2 + Historical Approval Rate
+-- ============================================================
+
+WITH historical_performance AS (
+    SELECT
+        SK_ID_CURR,
+
+        COUNT(*) AS total_previous_applications,
+
+        SUM(
+            CASE
+                WHEN NAME_CONTRACT_STATUS = 'Approved'
+                THEN 1
+                ELSE 0
+            END
+        ) AS approved_applications
+
+    FROM previous_applications
+    GROUP BY SK_ID_CURR
+),
+
+approval_history AS (
+    SELECT
+        SK_ID_CURR,
+
+        approved_applications * 1.0 /
+        NULLIF(total_previous_applications, 0)
+            AS historical_approval_rate
+
+    FROM historical_performance
+)
+
+SELECT
+    CASE
+        WHEN a.EXT_SOURCE_2 < 0.30 THEN 'Low Score'
+        WHEN a.EXT_SOURCE_2 < 0.50 THEN 'Medium-Low Score'
+        WHEN a.EXT_SOURCE_2 < 0.70 THEN 'Medium-High Score'
+        ELSE 'High Score'
+    END AS external_score_group,
+
+    CASE
+        WHEN h.historical_approval_rate <= 0.25
+            THEN '0-25% Approved'
+        WHEN h.historical_approval_rate <= 0.50
+            THEN '26-50% Approved'
+        WHEN h.historical_approval_rate <= 0.75
+            THEN '51-75% Approved'
+        ELSE '76-100% Approved'
+    END AS historical_approval_band,
+
+    COUNT(*) AS total_customers,
+
+    ROUND(AVG(a.TARGET) * 100, 2)
+        AS current_default_rate_percentage
+
+FROM applications a
+
+INNER JOIN approval_history h
+    ON a.SK_ID_CURR = h.SK_ID_CURR
+
+WHERE a.EXT_SOURCE_2 IS NOT NULL
+
+GROUP BY
+    external_score_group,
+    historical_approval_band
+
+HAVING COUNT(*) >= 500
+
+ORDER BY current_default_rate_percentage DESC;
+
+
+-- ============================================================
+-- QUERY 53: Final Enhanced Risk Segmentation
+--
+-- Risk Factors:
+-- 1. EXT_SOURCE_2 < 0.50
+-- 2. Age < 40
+-- 3. Employment history < 3 years
+-- 4. Annuity-to-income ratio >= 25%
+-- 5. At least one previous refusal
+-- ============================================================
+
+WITH refusal_history AS (
+    SELECT
+        SK_ID_CURR,
+
+        SUM(
+            CASE
+                WHEN NAME_CONTRACT_STATUS = 'Refused'
+                THEN 1
+                ELSE 0
+            END
+        ) AS previous_refusals
+
+    FROM previous_applications
+    GROUP BY SK_ID_CURR
+),
+
+risk_factors AS (
+    SELECT
+        a.SK_ID_CURR,
+        a.TARGET,
+        a.AMT_CREDIT,
+
+        (
+            CASE
+                WHEN a.EXT_SOURCE_2 < 0.50
+                THEN 1 ELSE 0
+            END
+            +
+            CASE
+                WHEN ABS(a.DAYS_BIRTH) / 365.25 < 40
+                THEN 1 ELSE 0
+            END
+            +
+            CASE
+                WHEN a.DAYS_EMPLOYED != 365243
+                     AND ABS(a.DAYS_EMPLOYED) / 365.25 < 3
+                THEN 1 ELSE 0
+            END
+            +
+            CASE
+                WHEN a.AMT_ANNUITY /
+                     NULLIF(a.AMT_INCOME_TOTAL, 0) >= 0.25
+                THEN 1 ELSE 0
+            END
+            +
+            CASE
+                WHEN COALESCE(r.previous_refusals, 0) >= 1
+                THEN 1 ELSE 0
+            END
+        ) AS risk_factor_count
+
+    FROM applications a
+
+    LEFT JOIN refusal_history r
+        ON a.SK_ID_CURR = r.SK_ID_CURR
+)
+
+SELECT
+    CASE
+        WHEN risk_factor_count <= 1
+            THEN 'Low Risk'
+        WHEN risk_factor_count = 2
+            THEN 'Moderate Risk'
+        WHEN risk_factor_count = 3
+            THEN 'Elevated Risk'
+        ELSE 'High Risk'
+    END AS enhanced_risk_segment,
+
+    COUNT(*) AS total_applications,
+
+    SUM(CASE WHEN TARGET = 1 THEN 1 ELSE 0 END)
+        AS total_defaults,
+
+    ROUND(AVG(TARGET) * 100, 2)
+        AS default_rate_percentage,
+
+    ROUND(SUM(AMT_CREDIT), 2)
+        AS total_credit_exposure
+
+FROM risk_factors
+
+GROUP BY enhanced_risk_segment
+ORDER BY default_rate_percentage DESC;
+
+
+-- ============================================================
+-- QUERY 54: Enhanced Risk Segment Portfolio Concentration
+-- ============================================================
+
+WITH refusal_history AS (
+    SELECT
+        SK_ID_CURR,
+
+        SUM(
+            CASE
+                WHEN NAME_CONTRACT_STATUS = 'Refused'
+                THEN 1
+                ELSE 0
+            END
+        ) AS previous_refusals
+
+    FROM previous_applications
+    GROUP BY SK_ID_CURR
+),
+
+risk_factors AS (
+    SELECT
+        a.TARGET,
+
+        (
+            CASE WHEN a.EXT_SOURCE_2 < 0.50
+                THEN 1 ELSE 0 END
+            +
+            CASE
+                WHEN ABS(a.DAYS_BIRTH) / 365.25 < 40
+                THEN 1 ELSE 0 END
+            +
+            CASE
+                WHEN a.DAYS_EMPLOYED != 365243
+                     AND ABS(a.DAYS_EMPLOYED) / 365.25 < 3
+                THEN 1 ELSE 0 END
+            +
+            CASE
+                WHEN a.AMT_ANNUITY /
+                     NULLIF(a.AMT_INCOME_TOTAL, 0) >= 0.25
+                THEN 1 ELSE 0 END
+            +
+            CASE
+                WHEN COALESCE(r.previous_refusals, 0) >= 1
+                THEN 1 ELSE 0 END
+        ) AS risk_factor_count
+
+    FROM applications a
+
+    LEFT JOIN refusal_history r
+        ON a.SK_ID_CURR = r.SK_ID_CURR
+),
+
+segments AS (
+    SELECT
+        TARGET,
+
+        CASE
+            WHEN risk_factor_count <= 1
+                THEN 'Low Risk'
+            WHEN risk_factor_count = 2
+                THEN 'Moderate Risk'
+            WHEN risk_factor_count = 3
+                THEN 'Elevated Risk'
+            ELSE 'High Risk'
+        END AS enhanced_risk_segment
+
+    FROM risk_factors
+)
+
+SELECT
+    enhanced_risk_segment,
+
+    COUNT(*) AS total_applications,
+
+    ROUND(
+        COUNT(*) * 100.0 /
+        SUM(COUNT(*)) OVER (),
+        2
+    ) AS portfolio_percentage,
+
+    SUM(CASE WHEN TARGET = 1 THEN 1 ELSE 0 END)
+        AS total_defaults,
+
+    ROUND(
+        SUM(CASE WHEN TARGET = 1 THEN 1 ELSE 0 END)
+        * 100.0 /
+        SUM(
+            SUM(CASE WHEN TARGET = 1 THEN 1 ELSE 0 END)
+        ) OVER (),
+        2
+    ) AS share_of_all_defaults_percentage
+
+FROM segments
+GROUP BY enhanced_risk_segment
+ORDER BY share_of_all_defaults_percentage DESC;
