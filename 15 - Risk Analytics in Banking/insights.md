@@ -908,3 +908,367 @@ The refused-only segment also has a high default rate but contains only 599 cust
 8. Historical application behavior can complement the demographic, financial, employment, and external credit indicators identified during Days 2 and 3.
 
 9. The results support using both **current applicant characteristics and historical credit behavior** when constructing more comprehensive borrower-risk segmentation.
+
+---
+
+# Day 5 — Advanced Risk Analytics & Enhanced Risk Segmentation
+
+## 1. Overall Portfolio Risk Summary
+
+The current application portfolio contains:
+
+- Total applications: **307,511**
+- Total defaults: **24,825**
+- Overall default rate: **8.07%**
+- Total credit exposure: approximately **184.21 billion**
+- Credit exposure associated with defaulted applications: approximately **13.85 billion**
+
+Although defaulted applications represent a relatively small portion of the overall portfolio, they are associated with a substantial amount of credit exposure.
+
+This highlights the importance of identifying concentrated high-risk borrower groups rather than relying only on the overall portfolio default rate.
+
+---
+
+## 2. Credit Exposure by Default Status
+
+Credit exposure is heavily concentrated among non-defaulting applications.
+
+### Non-Default
+
+- Applications: **282,686**
+- Total credit exposure: approximately **170.36 billion**
+- Average credit amount: **602,648.28**
+- Share of total exposure: **92.48%**
+
+### Default
+
+- Applications: **24,825**
+- Total credit exposure: approximately **13.85 billion**
+- Average credit amount: **557,778.53**
+- Share of total exposure: **7.52%**
+
+Defaulted applications account for **7.52% of total credit exposure**.
+
+Interestingly, the average credit amount among defaulted applications is lower than among non-defaulted applications.
+
+This suggests that higher loan size alone does not explain default behavior within this portfolio.
+
+---
+
+## 3. External Credit Score + Age Risk
+
+Combining external credit score with customer age produces strong risk differentiation.
+
+### Highest-Risk Combination
+
+**Low External Score + Under 40**
+
+- Applications: **24,456**
+- Defaults: **4,740**
+- Default rate: **19.38%**
+
+Other higher-risk combinations include:
+
+- Low Score + Age 40–59: **13.94%**
+- Medium-Low Score + Under 40: **11.53%**
+- Low Score + Age 60+: **8.83%**
+
+### Lower-Risk Combinations
+
+- High Score + Under 40: **3.81%**
+- High Score + Age 40–59: **3.25%**
+- High Score + Age 60+: **2.22%**
+
+The difference between the highest and lowest observed combinations is substantial:
+
+**19.38% vs 2.22%**
+
+Within every external-score category, younger customers generally show higher observed default rates than older customers.
+
+However, external credit score remains a strong differentiator across all age groups.
+
+---
+
+## 4. External Credit Score + Previous Refusal History
+
+Combining current external credit information with historical refusal behavior produces even stronger segmentation.
+
+### Highest Observed Risk
+
+**Low Score + 4+ Previous Refusals**
+
+- Customers: **3,599**
+- Current default rate: **23.01%**
+
+Other high-risk combinations include:
+
+- Low Score + 2–3 previous refusals: **19.96%**
+- Low Score + 1 previous refusal: **16.51%**
+- Medium-Low Score + 4+ previous refusals: **15.08%**
+- Low Score + no previous refusals: **14.25%**
+
+### Lowest Observed Risk
+
+**High Score + No Previous Refusals**
+
+- Customers: **29,391**
+- Current default rate: **2.78%**
+
+Other lower-risk combinations include:
+
+- High Score + 1 previous refusal: **4.04%**
+- High Score + 2–3 previous refusals: **5.18%**
+- High Score + 4+ previous refusals: **5.97%**
+
+The highest-risk combination has more than **8 times** the observed default rate of the lowest-risk combination.
+
+Within each external-score group, customers with more historical refusals generally show higher current default rates.
+
+This demonstrates the value of combining current credit indicators with historical application behavior.
+
+---
+
+## 5. External Credit Score + Historical Approval Rate
+
+Historical approval performance provides additional separation when combined with external credit score.
+
+### Highest-Risk Combination
+
+**Low Score + 0–25% Historical Approval Rate**
+
+- Customers: **2,526**
+- Current default rate: **25.81%**
+
+Other high-risk combinations include:
+
+- Low Score + 26–50% approved: **19.63%**
+- Medium-Low Score + 0–25% approved: **16.62%**
+- Low Score + 51–75% approved: **14.50%**
+- Low Score + 76–100% approved: **13.94%**
+
+### Lowest-Risk Combination
+
+**High Score + 76–100% Historical Approval Rate**
+
+- Customers: **22,612**
+- Current default rate: **2.60%**
+
+Other lower-risk combinations include:
+
+- High Score + 51–75% approved: **3.55%**
+- High Score + 26–50% approved: **4.78%**
+- High Score + 0–25% approved: **5.89%**
+
+The highest-risk combination has nearly **10 times** the observed default rate of the lowest-risk combination.
+
+This is one of the strongest risk separations identified across the project.
+
+Customers with weaker current external credit scores and weaker historical approval performance form a particularly high-risk group.
+
+---
+
+## 6. Enhanced Multi-Factor Risk Segmentation
+
+The final Day 5 segmentation expands the Day 3 risk framework by incorporating historical application behavior.
+
+Five risk indicators are used:
+
+1. External Score 2 below 0.50
+2. Customer age below 40
+3. Employment history below 3 years
+4. Annuity-to-income ratio of at least 25%
+5. At least one previous refused application
+
+Customers are then classified based on the number of risk indicators present.
+
+### High Risk
+
+- Applications: **15,184**
+- Defaults: **2,787**
+- Default rate: **18.35%**
+- Total credit exposure: approximately **8.62 billion**
+
+### Elevated Risk
+
+- Applications: **48,919**
+- Defaults: **6,515**
+- Default rate: **13.32%**
+- Total credit exposure: approximately **27.63 billion**
+
+### Moderate Risk
+
+- Applications: **91,548**
+- Defaults: **8,065**
+- Default rate: **8.81%**
+- Total credit exposure: approximately **54.81 billion**
+
+### Low Risk
+
+- Applications: **151,860**
+- Defaults: **7,458**
+- Default rate: **4.91%**
+- Total credit exposure: approximately **93.15 billion**
+
+The enhanced segmentation produces a clear risk gradient:
+
+**4.91% → 8.81% → 13.32% → 18.35%**
+
+The High Risk segment has approximately **3.7 times** the observed default rate of the Low Risk segment.
+
+This demonstrates that combining demographic, employment, affordability, external credit, and historical behavioral indicators creates substantially stronger risk differentiation than relying on individual variables.
+
+---
+
+## 7. Portfolio Concentration by Enhanced Risk Segment
+
+The enhanced segmentation also shows how defaults are distributed across the portfolio.
+
+### Low Risk
+
+- **49.38%** of applications
+- **30.04%** of all defaults
+
+### Moderate Risk
+
+- **29.77%** of applications
+- **32.49%** of all defaults
+
+### Elevated Risk
+
+- **15.91%** of applications
+- **26.24%** of all defaults
+
+### High Risk
+
+- **4.94%** of applications
+- **11.23%** of all defaults
+
+The High Risk segment represents only **4.94% of the portfolio**, yet it contributes **11.23% of all defaults**.
+
+Combining the High and Elevated Risk segments:
+
+- They represent approximately **20.85% of applications**
+- They account for approximately **37.47% of all defaults**
+
+This demonstrates meaningful concentration of default risk within a relatively small portion of the portfolio.
+
+---
+
+## 8. Comparison with the Day 3 Risk Framework
+
+Day 3 used four current-application risk indicators:
+
+- External credit score
+- Age
+- Employment stability
+- Payment burden
+
+Day 5 adds a fifth behavioral indicator:
+
+- Previous refusal history
+
+The Day 3 High Risk segment had an observed default rate of **15.48%**.
+
+The enhanced Day 5 High Risk segment has an observed default rate of **18.35%**.
+
+The enhanced framework therefore creates a smaller and more concentrated high-risk group by incorporating historical credit application behavior.
+
+This supports the broader finding from Day 4 that previous refusals contain useful information about current borrower risk.
+
+---
+
+## 9. Key Risk Drivers Identified Across the Project
+
+The complete analysis identifies several characteristics associated with elevated observed default rates.
+
+### External Credit Score
+
+External credit score is one of the strongest individual risk differentiators.
+
+Lower external scores consistently correspond with higher observed default rates.
+
+### Age
+
+Younger customers generally show higher observed default rates, particularly when combined with weaker credit scores.
+
+### Employment Stability
+
+Short employment history is associated with elevated risk, especially among younger customers and customers with weaker external credit scores.
+
+### Historical Refusals
+
+Repeated historical refusals show a clear relationship with higher current default rates.
+
+### Historical Approval Performance
+
+Low historical approval rates, particularly when combined with weak external credit scores, identify some of the highest-risk groups in the portfolio.
+
+### Financial Burden
+
+Credit-to-income and annuity-to-income measures provide useful affordability context, although financial burden alone does not create a perfectly monotonic default-risk pattern.
+
+The strongest segmentation is achieved when several of these indicators are analyzed together.
+
+---
+
+## 10. Business Interpretation
+
+The analysis suggests that credit risk should not be evaluated using a single borrower characteristic.
+
+A more informative risk assessment combines:
+
+- Current external credit information
+- Customer demographics
+- Employment stability
+- Payment affordability
+- Historical credit application behavior
+
+For example:
+
+**Low External Score + 0–25% Historical Approval Rate**
+
+shows a **25.81% current default rate**.
+
+By comparison:
+
+**High External Score + 76–100% Historical Approval Rate**
+
+shows only a **2.60% current default rate**.
+
+This large difference demonstrates how combining current and historical information can identify materially different borrower-risk profiles.
+
+---
+
+## Day 5 Key Takeaways
+
+1. The portfolio contains **307,511 applications** with an overall observed default rate of **8.07%**.
+
+2. Approximately **13.85 billion** of credit exposure is associated with defaulted applications.
+
+3. Combining age with external credit score separates default rates from **19.38% for Low Score + Under 40** to **2.22% for High Score + Age 60+**.
+
+4. Historical refusals strengthen risk segmentation. Customers with a **Low Score + 4+ Previous Refusals** have a **23.01%** default rate compared with **2.78% for High Score + No Previous Refusals**.
+
+5. Historical approval performance provides even stronger differentiation. **Low Score + 0–25% Approved** reaches **25.81%**, while **High Score + 76–100% Approved** records only **2.60%**.
+
+6. The enhanced multi-factor segmentation produces a clear default-risk progression:
+
+   **Low Risk 4.91% → Moderate Risk 8.81% → Elevated Risk 13.32% → High Risk 18.35%**
+
+7. The High Risk segment represents only **4.94% of applications but contributes 11.23% of all defaults**.
+
+8. High and Elevated Risk segments together represent approximately **20.85% of the portfolio while contributing 37.47% of all defaults**.
+
+9. Adding previous refusal history to the Day 3 framework increases the observed default rate of the most concentrated High Risk segment from **15.48% to 18.35%**.
+
+10. The overall analysis demonstrates that combining current borrower characteristics with historical credit behavior provides substantially stronger descriptive risk segmentation than analyzing individual variables independently.
+
+---
+
+## Analytical Note
+
+The risk segments created in this project are analyst-designed descriptive segments based on observed historical relationships.
+
+They are not a trained machine-learning credit scoring model and should not be interpreted as causal relationships or production lending decisions.
+
+The analysis demonstrates SQL-based portfolio segmentation, historical behavior analysis, and credit-risk exploration using the available dataset.
