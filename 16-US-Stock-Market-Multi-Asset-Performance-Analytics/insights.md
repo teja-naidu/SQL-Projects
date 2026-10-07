@@ -157,3 +157,122 @@ The performance analysis reveals substantial differences between broad market in
 High-growth assets such as **Ethereum, Nvidia, Bitcoin, and Tesla** generated exceptional cumulative returns, while diversified market indices produced comparatively moderate gains. However, the sharp declines observed in 2022 and the extreme daily movements during 2020 demonstrate that high return potential can be accompanied by significant market risk.
 
 The next stage of the analysis will therefore focus on **volatility, drawdowns, and risk characteristics** to determine not only which assets generated the highest returns, but also how much risk investors experienced in achieving those returns.
+
+## Day 3 — Risk, Volatility & Drawdown Analysis
+
+### Market Index Volatility
+
+- The S&P 500 recorded an annualized volatility of **21.32%**.
+- The Nasdaq 100 recorded a higher annualized volatility of **25.74%**.
+- This indicates that the technology-heavy Nasdaq experienced larger daily price fluctuations than the broader S&P 500 during the analysis period.
+
+### Technology Stock Volatility
+
+Technology stocks showed substantial differences in risk based on annualized daily-return volatility.
+
+| Rank | Stock | Annualized Volatility |
+|---|---|---:|
+| 1 | Tesla | 64.47% |
+| 2 | Nvidia | 51.26% |
+| 3 | Netflix | 46.18% |
+| 4 | Meta | 44.53% |
+| 5 | Amazon | 35.25% |
+| 6 | Google | 32.07% |
+| 7 | Apple | 31.82% |
+| 8 | Microsoft | 30.33% |
+
+- **Tesla was the most volatile technology stock**, with annualized volatility of **64.47%**.
+- Nvidia ranked second at **51.26%**, showing that its exceptional long-term return was accompanied by substantial price fluctuations.
+- Microsoft had the lowest volatility among the analyzed technology stocks at **30.33%**.
+- Apple also remained toward the lower end of the technology-stock risk ranking at **31.82%**.
+
+### Cryptocurrency Risk
+
+- Ethereum recorded annualized volatility of **86.65%**.
+- Bitcoin recorded annualized volatility of **67.86%**.
+- Both cryptocurrencies were considerably more volatile than the market indices, Gold, Apple, and Nvidia.
+- Ethereum therefore combined the highest total return in the selected cross-asset comparison with the highest annualized volatility.
+
+### Cross-Asset Volatility Comparison
+
+| Asset | Asset Class | Annualized Volatility |
+|---|---|---:|
+| Ethereum | Cryptocurrency | 86.65% |
+| Bitcoin | Cryptocurrency | 67.86% |
+| Nvidia | Stock | 51.26% |
+| Apple | Stock | 31.82% |
+| Nasdaq 100 | Market Index | 25.74% |
+| S&P 500 | Market Index | 21.32% |
+| Gold | Commodity | 16.04% |
+
+- **Ethereum was the most volatile representative asset**, while **Gold was the least volatile**.
+- Bitcoin and Ethereum exhibited substantially greater price risk than the two broad market indices.
+- Nvidia carried considerably more volatility than the S&P 500 and Nasdaq 100, but also generated a much higher cumulative return.
+- Gold showed the lowest annualized volatility at **16.04%**, demonstrating a substantially different risk profile from growth stocks and cryptocurrencies.
+
+### S&P 500 Maximum Drawdown
+
+- The S&P 500 experienced a maximum drawdown of **-33.92%**.
+- The drawdown bottom occurred on **March 23, 2020**, when the index reached **2,237.40** after previously reaching a running peak of **3,386.15**.
+- This demonstrates that even a diversified broad-market index can experience substantial short-term losses during severe market stress.
+
+### Nasdaq 100 Maximum Drawdown
+
+- The Nasdaq 100 experienced a maximum drawdown of **-35.56%**.
+- The drawdown bottom occurred on **December 28, 2022**, when the index stood at **10,679.34**, compared with its previous running peak of **16,573.34**.
+- The Nasdaq's maximum drawdown was slightly larger than that of the S&P 500.
+
+### Technology Stock Maximum Drawdowns
+
+| Stock | Maximum Drawdown |
+|---|---:|
+| Meta | -76.73% |
+| Netflix | -75.95% |
+| Tesla | -73.63% |
+| Nvidia | -66.36% |
+| Amazon | -56.15% |
+| Google | -44.32% |
+| Microsoft | -37.56% |
+| Apple | -31.43% |
+
+- **Meta experienced the largest maximum drawdown at -76.73%**.
+- Netflix and Tesla also experienced peak-to-trough declines exceeding **70%**.
+- Nvidia experienced a maximum drawdown of **-66.36%**, despite ultimately producing the highest total return among the analyzed technology stocks.
+- Apple had the smallest maximum drawdown among the eight stocks at **-31.43%**.
+- These results demonstrate why cumulative return alone is not sufficient for evaluating an investment's historical performance.
+
+### Positive vs Negative S&P 500 Trading Days
+
+- The S&P 500 recorded **673 positive trading days**, representing **54.19%** of analyzed daily movements.
+- It recorded **569 negative trading days**, representing **45.81%**.
+- Positive days occurred more frequently than negative days over the analysis period.
+
+### Risk vs Return Comparison
+
+A simple return-to-volatility ratio was calculated by dividing total return by annualized volatility.
+
+| Asset | Total Return | Annualized Volatility | Return-to-Volatility Ratio |
+|---|---:|---:|---:|
+| Nvidia | 1,673.73% | 51.26% | 32.65 |
+| Ethereum | 2,040.20% | 86.65% | 23.54 |
+| Bitcoin | 1,147.39% | 67.86% | 16.91 |
+| Apple | 334.13% | 31.82% | 10.50 |
+| Nasdaq 100 | 153.49% | 25.74% | 5.96 |
+| S&P 500 | 81.98% | 21.32% | 3.85 |
+| Gold | 55.67% | 16.04% | 3.47 |
+
+- Nvidia achieved the highest **return-to-volatility ratio of 32.65** among the selected assets.
+- Ethereum generated a higher total return than Nvidia but also experienced substantially greater volatility, resulting in a lower ratio of **23.54**.
+- Bitcoin ranked third with a ratio of **16.91**.
+- Gold had the lowest volatility but also a much lower cumulative return, producing a ratio of **3.47**.
+- This metric is a simplified comparison of cumulative return relative to annualized volatility and **should not be interpreted as a Sharpe Ratio or formal risk-adjusted performance measure**.
+
+## Day 3 Key Takeaways
+
+The Day 3 analysis demonstrates that the assets producing the largest returns were generally accompanied by substantially greater risk.
+
+Cryptocurrencies showed the highest volatility, while individual growth stocks such as Tesla and Nvidia were significantly more volatile than broad market indices. Gold displayed the lowest volatility among the representative assets.
+
+Maximum drawdown analysis further highlights the importance of downside risk. Several major technology stocks experienced peak-to-trough losses exceeding 50%, even when their long-term cumulative returns were strongly positive.
+
+Among the selected assets, Nvidia produced the strongest simple return-to-volatility relationship. Overall, the analysis reinforces that investment performance should be evaluated using both **return and risk measures**, rather than cumulative returns alone.
