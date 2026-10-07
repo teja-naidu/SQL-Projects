@@ -1192,3 +1192,829 @@ WHERE positive_rank <= 5
    OR negative_rank <= 5
 
 ORDER BY daily_return_percentage DESC;
+
+-- ============================================================
+-- DAY 3: RISK, VOLATILITY & DRAWDOWN ANALYSIS
+-- ============================================================
+
+
+-- ============================================================
+-- Query 21: S&P 500 Annualized Volatility
+-- Purpose:
+-- Measure annualized volatility using the standard deviation
+-- of daily percentage returns.
+-- ============================================================
+
+WITH prices AS (
+    SELECT
+        Date,
+        CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE) AS price,
+        LAG(
+            CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE)
+        ) OVER (ORDER BY Date) AS previous_price
+    FROM stock_market
+),
+
+returns AS (
+    SELECT
+        Date,
+        ((price - previous_price) / previous_price) AS daily_return
+    FROM prices
+    WHERE previous_price IS NOT NULL
+)
+
+SELECT
+    ROUND(
+        STDDEV_SAMP(daily_return) * SQRT(252) * 100,
+        2
+    ) AS annualized_volatility_percentage
+FROM returns;
+
+
+-- ============================================================
+-- Query 22: S&P 500 vs Nasdaq 100 Annualized Volatility
+-- Purpose:
+-- Compare risk levels of the two major market indices.
+-- ============================================================
+
+WITH prices AS (
+    SELECT
+        Date,
+
+        CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE)
+            AS sp500_price,
+
+        CAST(REPLACE("Nasdaq_100_Price", ',', '') AS DOUBLE)
+            AS nasdaq_price,
+
+        LAG(
+            CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE)
+        ) OVER (ORDER BY Date) AS previous_sp500,
+
+        LAG(
+            CAST(REPLACE("Nasdaq_100_Price", ',', '') AS DOUBLE)
+        ) OVER (ORDER BY Date) AS previous_nasdaq
+
+    FROM stock_market
+),
+
+returns AS (
+    SELECT
+        ((sp500_price - previous_sp500) / previous_sp500)
+            AS sp500_return,
+
+        ((nasdaq_price - previous_nasdaq) / previous_nasdaq)
+            AS nasdaq_return
+
+    FROM prices
+    WHERE previous_sp500 IS NOT NULL
+)
+
+SELECT
+    ROUND(
+        STDDEV_SAMP(sp500_return) * SQRT(252) * 100,
+        2
+    ) AS sp500_annualized_volatility,
+
+    ROUND(
+        STDDEV_SAMP(nasdaq_return) * SQRT(252) * 100,
+        2
+    ) AS nasdaq_annualized_volatility
+
+FROM returns;
+
+
+-- ============================================================
+-- Query 23: Technology Stock Volatility Ranking
+-- Purpose:
+-- Compare annualized volatility across major technology stocks.
+-- Higher volatility indicates larger day-to-day price movements.
+-- ============================================================
+
+WITH daily_returns AS (
+    SELECT
+        Date,
+
+        (Apple_Price /
+            LAG(Apple_Price) OVER (ORDER BY Date) - 1)
+            AS apple_return,
+
+        (Microsoft_Price /
+            LAG(Microsoft_Price) OVER (ORDER BY Date) - 1)
+            AS microsoft_return,
+
+        (Tesla_Price /
+            LAG(Tesla_Price) OVER (ORDER BY Date) - 1)
+            AS tesla_return,
+
+        (Google_Price /
+            LAG(Google_Price) OVER (ORDER BY Date) - 1)
+            AS google_return,
+
+        (Nvidia_Price /
+            LAG(Nvidia_Price) OVER (ORDER BY Date) - 1)
+            AS nvidia_return,
+
+        (Amazon_Price /
+            LAG(Amazon_Price) OVER (ORDER BY Date) - 1)
+            AS amazon_return,
+
+        (Meta_Price /
+            LAG(Meta_Price) OVER (ORDER BY Date) - 1)
+            AS meta_return,
+
+        (Netflix_Price /
+            LAG(Netflix_Price) OVER (ORDER BY Date) - 1)
+            AS netflix_return
+
+    FROM stock_market
+),
+
+volatility AS (
+
+    SELECT 'Apple' AS asset,
+        STDDEV_SAMP(apple_return) * SQRT(252) * 100 AS volatility
+    FROM daily_returns
+
+    UNION ALL
+
+    SELECT 'Microsoft',
+        STDDEV_SAMP(microsoft_return) * SQRT(252) * 100
+    FROM daily_returns
+
+    UNION ALL
+
+    SELECT 'Tesla',
+        STDDEV_SAMP(tesla_return) * SQRT(252) * 100
+    FROM daily_returns
+
+    UNION ALL
+
+    SELECT 'Google',
+        STDDEV_SAMP(google_return) * SQRT(252) * 100
+    FROM daily_returns
+
+    UNION ALL
+
+    SELECT 'Nvidia',
+        STDDEV_SAMP(nvidia_return) * SQRT(252) * 100
+    FROM daily_returns
+
+    UNION ALL
+
+    SELECT 'Amazon',
+        STDDEV_SAMP(amazon_return) * SQRT(252) * 100
+    FROM daily_returns
+
+    UNION ALL
+
+    SELECT 'Meta',
+        STDDEV_SAMP(meta_return) * SQRT(252) * 100
+    FROM daily_returns
+
+    UNION ALL
+
+    SELECT 'Netflix',
+        STDDEV_SAMP(netflix_return) * SQRT(252) * 100
+    FROM daily_returns
+)
+
+SELECT
+    RANK() OVER (
+        ORDER BY volatility DESC
+    ) AS volatility_rank,
+
+    asset,
+
+    ROUND(volatility, 2)
+        AS annualized_volatility_percentage
+
+FROM volatility
+ORDER BY volatility_rank;
+
+
+-- ============================================================
+-- Query 24: Cryptocurrency Volatility
+-- Purpose:
+-- Compare Bitcoin and Ethereum annualized volatility.
+-- ============================================================
+
+WITH prices AS (
+    SELECT
+        Date,
+
+        CAST(REPLACE(Bitcoin_Price, ',', '') AS DOUBLE)
+            AS bitcoin_price,
+
+        CAST(REPLACE(Ethereum_Price, ',', '') AS DOUBLE)
+            AS ethereum_price
+
+    FROM stock_market
+),
+
+daily_returns AS (
+    SELECT
+        Date,
+
+        bitcoin_price /
+        LAG(bitcoin_price) OVER (ORDER BY Date) - 1
+            AS bitcoin_return,
+
+        ethereum_price /
+        LAG(ethereum_price) OVER (ORDER BY Date) - 1
+            AS ethereum_return
+
+    FROM prices
+)
+
+SELECT
+    ROUND(
+        STDDEV_SAMP(bitcoin_return) * SQRT(252) * 100,
+        2
+    ) AS bitcoin_annualized_volatility,
+
+    ROUND(
+        STDDEV_SAMP(ethereum_return) * SQRT(252) * 100,
+        2
+    ) AS ethereum_annualized_volatility
+
+FROM daily_returns;
+
+
+-- ============================================================
+-- Query 25: Cross-Asset Volatility Comparison
+-- Purpose:
+-- Compare annualized risk across representative market indices,
+-- stocks, commodities, and cryptocurrencies.
+-- ============================================================
+
+WITH prices AS (
+    SELECT
+        Date,
+
+        CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE)
+            AS sp500,
+
+        CAST(REPLACE("Nasdaq_100_Price", ',', '') AS DOUBLE)
+            AS nasdaq,
+
+        Apple_Price AS apple,
+        Nvidia_Price AS nvidia,
+
+        CAST(REPLACE(Gold_Price, ',', '') AS DOUBLE)
+            AS gold,
+
+        CAST(REPLACE(Bitcoin_Price, ',', '') AS DOUBLE)
+            AS bitcoin,
+
+        CAST(REPLACE(Ethereum_Price, ',', '') AS DOUBLE)
+            AS ethereum
+
+    FROM stock_market
+),
+
+daily_returns AS (
+    SELECT
+        Date,
+
+        sp500 / LAG(sp500) OVER (ORDER BY Date) - 1
+            AS sp500_return,
+
+        nasdaq / LAG(nasdaq) OVER (ORDER BY Date) - 1
+            AS nasdaq_return,
+
+        apple / LAG(apple) OVER (ORDER BY Date) - 1
+            AS apple_return,
+
+        nvidia / LAG(nvidia) OVER (ORDER BY Date) - 1
+            AS nvidia_return,
+
+        gold / LAG(gold) OVER (ORDER BY Date) - 1
+            AS gold_return,
+
+        bitcoin / LAG(bitcoin) OVER (ORDER BY Date) - 1
+            AS bitcoin_return,
+
+        ethereum / LAG(ethereum) OVER (ORDER BY Date) - 1
+            AS ethereum_return
+
+    FROM prices
+),
+
+risk AS (
+
+    SELECT
+        'S&P 500' AS asset,
+        'Market Index' AS asset_class,
+        STDDEV_SAMP(sp500_return) * SQRT(252) * 100 AS volatility
+    FROM daily_returns
+
+    UNION ALL
+
+    SELECT
+        'Nasdaq 100',
+        'Market Index',
+        STDDEV_SAMP(nasdaq_return) * SQRT(252) * 100
+    FROM daily_returns
+
+    UNION ALL
+
+    SELECT
+        'Apple',
+        'Stock',
+        STDDEV_SAMP(apple_return) * SQRT(252) * 100
+    FROM daily_returns
+
+    UNION ALL
+
+    SELECT
+        'Nvidia',
+        'Stock',
+        STDDEV_SAMP(nvidia_return) * SQRT(252) * 100
+    FROM daily_returns
+
+    UNION ALL
+
+    SELECT
+        'Gold',
+        'Commodity',
+        STDDEV_SAMP(gold_return) * SQRT(252) * 100
+    FROM daily_returns
+
+    UNION ALL
+
+    SELECT
+        'Bitcoin',
+        'Cryptocurrency',
+        STDDEV_SAMP(bitcoin_return) * SQRT(252) * 100
+    FROM daily_returns
+
+    UNION ALL
+
+    SELECT
+        'Ethereum',
+        'Cryptocurrency',
+        STDDEV_SAMP(ethereum_return) * SQRT(252) * 100
+    FROM daily_returns
+)
+
+SELECT
+    asset,
+    asset_class,
+    ROUND(volatility, 2)
+        AS annualized_volatility_percentage
+FROM risk
+ORDER BY volatility DESC;
+
+
+-- ============================================================
+-- Query 26: S&P 500 Maximum Drawdown
+-- Purpose:
+-- Calculate the largest percentage decline from a previous
+-- running peak in the S&P 500.
+-- ============================================================
+
+WITH prices AS (
+    SELECT
+        Date,
+        CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE) AS price
+    FROM stock_market
+),
+
+running_peak AS (
+    SELECT
+        Date,
+        price,
+
+        MAX(price) OVER (
+            ORDER BY Date
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS peak_price
+
+    FROM prices
+),
+
+drawdowns AS (
+    SELECT
+        Date,
+        price,
+        peak_price,
+
+        ((price - peak_price) / peak_price) * 100
+            AS drawdown_percentage
+
+    FROM running_peak
+)
+
+SELECT
+    Date AS drawdown_date,
+    ROUND(price, 2) AS price,
+    ROUND(peak_price, 2) AS previous_peak,
+
+    ROUND(
+        drawdown_percentage,
+        2
+    ) AS drawdown_percentage
+
+FROM drawdowns
+ORDER BY drawdown_percentage ASC
+LIMIT 1;
+
+
+-- ============================================================
+-- Query 27: Nasdaq 100 Maximum Drawdown
+-- Purpose:
+-- Calculate the largest percentage decline from a previous
+-- running peak in the Nasdaq 100.
+-- ============================================================
+
+WITH prices AS (
+    SELECT
+        Date,
+        CAST(REPLACE("Nasdaq_100_Price", ',', '') AS DOUBLE) AS price
+    FROM stock_market
+),
+
+running_peak AS (
+    SELECT
+        Date,
+        price,
+
+        MAX(price) OVER (
+            ORDER BY Date
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS peak_price
+
+    FROM prices
+),
+
+drawdowns AS (
+    SELECT
+        Date,
+        price,
+        peak_price,
+
+        ((price - peak_price) / peak_price) * 100
+            AS drawdown_percentage
+
+    FROM running_peak
+)
+
+SELECT
+    Date AS drawdown_date,
+    ROUND(price, 2) AS price,
+    ROUND(peak_price, 2) AS previous_peak,
+
+    ROUND(
+        drawdown_percentage,
+        2
+    ) AS drawdown_percentage
+
+FROM drawdowns
+ORDER BY drawdown_percentage ASC
+LIMIT 1;
+
+
+-- ============================================================
+-- Query 28: Technology Stock Maximum Drawdowns
+-- Purpose:
+-- Measure the worst peak-to-trough decline experienced by
+-- each major technology stock.
+-- ============================================================
+
+WITH running_peaks AS (
+    SELECT
+        Date,
+
+        Apple_Price,
+        MAX(Apple_Price) OVER (
+            ORDER BY Date
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS apple_peak,
+
+        Microsoft_Price,
+        MAX(Microsoft_Price) OVER (
+            ORDER BY Date
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS microsoft_peak,
+
+        Tesla_Price,
+        MAX(Tesla_Price) OVER (
+            ORDER BY Date
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS tesla_peak,
+
+        Google_Price,
+        MAX(Google_Price) OVER (
+            ORDER BY Date
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS google_peak,
+
+        Nvidia_Price,
+        MAX(Nvidia_Price) OVER (
+            ORDER BY Date
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS nvidia_peak,
+
+        Amazon_Price,
+        MAX(Amazon_Price) OVER (
+            ORDER BY Date
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS amazon_peak,
+
+        Meta_Price,
+        MAX(Meta_Price) OVER (
+            ORDER BY Date
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS meta_peak,
+
+        Netflix_Price,
+        MAX(Netflix_Price) OVER (
+            ORDER BY Date
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS netflix_peak
+
+    FROM stock_market
+),
+
+drawdowns AS (
+
+    SELECT 'Apple' AS asset,
+        MIN((Apple_Price - apple_peak) / apple_peak * 100)
+            AS max_drawdown
+    FROM running_peaks
+
+    UNION ALL
+
+    SELECT 'Microsoft',
+        MIN((Microsoft_Price - microsoft_peak) /
+            microsoft_peak * 100)
+    FROM running_peaks
+
+    UNION ALL
+
+    SELECT 'Tesla',
+        MIN((Tesla_Price - tesla_peak) /
+            tesla_peak * 100)
+    FROM running_peaks
+
+    UNION ALL
+
+    SELECT 'Google',
+        MIN((Google_Price - google_peak) /
+            google_peak * 100)
+    FROM running_peaks
+
+    UNION ALL
+
+    SELECT 'Nvidia',
+        MIN((Nvidia_Price - nvidia_peak) /
+            nvidia_peak * 100)
+    FROM running_peaks
+
+    UNION ALL
+
+    SELECT 'Amazon',
+        MIN((Amazon_Price - amazon_peak) /
+            amazon_peak * 100)
+    FROM running_peaks
+
+    UNION ALL
+
+    SELECT 'Meta',
+        MIN((Meta_Price - meta_peak) /
+            meta_peak * 100)
+    FROM running_peaks
+
+    UNION ALL
+
+    SELECT 'Netflix',
+        MIN((Netflix_Price - netflix_peak) /
+            netflix_peak * 100)
+    FROM running_peaks
+)
+
+SELECT
+    asset,
+    ROUND(max_drawdown, 2)
+        AS maximum_drawdown_percentage
+FROM drawdowns
+ORDER BY max_drawdown ASC;
+
+
+-- ============================================================
+-- Query 29: S&P 500 Positive vs Negative Trading Days
+-- Purpose:
+-- Understand how frequently the market moved higher or lower
+-- on a daily basis.
+-- ============================================================
+
+WITH prices AS (
+    SELECT
+        Date,
+
+        CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE)
+            AS price,
+
+        LAG(
+            CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE)
+        ) OVER (ORDER BY Date) AS previous_price
+
+    FROM stock_market
+),
+
+returns AS (
+    SELECT
+        Date,
+        ((price - previous_price) / previous_price) * 100
+            AS daily_return
+    FROM prices
+    WHERE previous_price IS NOT NULL
+)
+
+SELECT
+    CASE
+        WHEN daily_return > 0 THEN 'Positive Day'
+        WHEN daily_return < 0 THEN 'Negative Day'
+        ELSE 'No Change'
+    END AS market_movement,
+
+    COUNT(*) AS trading_days,
+
+    ROUND(
+        COUNT(*) * 100.0 /
+        SUM(COUNT(*)) OVER (),
+        2
+    ) AS percentage_of_days
+
+FROM returns
+GROUP BY market_movement
+ORDER BY trading_days DESC;
+
+
+-- ============================================================
+-- Query 30: Cross-Asset Risk vs Return
+-- Purpose:
+-- Compare total return and annualized volatility across
+-- representative assets.
+--
+-- Return-to-volatility ratio:
+-- Total Return % / Annualized Volatility %
+-- This is a simple project metric, NOT a Sharpe Ratio.
+-- ============================================================
+
+WITH prices AS (
+    SELECT
+        Date,
+
+        CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE) AS sp500,
+        CAST(REPLACE("Nasdaq_100_Price", ',', '') AS DOUBLE) AS nasdaq,
+
+        Apple_Price AS apple,
+        Nvidia_Price AS nvidia,
+
+        CAST(REPLACE(Gold_Price, ',', '') AS DOUBLE) AS gold,
+        CAST(REPLACE(Bitcoin_Price, ',', '') AS DOUBLE) AS bitcoin,
+        CAST(REPLACE(Ethereum_Price, ',', '') AS DOUBLE) AS ethereum
+
+    FROM stock_market
+),
+
+daily_returns AS (
+    SELECT
+        Date,
+
+        sp500,
+        nasdaq,
+        apple,
+        nvidia,
+        gold,
+        bitcoin,
+        ethereum,
+
+        sp500 / LAG(sp500) OVER (ORDER BY Date) - 1
+            AS sp500_return,
+
+        nasdaq / LAG(nasdaq) OVER (ORDER BY Date) - 1
+            AS nasdaq_return,
+
+        apple / LAG(apple) OVER (ORDER BY Date) - 1
+            AS apple_return,
+
+        nvidia / LAG(nvidia) OVER (ORDER BY Date) - 1
+            AS nvidia_return,
+
+        gold / LAG(gold) OVER (ORDER BY Date) - 1
+            AS gold_return,
+
+        bitcoin / LAG(bitcoin) OVER (ORDER BY Date) - 1
+            AS bitcoin_return,
+
+        ethereum / LAG(ethereum) OVER (ORDER BY Date) - 1
+            AS ethereum_return
+
+    FROM prices
+),
+
+metrics AS (
+
+    SELECT
+        'S&P 500' AS asset,
+
+        ((ARG_MAX(sp500, Date) - ARG_MIN(sp500, Date))
+            / ARG_MIN(sp500, Date)) * 100 AS total_return,
+
+        STDDEV_SAMP(sp500_return) * SQRT(252) * 100
+            AS volatility
+
+    FROM daily_returns
+
+    UNION ALL
+
+    SELECT
+        'Nasdaq 100',
+
+        ((ARG_MAX(nasdaq, Date) - ARG_MIN(nasdaq, Date))
+            / ARG_MIN(nasdaq, Date)) * 100,
+
+        STDDEV_SAMP(nasdaq_return) * SQRT(252) * 100
+
+    FROM daily_returns
+
+    UNION ALL
+
+    SELECT
+        'Apple',
+
+        ((ARG_MAX(apple, Date) - ARG_MIN(apple, Date))
+            / ARG_MIN(apple, Date)) * 100,
+
+        STDDEV_SAMP(apple_return) * SQRT(252) * 100
+
+    FROM daily_returns
+
+    UNION ALL
+
+    SELECT
+        'Nvidia',
+
+        ((ARG_MAX(nvidia, Date) - ARG_MIN(nvidia, Date))
+            / ARG_MIN(nvidia, Date)) * 100,
+
+        STDDEV_SAMP(nvidia_return) * SQRT(252) * 100
+
+    FROM daily_returns
+
+    UNION ALL
+
+    SELECT
+        'Gold',
+
+        ((ARG_MAX(gold, Date) - ARG_MIN(gold, Date))
+            / ARG_MIN(gold, Date)) * 100,
+
+        STDDEV_SAMP(gold_return) * SQRT(252) * 100
+
+    FROM daily_returns
+
+    UNION ALL
+
+    SELECT
+        'Bitcoin',
+
+        ((ARG_MAX(bitcoin, Date) - ARG_MIN(bitcoin, Date))
+            / ARG_MIN(bitcoin, Date)) * 100,
+
+        STDDEV_SAMP(bitcoin_return) * SQRT(252) * 100
+
+    FROM daily_returns
+
+    UNION ALL
+
+    SELECT
+        'Ethereum',
+
+        ((ARG_MAX(ethereum, Date) - ARG_MIN(ethereum, Date))
+            / ARG_MIN(ethereum, Date)) * 100,
+
+        STDDEV_SAMP(ethereum_return) * SQRT(252) * 100
+
+    FROM daily_returns
+)
+
+SELECT
+    asset,
+
+    ROUND(total_return, 2)
+        AS total_return_percentage,
+
+    ROUND(volatility, 2)
+        AS annualized_volatility_percentage,
+
+    ROUND(
+        total_return / volatility,
+        2
+    ) AS return_to_volatility_ratio
+
+FROM metrics
+ORDER BY return_to_volatility_ratio DESC;
