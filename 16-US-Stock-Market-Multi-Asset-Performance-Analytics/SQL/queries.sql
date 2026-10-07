@@ -414,3 +414,781 @@ SELECT
 FROM stock_market
 
 ORDER BY asset;
+
+-- ============================================================
+-- DAY 2: RETURNS & PERFORMANCE ANALYSIS
+-- ============================================================
+
+
+-- ============================================================
+-- Query 11: S&P 500 Yearly Performance
+-- Purpose:
+-- Calculate the first price, last price, and percentage return
+-- of the S&P 500 for each year.
+-- ============================================================
+
+WITH yearly_prices AS (
+    SELECT
+        YEAR(Date) AS year,
+
+        ARG_MIN(
+            CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE),
+            Date
+        ) AS start_price,
+
+        ARG_MAX(
+            CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE),
+            Date
+        ) AS end_price
+
+    FROM stock_market
+    GROUP BY YEAR(Date)
+)
+
+SELECT
+    year,
+    ROUND(start_price, 2) AS start_price,
+    ROUND(end_price, 2) AS end_price,
+
+    ROUND(
+        ((end_price - start_price) / start_price) * 100,
+        2
+    ) AS return_percentage
+
+FROM yearly_prices
+ORDER BY year;
+
+
+-- ============================================================
+-- Query 12: Nasdaq 100 Yearly Performance
+-- Purpose:
+-- Calculate annual Nasdaq 100 performance using the first
+-- and last available prices for each year.
+-- ============================================================
+
+WITH yearly_prices AS (
+    SELECT
+        YEAR(Date) AS year,
+
+        ARG_MIN(
+            CAST(REPLACE("Nasdaq_100_Price", ',', '') AS DOUBLE),
+            Date
+        ) AS start_price,
+
+        ARG_MAX(
+            CAST(REPLACE("Nasdaq_100_Price", ',', '') AS DOUBLE),
+            Date
+        ) AS end_price
+
+    FROM stock_market
+    GROUP BY YEAR(Date)
+)
+
+SELECT
+    year,
+    ROUND(start_price, 2) AS start_price,
+    ROUND(end_price, 2) AS end_price,
+
+    ROUND(
+        ((end_price - start_price) / start_price) * 100,
+        2
+    ) AS return_percentage
+
+FROM yearly_prices
+ORDER BY year;
+
+
+-- ============================================================
+-- Query 13: Overall Technology Stock Performance
+-- Purpose:
+-- Compare total returns of major technology stocks from the
+-- first available trading date to the last available date.
+-- ============================================================
+
+WITH performance AS (
+
+    SELECT
+        'Apple' AS asset,
+        ARG_MIN(Apple_Price, Date) AS start_price,
+        ARG_MAX(Apple_Price, Date) AS end_price
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Microsoft',
+        ARG_MIN(Microsoft_Price, Date),
+        ARG_MAX(Microsoft_Price, Date)
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Tesla',
+        ARG_MIN(Tesla_Price, Date),
+        ARG_MAX(Tesla_Price, Date)
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Google',
+        ARG_MIN(Google_Price, Date),
+        ARG_MAX(Google_Price, Date)
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Nvidia',
+        ARG_MIN(Nvidia_Price, Date),
+        ARG_MAX(Nvidia_Price, Date)
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Amazon',
+        ARG_MIN(Amazon_Price, Date),
+        ARG_MAX(Amazon_Price, Date)
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Meta',
+        ARG_MIN(Meta_Price, Date),
+        ARG_MAX(Meta_Price, Date)
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Netflix',
+        ARG_MIN(Netflix_Price, Date),
+        ARG_MAX(Netflix_Price, Date)
+    FROM stock_market
+)
+
+SELECT
+    asset,
+    ROUND(start_price, 2) AS start_price,
+    ROUND(end_price, 2) AS end_price,
+
+    ROUND(
+        ((end_price - start_price) / start_price) * 100,
+        2
+    ) AS total_return_percentage
+
+FROM performance
+ORDER BY total_return_percentage DESC;
+
+
+-- ============================================================
+-- Query 14: Technology Stock Performance Ranking
+-- Purpose:
+-- Rank technology stocks from best to worst based on their
+-- total return during the dataset period.
+-- ============================================================
+
+WITH performance AS (
+
+    SELECT
+        'Apple' AS asset,
+        ARG_MIN(Apple_Price, Date) AS start_price,
+        ARG_MAX(Apple_Price, Date) AS end_price
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT 'Microsoft',
+        ARG_MIN(Microsoft_Price, Date),
+        ARG_MAX(Microsoft_Price, Date)
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT 'Tesla',
+        ARG_MIN(Tesla_Price, Date),
+        ARG_MAX(Tesla_Price, Date)
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT 'Google',
+        ARG_MIN(Google_Price, Date),
+        ARG_MAX(Google_Price, Date)
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT 'Nvidia',
+        ARG_MIN(Nvidia_Price, Date),
+        ARG_MAX(Nvidia_Price, Date)
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT 'Amazon',
+        ARG_MIN(Amazon_Price, Date),
+        ARG_MAX(Amazon_Price, Date)
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT 'Meta',
+        ARG_MIN(Meta_Price, Date),
+        ARG_MAX(Meta_Price, Date)
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT 'Netflix',
+        ARG_MIN(Netflix_Price, Date),
+        ARG_MAX(Netflix_Price, Date)
+    FROM stock_market
+),
+
+returns AS (
+    SELECT
+        asset,
+        ((end_price - start_price) / start_price) * 100
+            AS total_return_percentage
+    FROM performance
+)
+
+SELECT
+    RANK() OVER (
+        ORDER BY total_return_percentage DESC
+    ) AS performance_rank,
+
+    asset,
+
+    ROUND(
+        total_return_percentage,
+        2
+    ) AS total_return_percentage
+
+FROM returns
+ORDER BY performance_rank;
+
+
+-- ============================================================
+-- Query 15: Technology Stock Yearly Returns
+-- Purpose:
+-- Compare annual performance across major technology stocks.
+-- ============================================================
+
+WITH yearly_prices AS (
+
+    SELECT
+        YEAR(Date) AS year,
+
+        ARG_MIN(Apple_Price, Date) AS apple_start,
+        ARG_MAX(Apple_Price, Date) AS apple_end,
+
+        ARG_MIN(Microsoft_Price, Date) AS microsoft_start,
+        ARG_MAX(Microsoft_Price, Date) AS microsoft_end,
+
+        ARG_MIN(Tesla_Price, Date) AS tesla_start,
+        ARG_MAX(Tesla_Price, Date) AS tesla_end,
+
+        ARG_MIN(Google_Price, Date) AS google_start,
+        ARG_MAX(Google_Price, Date) AS google_end,
+
+        ARG_MIN(Nvidia_Price, Date) AS nvidia_start,
+        ARG_MAX(Nvidia_Price, Date) AS nvidia_end,
+
+        ARG_MIN(Amazon_Price, Date) AS amazon_start,
+        ARG_MAX(Amazon_Price, Date) AS amazon_end,
+
+        ARG_MIN(Meta_Price, Date) AS meta_start,
+        ARG_MAX(Meta_Price, Date) AS meta_end,
+
+        ARG_MIN(Netflix_Price, Date) AS netflix_start,
+        ARG_MAX(Netflix_Price, Date) AS netflix_end
+
+    FROM stock_market
+    GROUP BY YEAR(Date)
+)
+
+SELECT
+    year,
+
+    ROUND(
+        ((apple_end - apple_start) / apple_start) * 100,
+        2
+    ) AS apple_return,
+
+    ROUND(
+        ((microsoft_end - microsoft_start) / microsoft_start) * 100,
+        2
+    ) AS microsoft_return,
+
+    ROUND(
+        ((tesla_end - tesla_start) / tesla_start) * 100,
+        2
+    ) AS tesla_return,
+
+    ROUND(
+        ((google_end - google_start) / google_start) * 100,
+        2
+    ) AS google_return,
+
+    ROUND(
+        ((nvidia_end - nvidia_start) / nvidia_start) * 100,
+        2
+    ) AS nvidia_return,
+
+    ROUND(
+        ((amazon_end - amazon_start) / amazon_start) * 100,
+        2
+    ) AS amazon_return,
+
+    ROUND(
+        ((meta_end - meta_start) / meta_start) * 100,
+        2
+    ) AS meta_return,
+
+    ROUND(
+        ((netflix_end - netflix_start) / netflix_start) * 100,
+        2
+    ) AS netflix_return
+
+FROM yearly_prices
+ORDER BY year;
+
+
+-- ============================================================
+-- Query 16: Commodity Overall Performance
+-- Purpose:
+-- Compare total returns across major commodities.
+-- ============================================================
+
+WITH performance AS (
+
+    SELECT
+        'Gold' AS asset,
+
+        ARG_MIN(
+            CAST(REPLACE(Gold_Price, ',', '') AS DOUBLE),
+            Date
+        ) AS start_price,
+
+        ARG_MAX(
+            CAST(REPLACE(Gold_Price, ',', '') AS DOUBLE),
+            Date
+        ) AS end_price
+
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Silver',
+        ARG_MIN(Silver_Price, Date),
+        ARG_MAX(Silver_Price, Date)
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Crude Oil',
+        ARG_MIN(Crude_oil_Price, Date),
+        ARG_MAX(Crude_oil_Price, Date)
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Natural Gas',
+        ARG_MIN(Natural_Gas_Price, Date),
+        ARG_MAX(Natural_Gas_Price, Date)
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Copper',
+        ARG_MIN(Copper_Price, Date),
+        ARG_MAX(Copper_Price, Date)
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Platinum',
+
+        ARG_MIN(
+            CAST(REPLACE(Platinum_Price, ',', '') AS DOUBLE),
+            Date
+        ),
+
+        ARG_MAX(
+            CAST(REPLACE(Platinum_Price, ',', '') AS DOUBLE),
+            Date
+        )
+
+    FROM stock_market
+)
+
+SELECT
+    asset,
+    ROUND(start_price, 2) AS start_price,
+    ROUND(end_price, 2) AS end_price,
+
+    ROUND(
+        ((end_price - start_price) / start_price) * 100,
+        2
+    ) AS total_return_percentage
+
+FROM performance
+ORDER BY total_return_percentage DESC;
+
+
+-- ============================================================
+-- Query 17: Cryptocurrency Overall Performance
+-- Purpose:
+-- Compare Bitcoin and Ethereum returns over the complete
+-- dataset period.
+-- ============================================================
+
+WITH performance AS (
+
+    SELECT
+        'Bitcoin' AS asset,
+
+        ARG_MIN(
+            CAST(REPLACE(Bitcoin_Price, ',', '') AS DOUBLE),
+            Date
+        ) AS start_price,
+
+        ARG_MAX(
+            CAST(REPLACE(Bitcoin_Price, ',', '') AS DOUBLE),
+            Date
+        ) AS end_price
+
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Ethereum',
+
+        ARG_MIN(
+            CAST(REPLACE(Ethereum_Price, ',', '') AS DOUBLE),
+            Date
+        ),
+
+        ARG_MAX(
+            CAST(REPLACE(Ethereum_Price, ',', '') AS DOUBLE),
+            Date
+        )
+
+    FROM stock_market
+)
+
+SELECT
+    asset,
+    ROUND(start_price, 2) AS start_price,
+    ROUND(end_price, 2) AS end_price,
+
+    ROUND(
+        ((end_price - start_price) / start_price) * 100,
+        2
+    ) AS total_return_percentage
+
+FROM performance
+ORDER BY total_return_percentage DESC;
+
+
+-- ============================================================
+-- Query 18: Cross-Asset Performance Comparison
+-- Purpose:
+-- Compare representative assets across equities,
+-- commodities, cryptocurrencies, and market indices.
+-- ============================================================
+
+WITH performance AS (
+
+    SELECT
+        'S&P 500' AS asset,
+        'Market Index' AS asset_class,
+
+        ARG_MIN(
+            CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE),
+            Date
+        ) AS start_price,
+
+        ARG_MAX(
+            CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE),
+            Date
+        ) AS end_price
+
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Nasdaq 100',
+        'Market Index',
+
+        ARG_MIN(
+            CAST(REPLACE("Nasdaq_100_Price", ',', '') AS DOUBLE),
+            Date
+        ),
+
+        ARG_MAX(
+            CAST(REPLACE("Nasdaq_100_Price", ',', '') AS DOUBLE),
+            Date
+        )
+
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Apple',
+        'Stock',
+        ARG_MIN(Apple_Price, Date),
+        ARG_MAX(Apple_Price, Date)
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Nvidia',
+        'Stock',
+        ARG_MIN(Nvidia_Price, Date),
+        ARG_MAX(Nvidia_Price, Date)
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Gold',
+        'Commodity',
+
+        ARG_MIN(
+            CAST(REPLACE(Gold_Price, ',', '') AS DOUBLE),
+            Date
+        ),
+
+        ARG_MAX(
+            CAST(REPLACE(Gold_Price, ',', '') AS DOUBLE),
+            Date
+        )
+
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Bitcoin',
+        'Cryptocurrency',
+
+        ARG_MIN(
+            CAST(REPLACE(Bitcoin_Price, ',', '') AS DOUBLE),
+            Date
+        ),
+
+        ARG_MAX(
+            CAST(REPLACE(Bitcoin_Price, ',', '') AS DOUBLE),
+            Date
+        )
+
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Ethereum',
+        'Cryptocurrency',
+
+        ARG_MIN(
+            CAST(REPLACE(Ethereum_Price, ',', '') AS DOUBLE),
+            Date
+        ),
+
+        ARG_MAX(
+            CAST(REPLACE(Ethereum_Price, ',', '') AS DOUBLE),
+            Date
+        )
+
+    FROM stock_market
+)
+
+SELECT
+    asset,
+    asset_class,
+
+    ROUND(start_price, 2) AS start_price,
+    ROUND(end_price, 2) AS end_price,
+
+    ROUND(
+        ((end_price - start_price) / start_price) * 100,
+        2
+    ) AS total_return_percentage
+
+FROM performance
+ORDER BY total_return_percentage DESC;
+
+
+-- ============================================================
+-- Query 19: Largest S&P 500 Daily Movements
+-- Purpose:
+-- Identify the largest positive and negative daily percentage
+-- movements in the S&P 500.
+-- ============================================================
+
+WITH daily_prices AS (
+
+    SELECT
+        Date,
+
+        CAST(
+            REPLACE("S&P_500_Price", ',', '')
+            AS DOUBLE
+        ) AS price,
+
+        LAG(
+            CAST(
+                REPLACE("S&P_500_Price", ',', '')
+                AS DOUBLE
+            )
+        ) OVER (
+            ORDER BY Date
+        ) AS previous_price
+
+    FROM stock_market
+),
+
+daily_returns AS (
+
+    SELECT
+        Date,
+        price,
+
+        ((price - previous_price) / previous_price) * 100
+            AS daily_return_percentage
+
+    FROM daily_prices
+    WHERE previous_price IS NOT NULL
+),
+
+ranked_returns AS (
+
+    SELECT
+        *,
+
+        ROW_NUMBER() OVER (
+            ORDER BY daily_return_percentage DESC
+        ) AS positive_rank,
+
+        ROW_NUMBER() OVER (
+            ORDER BY daily_return_percentage ASC
+        ) AS negative_rank
+
+    FROM daily_returns
+)
+
+SELECT
+    Date,
+    ROUND(price, 2) AS closing_price,
+
+    ROUND(
+        daily_return_percentage,
+        2
+    ) AS daily_return_percentage,
+
+    CASE
+        WHEN positive_rank <= 5 THEN 'Top Positive Day'
+        WHEN negative_rank <= 5 THEN 'Top Negative Day'
+    END AS movement_type
+
+FROM ranked_returns
+
+WHERE positive_rank <= 5
+   OR negative_rank <= 5
+
+ORDER BY daily_return_percentage DESC;
+
+
+-- ============================================================
+-- Query 20: Largest Nasdaq 100 Daily Movements
+-- Purpose:
+-- Identify the largest positive and negative daily percentage
+-- movements in the Nasdaq 100.
+-- ============================================================
+
+WITH daily_prices AS (
+
+    SELECT
+        Date,
+
+        CAST(
+            REPLACE("Nasdaq_100_Price", ',', '')
+            AS DOUBLE
+        ) AS price,
+
+        LAG(
+            CAST(
+                REPLACE("Nasdaq_100_Price", ',', '')
+                AS DOUBLE
+            )
+        ) OVER (
+            ORDER BY Date
+        ) AS previous_price
+
+    FROM stock_market
+),
+
+daily_returns AS (
+
+    SELECT
+        Date,
+        price,
+
+        ((price - previous_price) / previous_price) * 100
+            AS daily_return_percentage
+
+    FROM daily_prices
+    WHERE previous_price IS NOT NULL
+),
+
+ranked_returns AS (
+
+    SELECT
+        *,
+
+        ROW_NUMBER() OVER (
+            ORDER BY daily_return_percentage DESC
+        ) AS positive_rank,
+
+        ROW_NUMBER() OVER (
+            ORDER BY daily_return_percentage ASC
+        ) AS negative_rank
+
+    FROM daily_returns
+)
+
+SELECT
+    Date,
+    ROUND(price, 2) AS closing_price,
+
+    ROUND(
+        daily_return_percentage,
+        2
+    ) AS daily_return_percentage,
+
+    CASE
+        WHEN positive_rank <= 5 THEN 'Top Positive Day'
+        WHEN negative_rank <= 5 THEN 'Top Negative Day'
+    END AS movement_type
+
+FROM ranked_returns
+
+WHERE positive_rank <= 5
+   OR negative_rank <= 5
+
+ORDER BY daily_return_percentage DESC;
