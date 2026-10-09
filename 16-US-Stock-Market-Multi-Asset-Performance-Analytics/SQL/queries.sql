@@ -2018,3 +2018,710 @@ SELECT
 
 FROM metrics
 ORDER BY return_to_volatility_ratio DESC;
+
+-- ============================================================
+-- DAY 4: ADVANCED SQL & ROLLING MARKET ANALYTICS
+-- ============================================================
+
+
+-- ============================================================
+-- Query 31: S&P 500 20-Day Moving Average
+-- Purpose:
+-- Calculate a short-term rolling average to smooth daily
+-- market fluctuations.
+-- ============================================================
+
+WITH prices AS (
+    SELECT
+        Date,
+        CAST(
+            REPLACE("S&P_500_Price", ',', '')
+            AS DOUBLE
+        ) AS price
+    FROM stock_market
+)
+
+SELECT
+    Date,
+    ROUND(price, 2) AS closing_price,
+
+    ROUND(
+        AVG(price) OVER (
+            ORDER BY Date
+            ROWS BETWEEN 19 PRECEDING AND CURRENT ROW
+        ),
+        2
+    ) AS moving_average_20_day
+
+FROM prices
+ORDER BY Date;
+
+
+-- ============================================================
+-- Query 32: S&P 500 50-Day Moving Average
+-- Purpose:
+-- Calculate a longer-term rolling average for identifying
+-- broader market trends.
+-- ============================================================
+
+WITH prices AS (
+    SELECT
+        Date,
+        CAST(
+            REPLACE("S&P_500_Price", ',', '')
+            AS DOUBLE
+        ) AS price
+    FROM stock_market
+)
+
+SELECT
+    Date,
+    ROUND(price, 2) AS closing_price,
+
+    ROUND(
+        AVG(price) OVER (
+            ORDER BY Date
+            ROWS BETWEEN 49 PRECEDING AND CURRENT ROW
+        ),
+        2
+    ) AS moving_average_50_day
+
+FROM prices
+ORDER BY Date;
+
+
+-- ============================================================
+-- Query 33: S&P 500 20-Day vs 50-Day Trend Signal
+-- Purpose:
+-- Compare short-term and long-term moving averages to classify
+-- market trend conditions.
+-- ============================================================
+
+WITH prices AS (
+    SELECT
+        Date,
+
+        CAST(
+            REPLACE("S&P_500_Price", ',', '')
+            AS DOUBLE
+        ) AS price
+
+    FROM stock_market
+),
+
+moving_averages AS (
+    SELECT
+        Date,
+        price,
+
+        AVG(price) OVER (
+            ORDER BY Date
+            ROWS BETWEEN 19 PRECEDING AND CURRENT ROW
+        ) AS ma_20,
+
+        AVG(price) OVER (
+            ORDER BY Date
+            ROWS BETWEEN 49 PRECEDING AND CURRENT ROW
+        ) AS ma_50,
+
+        ROW_NUMBER() OVER (
+            ORDER BY Date
+        ) AS trading_day_number
+
+    FROM prices
+)
+
+SELECT
+    Date,
+
+    ROUND(price, 2) AS closing_price,
+
+    ROUND(ma_20, 2) AS moving_average_20_day,
+
+    ROUND(ma_50, 2) AS moving_average_50_day,
+
+    CASE
+        WHEN ma_20 > ma_50 THEN 'Bullish Trend'
+        WHEN ma_20 < ma_50 THEN 'Bearish Trend'
+        ELSE 'Neutral'
+    END AS trend_signal
+
+FROM moving_averages
+WHERE trading_day_number >= 50
+ORDER BY Date;
+
+
+-- ============================================================
+-- Query 34: S&P 500 30-Day Rolling Volatility
+-- Purpose:
+-- Measure how short-term market risk changes over time.
+-- Uses the standard deviation of the latest 30 daily returns.
+-- ============================================================
+
+WITH prices AS (
+    SELECT
+        Date,
+
+        CAST(
+            REPLACE("S&P_500_Price", ',', '')
+            AS DOUBLE
+        ) AS price
+
+    FROM stock_market
+),
+
+daily_returns AS (
+    SELECT
+        Date,
+
+        price / LAG(price) OVER (
+            ORDER BY Date
+        ) - 1 AS daily_return
+
+    FROM prices
+),
+
+rolling_volatility AS (
+    SELECT
+        Date,
+
+        STDDEV_SAMP(daily_return) OVER (
+            ORDER BY Date
+            ROWS BETWEEN 29 PRECEDING AND CURRENT ROW
+        ) * SQRT(252) * 100 AS volatility,
+
+        COUNT(daily_return) OVER (
+            ORDER BY Date
+            ROWS BETWEEN 29 PRECEDING AND CURRENT ROW
+        ) AS observations
+
+    FROM daily_returns
+)
+
+SELECT
+    Date,
+
+    ROUND(
+        volatility,
+        2
+    ) AS rolling_30_day_annualized_volatility
+
+FROM rolling_volatility
+WHERE observations = 30
+ORDER BY Date;
+
+
+-- ============================================================
+-- Query 35: Nasdaq 100 30-Day Rolling Volatility
+-- Purpose:
+-- Track changes in short-term Nasdaq market risk.
+-- ============================================================
+
+WITH prices AS (
+    SELECT
+        Date,
+
+        CAST(
+            REPLACE("Nasdaq_100_Price", ',', '')
+            AS DOUBLE
+        ) AS price
+
+    FROM stock_market
+),
+
+daily_returns AS (
+    SELECT
+        Date,
+
+        price / LAG(price) OVER (
+            ORDER BY Date
+        ) - 1 AS daily_return
+
+    FROM prices
+),
+
+rolling_volatility AS (
+    SELECT
+        Date,
+
+        STDDEV_SAMP(daily_return) OVER (
+            ORDER BY Date
+            ROWS BETWEEN 29 PRECEDING AND CURRENT ROW
+        ) * SQRT(252) * 100 AS volatility,
+
+        COUNT(daily_return) OVER (
+            ORDER BY Date
+            ROWS BETWEEN 29 PRECEDING AND CURRENT ROW
+        ) AS observations
+
+    FROM daily_returns
+)
+
+SELECT
+    Date,
+
+    ROUND(
+        volatility,
+        2
+    ) AS rolling_30_day_annualized_volatility
+
+FROM rolling_volatility
+WHERE observations = 30
+ORDER BY Date;
+
+
+-- ============================================================
+-- Query 36: S&P 500 Rolling 30-Trading-Day Return
+-- Purpose:
+-- Measure percentage price change relative to 30 trading
+-- observations earlier.
+-- ============================================================
+
+WITH prices AS (
+    SELECT
+        Date,
+
+        CAST(
+            REPLACE("S&P_500_Price", ',', '')
+            AS DOUBLE
+        ) AS price,
+
+        ROW_NUMBER() OVER (
+            ORDER BY Date
+        ) AS trading_day_number
+
+    FROM stock_market
+),
+
+rolling_prices AS (
+    SELECT
+        Date,
+        price,
+        trading_day_number,
+
+        LAG(price, 30) OVER (
+            ORDER BY Date
+        ) AS price_30_days_ago
+
+    FROM prices
+)
+
+SELECT
+    Date,
+
+    ROUND(price, 2) AS closing_price,
+
+    ROUND(
+        ((price - price_30_days_ago)
+        / price_30_days_ago) * 100,
+        2
+    ) AS rolling_30_day_return_percentage
+
+FROM rolling_prices
+WHERE trading_day_number > 30
+ORDER BY Date;
+
+
+-- ============================================================
+-- Query 37: Technology Stock Yearly Performance Ranking
+-- Purpose:
+-- Rank technology stocks within each year based on their
+-- first-to-last available price return.
+-- ============================================================
+
+WITH yearly_prices AS (
+
+    SELECT
+        YEAR(Date) AS year,
+
+        ARG_MIN(Apple_Price, Date) AS apple_start,
+        ARG_MAX(Apple_Price, Date) AS apple_end,
+
+        ARG_MIN(Microsoft_Price, Date) AS microsoft_start,
+        ARG_MAX(Microsoft_Price, Date) AS microsoft_end,
+
+        ARG_MIN(Tesla_Price, Date) AS tesla_start,
+        ARG_MAX(Tesla_Price, Date) AS tesla_end,
+
+        ARG_MIN(Google_Price, Date) AS google_start,
+        ARG_MAX(Google_Price, Date) AS google_end,
+
+        ARG_MIN(Nvidia_Price, Date) AS nvidia_start,
+        ARG_MAX(Nvidia_Price, Date) AS nvidia_end,
+
+        ARG_MIN(Amazon_Price, Date) AS amazon_start,
+        ARG_MAX(Amazon_Price, Date) AS amazon_end,
+
+        ARG_MIN(Meta_Price, Date) AS meta_start,
+        ARG_MAX(Meta_Price, Date) AS meta_end,
+
+        ARG_MIN(Netflix_Price, Date) AS netflix_start,
+        ARG_MAX(Netflix_Price, Date) AS netflix_end
+
+    FROM stock_market
+    GROUP BY YEAR(Date)
+),
+
+returns AS (
+
+    SELECT year, 'Apple' AS asset,
+        ((apple_end - apple_start) / apple_start) * 100
+            AS return_percentage
+    FROM yearly_prices
+
+    UNION ALL
+
+    SELECT year, 'Microsoft',
+        ((microsoft_end - microsoft_start)
+        / microsoft_start) * 100
+    FROM yearly_prices
+
+    UNION ALL
+
+    SELECT year, 'Tesla',
+        ((tesla_end - tesla_start)
+        / tesla_start) * 100
+    FROM yearly_prices
+
+    UNION ALL
+
+    SELECT year, 'Google',
+        ((google_end - google_start)
+        / google_start) * 100
+    FROM yearly_prices
+
+    UNION ALL
+
+    SELECT year, 'Nvidia',
+        ((nvidia_end - nvidia_start)
+        / nvidia_start) * 100
+    FROM yearly_prices
+
+    UNION ALL
+
+    SELECT year, 'Amazon',
+        ((amazon_end - amazon_start)
+        / amazon_start) * 100
+    FROM yearly_prices
+
+    UNION ALL
+
+    SELECT year, 'Meta',
+        ((meta_end - meta_start)
+        / meta_start) * 100
+    FROM yearly_prices
+
+    UNION ALL
+
+    SELECT year, 'Netflix',
+        ((netflix_end - netflix_start)
+        / netflix_start) * 100
+    FROM yearly_prices
+)
+
+SELECT
+    year,
+
+    RANK() OVER (
+        PARTITION BY year
+        ORDER BY return_percentage DESC
+    ) AS yearly_rank,
+
+    asset,
+
+    ROUND(
+        return_percentage,
+        2
+    ) AS return_percentage
+
+FROM returns
+ORDER BY year, yearly_rank;
+
+
+-- ============================================================
+-- Query 38: Best-Performing Technology Stock by Year
+-- Purpose:
+-- Identify the highest-returning technology stock for each
+-- year using a window-function ranking.
+-- ============================================================
+
+WITH yearly_prices AS (
+
+    SELECT
+        YEAR(Date) AS year,
+
+        ARG_MIN(Apple_Price, Date) AS apple_start,
+        ARG_MAX(Apple_Price, Date) AS apple_end,
+
+        ARG_MIN(Microsoft_Price, Date) AS microsoft_start,
+        ARG_MAX(Microsoft_Price, Date) AS microsoft_end,
+
+        ARG_MIN(Tesla_Price, Date) AS tesla_start,
+        ARG_MAX(Tesla_Price, Date) AS tesla_end,
+
+        ARG_MIN(Google_Price, Date) AS google_start,
+        ARG_MAX(Google_Price, Date) AS google_end,
+
+        ARG_MIN(Nvidia_Price, Date) AS nvidia_start,
+        ARG_MAX(Nvidia_Price, Date) AS nvidia_end,
+
+        ARG_MIN(Amazon_Price, Date) AS amazon_start,
+        ARG_MAX(Amazon_Price, Date) AS amazon_end,
+
+        ARG_MIN(Meta_Price, Date) AS meta_start,
+        ARG_MAX(Meta_Price, Date) AS meta_end,
+
+        ARG_MIN(Netflix_Price, Date) AS netflix_start,
+        ARG_MAX(Netflix_Price, Date) AS netflix_end
+
+    FROM stock_market
+    GROUP BY YEAR(Date)
+),
+
+returns AS (
+
+    SELECT year, 'Apple' AS asset,
+        ((apple_end - apple_start) / apple_start) * 100
+            AS return_percentage
+    FROM yearly_prices
+
+    UNION ALL
+
+    SELECT year, 'Microsoft',
+        ((microsoft_end - microsoft_start)
+        / microsoft_start) * 100
+    FROM yearly_prices
+
+    UNION ALL
+
+    SELECT year, 'Tesla',
+        ((tesla_end - tesla_start)
+        / tesla_start) * 100
+    FROM yearly_prices
+
+    UNION ALL
+
+    SELECT year, 'Google',
+        ((google_end - google_start)
+        / google_start) * 100
+    FROM yearly_prices
+
+    UNION ALL
+
+    SELECT year, 'Nvidia',
+        ((nvidia_end - nvidia_start)
+        / nvidia_start) * 100
+    FROM yearly_prices
+
+    UNION ALL
+
+    SELECT year, 'Amazon',
+        ((amazon_end - amazon_start)
+        / amazon_start) * 100
+    FROM yearly_prices
+
+    UNION ALL
+
+    SELECT year, 'Meta',
+        ((meta_end - meta_start)
+        / meta_start) * 100
+    FROM yearly_prices
+
+    UNION ALL
+
+    SELECT year, 'Netflix',
+        ((netflix_end - netflix_start)
+        / netflix_start) * 100
+    FROM yearly_prices
+),
+
+ranked AS (
+
+    SELECT
+        year,
+        asset,
+        return_percentage,
+
+        ROW_NUMBER() OVER (
+            PARTITION BY year
+            ORDER BY return_percentage DESC
+        ) AS performance_rank
+
+    FROM returns
+)
+
+SELECT
+    year,
+    asset AS best_performing_stock,
+
+    ROUND(
+        return_percentage,
+        2
+    ) AS return_percentage
+
+FROM ranked
+WHERE performance_rank = 1
+ORDER BY year;
+
+
+-- ============================================================
+-- Query 39: S&P 500 vs Nasdaq 100 Yearly Performance Gap
+-- Purpose:
+-- Compare annual-period returns and determine which index
+-- performed better each year.
+-- ============================================================
+
+WITH yearly_prices AS (
+
+    SELECT
+        YEAR(Date) AS year,
+
+        ARG_MIN(
+            CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE),
+            Date
+        ) AS sp500_start,
+
+        ARG_MAX(
+            CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE),
+            Date
+        ) AS sp500_end,
+
+        ARG_MIN(
+            CAST(REPLACE("Nasdaq_100_Price", ',', '') AS DOUBLE),
+            Date
+        ) AS nasdaq_start,
+
+        ARG_MAX(
+            CAST(REPLACE("Nasdaq_100_Price", ',', '') AS DOUBLE),
+            Date
+        ) AS nasdaq_end
+
+    FROM stock_market
+    GROUP BY YEAR(Date)
+),
+
+returns AS (
+
+    SELECT
+        year,
+
+        ((sp500_end - sp500_start)
+        / sp500_start) * 100
+            AS sp500_return,
+
+        ((nasdaq_end - nasdaq_start)
+        / nasdaq_start) * 100
+            AS nasdaq_return
+
+    FROM yearly_prices
+)
+
+SELECT
+    year,
+
+    ROUND(sp500_return, 2)
+        AS sp500_return_percentage,
+
+    ROUND(nasdaq_return, 2)
+        AS nasdaq_return_percentage,
+
+    ROUND(
+        nasdaq_return - sp500_return,
+        2
+    ) AS nasdaq_vs_sp500_gap,
+
+    CASE
+        WHEN nasdaq_return > sp500_return
+            THEN 'Nasdaq 100'
+        WHEN sp500_return > nasdaq_return
+            THEN 'S&P 500'
+        ELSE 'Equal'
+    END AS better_performing_index
+
+FROM returns
+ORDER BY year;
+
+
+-- ============================================================
+-- Query 40: S&P 500 Monthly Performance Ranking
+-- Purpose:
+-- Calculate each month's first-to-last available trading-day
+-- return and rank the strongest and weakest months.
+-- ============================================================
+
+WITH monthly_prices AS (
+
+    SELECT
+        YEAR(Date) AS year,
+        MONTH(Date) AS month,
+
+        ARG_MIN(
+            CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE),
+            Date
+        ) AS start_price,
+
+        ARG_MAX(
+            CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE),
+            Date
+        ) AS end_price
+
+    FROM stock_market
+
+    GROUP BY
+        YEAR(Date),
+        MONTH(Date)
+),
+
+monthly_returns AS (
+
+    SELECT
+        year,
+        month,
+
+        ((end_price - start_price)
+        / start_price) * 100
+            AS monthly_return_percentage
+
+    FROM monthly_prices
+),
+
+ranked AS (
+
+    SELECT
+        year,
+        month,
+        monthly_return_percentage,
+
+        ROW_NUMBER() OVER (
+            ORDER BY monthly_return_percentage DESC
+        ) AS best_month_rank,
+
+        ROW_NUMBER() OVER (
+            ORDER BY monthly_return_percentage ASC
+        ) AS worst_month_rank
+
+    FROM monthly_returns
+)
+
+SELECT
+    year,
+    month,
+
+    ROUND(
+        monthly_return_percentage,
+        2
+    ) AS monthly_return_percentage,
+
+    CASE
+        WHEN best_month_rank <= 5
+            THEN 'Top 5 Best Month'
+        WHEN worst_month_rank <= 5
+            THEN 'Top 5 Worst Month'
+    END AS performance_category
+
+FROM ranked
+
+WHERE best_month_rank <= 5
+   OR worst_month_rank <= 5
+
+ORDER BY monthly_return_percentage DESC;
