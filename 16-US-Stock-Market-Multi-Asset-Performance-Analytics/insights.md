@@ -276,3 +276,108 @@ Cryptocurrencies showed the highest volatility, while individual growth stocks s
 Maximum drawdown analysis further highlights the importance of downside risk. Several major technology stocks experienced peak-to-trough losses exceeding 50%, even when their long-term cumulative returns were strongly positive.
 
 Among the selected assets, Nvidia produced the strongest simple return-to-volatility relationship. Overall, the analysis reinforces that investment performance should be evaluated using both **return and risk measures**, rather than cumulative returns alone.
+
+## Day 4 — Advanced SQL & Rolling Market Analytics
+
+### Moving Average Analysis
+
+- 20-day and 50-day moving averages were calculated using SQL window functions to evaluate short-term and longer-term S&P 500 market trends.
+- The 20-day moving average reacts more quickly to recent price movements, while the 50-day moving average provides a smoother representation of the broader trend.
+- A trend signal was created by comparing the two moving averages:
+  - **Bullish Trend:** 20-day moving average > 50-day moving average
+  - **Bearish Trend:** 20-day moving average < 50-day moving average
+- On **February 2, 2024**, the S&P 500 closed at **4,958.61**, while its 20-day moving average was **4,831.14** and its 50-day moving average was **4,726.82**.
+- Since the 20-day moving average was above the 50-day moving average, the latest observation was classified as a **Bullish Trend**.
+
+### Rolling Market Volatility
+
+- A 30-trading-day rolling volatility measure was calculated for both the S&P 500 and Nasdaq 100 using daily returns and annualizing their rolling standard deviation.
+- This approach allows market risk to be evaluated dynamically rather than relying only on a single volatility value for the entire dataset.
+- On **February 2, 2024**, S&P 500 30-day annualized volatility was **11.35%**.
+- On the same date, Nasdaq 100 rolling annualized volatility was **16.04%**.
+- The Nasdaq therefore showed greater short-term volatility than the S&P 500 at the end of the dataset.
+
+### Rolling S&P 500 Returns
+
+- Rolling 30-trading-day returns were calculated using `LAG()` to compare each closing price with the price 30 trading observations earlier.
+- On **February 2, 2024**, the S&P 500's rolling 30-trading-day return was **3.99%**.
+- The rolling-return calculation provides a more dynamic view of market momentum than calendar-year returns because the measurement window moves forward with every trading observation.
+
+### Technology Stock Yearly Rankings
+
+Technology-stock performance was ranked independently within each year using the `RANK()` window function.
+
+The highest-ranked stock for each available year was:
+
+| Year | Best-Performing Stock | Return |
+|---|---|---:|
+| 2019 | Apple | 71.48% |
+| 2020 | Tesla | 720.15% |
+| 2021 | Nvidia | 124.29% |
+| 2022 | Microsoft | -28.36% |
+| 2023 | Nvidia | 245.94% |
+| 2024 | Nvidia | 37.35% |
+
+- Apple ranked first among the analyzed technology stocks in **2019**, returning **71.48%** over the available observations.
+- Tesla dominated **2020** with an exceptional **720.15%** return.
+- Nvidia ranked first in **2021**, **2023**, and the partial **2024** period.
+- In 2023, Nvidia returned **245.94%**, followed by Meta at **183.76%** and Tesla at **129.86%**.
+- **2022 was unique because even the highest-ranked stock had a negative return.** Microsoft ranked first with **-28.36%**, demonstrating broad weakness across the analyzed technology stocks.
+- For 2019 and 2024, rankings represent the available partial-year observations rather than complete calendar years.
+
+### S&P 500 vs Nasdaq 100 Performance
+
+| Year | S&P 500 Return | Nasdaq 100 Return | Nasdaq vs S&P Gap | Better Performer |
+|---|---:|---:|---:|---|
+| 2019 | 18.57% | 25.48% | +6.91% | Nasdaq 100 |
+| 2020 | 15.29% | 45.27% | +29.97% | Nasdaq 100 |
+| 2021 | 28.79% | 28.56% | -0.23% | S&P 500 |
+| 2022 | -19.95% | -33.71% | -13.75% | S&P 500 |
+| 2023 | 24.73% | 54.90% | +30.17% | Nasdaq 100 |
+| 2024 | 4.55% | 6.64% | +2.09% | Nasdaq 100 |
+
+- The Nasdaq 100 outperformed the S&P 500 in **four of the six available yearly periods**.
+- Its largest positive performance advantage occurred in **2023**, when it exceeded the S&P 500 return by **30.17 percentage points**.
+- Nasdaq also strongly outperformed in **2020**, with a performance gap of **29.97 percentage points**.
+- In **2021**, the S&P 500 narrowly outperformed Nasdaq by **0.23 percentage points**.
+- During the 2022 market decline, the S&P 500 performed better because its **-19.95%** decline was less severe than Nasdaq's **-33.71%** decline.
+- These results complement the earlier volatility analysis: Nasdaq demonstrated stronger upside during several growth periods but also experienced a substantially larger decline in 2022.
+
+### Strongest and Weakest S&P 500 Months
+
+The five strongest monthly periods in the dataset were:
+
+| Year | Month | Return |
+|---|---:|---:|
+| 2020 | April | 17.89% |
+| 2020 | November | 9.41% |
+| 2022 | July | 7.97% |
+| 2023 | November | 7.79% |
+| 2020 | May | 7.55% |
+
+The five weakest monthly periods were:
+
+| Year | Month | Return |
+|---|---:|---:|
+| 2022 | June | -7.70% |
+| 2020 | February | -9.07% |
+| 2022 | April | -9.11% |
+| 2022 | September | -9.61% |
+| 2020 | March | -16.36% |
+
+- **April 2020 was the strongest monthly period**, producing a **17.89%** first-to-last available trading-day return.
+- **March 2020 was the weakest**, declining by **16.36%**.
+- The rapid transition from the dataset's weakest month in March 2020 to its strongest month in April 2020 illustrates the magnitude of the market reversal during that period.
+- Three of the five weakest monthly observations occurred during **2022**, consistent with the broader negative market performance observed for that year.
+
+## Day 4 Key Takeaways
+
+Advanced SQL window functions make it possible to move beyond static summary statistics and analyze how market behavior changes through time.
+
+Moving averages provided a simple method for identifying market trend conditions, while rolling returns measured changing momentum and rolling volatility captured changing short-term risk.
+
+Yearly rankings also showed that leadership among technology stocks changed substantially across periods. Nvidia demonstrated particularly strong performance by ranking first in three available yearly periods, while Tesla dominated 2020.
+
+The comparison between the S&P 500 and Nasdaq 100 further demonstrated the relationship between growth and risk. Nasdaq produced stronger returns in several periods, but its losses were also substantially greater during the 2022 downturn.
+
+Together, these analyses demonstrate practical use of **CTEs, `LAG()`, `RANK()`, `ROW_NUMBER()`, `PARTITION BY`, `ARG_MIN()`, `ARG_MAX()`, and rolling window calculations** for financial time-series analytics.
