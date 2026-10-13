@@ -171,15 +171,25 @@ FROM healthcare_raw;
 
 -- Query 12: Exact Duplicate Records
 SELECT
-    COALESCE(SUM(record_count - 1), 0)
-        AS duplicate_records
+    COALESCE(SUM(record_count - 1), 0) AS duplicate_records
 FROM (
     SELECT
+        "Patient Id",
+        "Patient Admission Date",
+        "Patient Admission Time",
+        "Merged",
+        "Patient Gender",
+        "Patient Age",
+        "Patient Race",
+        "Department Referral",
+        "Patient Admission Flag",
+        "Patient Satisfaction Score",
+        "Patient Waittime",
         COUNT(*) AS record_count
     FROM healthcare_raw
     GROUP BY ALL
     HAVING COUNT(*) > 1
-) AS duplicates;
+) AS duplicate_groups;
 
 
 -- Query 13: Invalid Age and Wait Time Records
