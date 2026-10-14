@@ -2725,3 +2725,621 @@ WHERE best_month_rank <= 5
    OR worst_month_rank <= 5
 
 ORDER BY monthly_return_percentage DESC;
+
+-- ============================================================
+-- DAY 5: FINAL MARKET INTELLIGENCE & EXECUTIVE ANALYSIS
+-- ============================================================
+
+
+-- ============================================================
+-- Query 41: Best and Worst S&P 500 Trading Days
+-- ============================================================
+
+-- Query 41: Best and Worst S&P 500 Trading Days
+
+WITH daily_prices AS (
+    SELECT
+        Date,
+        CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE) AS closing_price,
+        LAG(
+            CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE)
+        ) OVER (ORDER BY Date) AS previous_price
+    FROM stock_market
+),
+daily_returns AS (
+    SELECT
+        Date,
+        closing_price,
+        ROUND(
+            ((closing_price - previous_price) / previous_price) * 100,
+            2
+        ) AS daily_return_percentage
+    FROM daily_prices
+    WHERE previous_price IS NOT NULL
+),
+ranked AS (
+    SELECT
+        *,
+        ROW_NUMBER() OVER (
+            ORDER BY daily_return_percentage DESC
+        ) AS best_rank,
+        ROW_NUMBER() OVER (
+            ORDER BY daily_return_percentage ASC
+        ) AS worst_rank
+    FROM daily_returns
+)
+SELECT
+    Date,
+    closing_price,
+    daily_return_percentage,
+    CASE
+        WHEN best_rank <= 5 THEN 'Top 5 Best Day'
+        WHEN worst_rank <= 5 THEN 'Top 5 Worst Day'
+    END AS performance_category
+FROM ranked
+WHERE best_rank <= 5
+   OR worst_rank <= 5
+ORDER BY daily_return_percentage DESC;
+
+
+-- ============================================================
+-- Query 42: Best and Worst Nasdaq 100 Trading Days
+-- ============================================================
+
+WITH daily_prices AS (
+    SELECT
+        Date,
+        CAST(REPLACE(Nasdaq_100_Price, ',', '') AS DOUBLE) AS closing_price,
+        LAG(CAST(REPLACE(Nasdaq_100_Price, ',', '') AS DOUBLE))
+            OVER (ORDER BY Date) AS previous_price
+    FROM stock_market
+),
+daily_returns AS (
+    SELECT
+        Date,
+        closing_price,
+        ROUND(
+            ((closing_price - previous_price) / previous_price) * 100,
+            2
+        ) AS daily_return_percentage
+    FROM daily_prices
+    WHERE previous_price IS NOT NULL
+),
+ranked AS (
+    SELECT
+        *,
+        ROW_NUMBER() OVER (
+            ORDER BY daily_return_percentage DESC
+        ) AS best_rank,
+        ROW_NUMBER() OVER (
+            ORDER BY daily_return_percentage ASC
+        ) AS worst_rank
+    FROM daily_returns
+)
+SELECT
+    Date,
+    closing_price,
+    daily_return_percentage,
+    CASE
+        WHEN best_rank <= 5 THEN 'Top 5 Best Day'
+        WHEN worst_rank <= 5 THEN 'Top 5 Worst Day'
+    END AS performance_category
+FROM ranked
+WHERE best_rank <= 5
+   OR worst_rank <= 5
+ORDER BY daily_return_percentage DESC;
+
+
+-- ============================================================
+-- Query 43: S&P 500 Yearly Positive vs Negative Trading Days
+-- ============================================================
+
+WITH daily_prices AS (
+    SELECT
+        Date,
+        CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE) AS closing_price,
+        LAG(CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE))
+            OVER (ORDER BY Date) AS previous_price
+    FROM stock_market
+),
+classified AS (
+    SELECT
+        YEAR(Date) AS year,
+        CASE
+            WHEN closing_price > previous_price THEN 'Positive'
+            WHEN closing_price < previous_price THEN 'Negative'
+            ELSE 'Flat'
+        END AS market_direction
+    FROM daily_prices
+    WHERE previous_price IS NOT NULL
+)
+SELECT
+    year,
+    COUNT(*) AS trading_days,
+
+    SUM(
+        CASE WHEN market_direction = 'Positive'
+        THEN 1 ELSE 0 END
+    ) AS positive_days,
+
+    SUM(
+        CASE WHEN market_direction = 'Negative'
+        THEN 1 ELSE 0 END
+    ) AS negative_days,
+
+    SUM(
+        CASE WHEN market_direction = 'Flat'
+        THEN 1 ELSE 0 END
+    ) AS flat_days,
+
+    ROUND(
+        100.0 *
+        SUM(
+            CASE WHEN market_direction = 'Positive'
+            THEN 1 ELSE 0 END
+        ) / COUNT(*),
+        2
+    ) AS positive_day_percentage
+
+FROM classified
+GROUP BY year
+ORDER BY year;
+
+
+-- ============================================================
+-- Query 44: S&P 500 Yearly Average Daily Return
+-- ============================================================
+
+WITH daily_returns AS (
+    SELECT
+        Date,
+        (
+            CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE)
+            /
+            LAG(
+                CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE)
+            ) OVER (ORDER BY Date)
+            - 1
+        ) * 100 AS daily_return_percentage
+    FROM stock_market
+)
+SELECT
+    YEAR(Date) AS year,
+    ROUND(
+        AVG(daily_return_percentage),
+        4
+    ) AS average_daily_return_percentage
+FROM daily_returns
+WHERE daily_return_percentage IS NOT NULL
+GROUP BY year
+ORDER BY year;
+
+
+-- ============================================================
+-- Query 45: Nasdaq 100 Yearly Average Daily Return
+-- ============================================================
+
+WITH daily_returns AS (
+    SELECT
+        Date,
+        (
+            CAST(REPLACE(Nasdaq_100_Price, ',', '') AS DOUBLE)
+            /
+            LAG(
+                CAST(REPLACE(Nasdaq_100_Price, ',', '') AS DOUBLE)
+            ) OVER (ORDER BY Date)
+            - 1
+        ) * 100 AS daily_return_percentage
+    FROM stock_market
+)
+SELECT
+    YEAR(Date) AS year,
+    ROUND(
+        AVG(daily_return_percentage),
+        4
+    ) AS average_daily_return_percentage
+FROM daily_returns
+WHERE daily_return_percentage IS NOT NULL
+GROUP BY year
+ORDER BY year;
+
+
+-- ============================================================
+-- Query 46: Technology Stock Overall Performance Summary
+-- ============================================================
+
+WITH asset_returns AS (
+
+    SELECT
+        'Apple' AS asset,
+        ARG_MIN(Apple_Price, Date) AS starting_price,
+        ARG_MAX(Apple_Price, Date) AS ending_price
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Microsoft',
+        ARG_MIN(Microsoft_Price, Date),
+        ARG_MAX(Microsoft_Price, Date)
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Tesla',
+        ARG_MIN(Tesla_Price, Date),
+        ARG_MAX(Tesla_Price, Date)
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Google',
+        ARG_MIN(Google_Price, Date),
+        ARG_MAX(Google_Price, Date)
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Nvidia',
+        ARG_MIN(Nvidia_Price, Date),
+        ARG_MAX(Nvidia_Price, Date)
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Amazon',
+        ARG_MIN(Amazon_Price, Date),
+        ARG_MAX(Amazon_Price, Date)
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Meta',
+        ARG_MIN(Meta_Price, Date),
+        ARG_MAX(Meta_Price, Date)
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Netflix',
+        ARG_MIN(Netflix_Price, Date),
+        ARG_MAX(Netflix_Price, Date)
+    FROM stock_market
+),
+performance AS (
+    SELECT
+        asset,
+        starting_price,
+        ending_price,
+        ((ending_price - starting_price) / starting_price) * 100
+            AS total_return_percentage
+    FROM asset_returns
+)
+SELECT
+    asset,
+    ROUND(starting_price, 2) AS starting_price,
+    ROUND(ending_price, 2) AS ending_price,
+    ROUND(total_return_percentage, 2) AS total_return_percentage,
+    RANK() OVER (
+        ORDER BY total_return_percentage DESC
+    ) AS performance_rank
+FROM performance
+ORDER BY performance_rank;
+
+
+-- ============================================================
+-- Query 47: Cross-Asset Overall Performance Ranking
+-- ============================================================
+
+WITH asset_prices AS (
+
+    SELECT
+        'S&P 500' AS asset,
+        ARG_MIN(
+            CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE),
+            Date
+        ) AS starting_price,
+        ARG_MAX(
+            CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE),
+            Date
+        ) AS ending_price
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Nasdaq 100',
+        ARG_MIN(
+            CAST(REPLACE(Nasdaq_100_Price, ',', '') AS DOUBLE),
+            Date
+        ),
+        ARG_MAX(
+            CAST(REPLACE(Nasdaq_100_Price, ',', '') AS DOUBLE),
+            Date
+        )
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Apple',
+        ARG_MIN(Apple_Price, Date),
+        ARG_MAX(Apple_Price, Date)
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Tesla',
+        ARG_MIN(Tesla_Price, Date),
+        ARG_MAX(Tesla_Price, Date)
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Nvidia',
+        ARG_MIN(Nvidia_Price, Date),
+        ARG_MAX(Nvidia_Price, Date)
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Gold',
+        ARG_MIN(
+            CAST(REPLACE(Gold_Price, ',', '') AS DOUBLE),
+            Date
+        ),
+        ARG_MAX(
+            CAST(REPLACE(Gold_Price, ',', '') AS DOUBLE),
+            Date
+        )
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Bitcoin',
+        ARG_MIN(
+            CAST(REPLACE(Bitcoin_Price, ',', '') AS DOUBLE),
+            Date
+        ),
+        ARG_MAX(
+            CAST(REPLACE(Bitcoin_Price, ',', '') AS DOUBLE),
+            Date
+        )
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Ethereum',
+        ARG_MIN(
+            CAST(REPLACE(Ethereum_Price, ',', '') AS DOUBLE),
+            Date
+        ),
+        ARG_MAX(
+            CAST(REPLACE(Ethereum_Price, ',', '') AS DOUBLE),
+            Date
+        )
+    FROM stock_market
+),
+performance AS (
+    SELECT
+        asset,
+        ((ending_price - starting_price) / starting_price) * 100
+            AS total_return_percentage
+    FROM asset_prices
+)
+SELECT
+    RANK() OVER (
+        ORDER BY total_return_percentage DESC
+    ) AS performance_rank,
+    asset,
+    ROUND(total_return_percentage, 2)
+        AS total_return_percentage
+FROM performance
+ORDER BY performance_rank;
+
+
+-- ============================================================
+-- Query 48: S&P 500 Best and Worst Year
+-- ============================================================
+
+WITH yearly_prices AS (
+    SELECT
+        YEAR(Date) AS year,
+
+        ARG_MIN(
+            CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE),
+            Date
+        ) AS starting_price,
+
+        ARG_MAX(
+            CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE),
+            Date
+        ) AS ending_price
+
+    FROM stock_market
+    GROUP BY YEAR(Date)
+),
+yearly_returns AS (
+    SELECT
+        year,
+        ROUND(
+            ((ending_price - starting_price) / starting_price) * 100,
+            2
+        ) AS return_percentage
+    FROM yearly_prices
+),
+ranked AS (
+    SELECT
+        *,
+        ROW_NUMBER() OVER (
+            ORDER BY return_percentage DESC
+        ) AS best_rank,
+        ROW_NUMBER() OVER (
+            ORDER BY return_percentage ASC
+        ) AS worst_rank
+    FROM yearly_returns
+)
+SELECT
+    year,
+    return_percentage,
+    CASE
+        WHEN best_rank = 1 THEN 'Best Year'
+        WHEN worst_rank = 1 THEN 'Worst Year'
+    END AS performance_category
+FROM ranked
+WHERE best_rank = 1
+   OR worst_rank = 1
+ORDER BY return_percentage DESC;
+
+
+-- ============================================================
+-- Query 49: Nasdaq 100 Best and Worst Year
+-- ============================================================
+
+WITH yearly_prices AS (
+    SELECT
+        YEAR(Date) AS year,
+
+        ARG_MIN(
+            CAST(REPLACE(Nasdaq_100_Price, ',', '') AS DOUBLE),
+            Date
+        ) AS starting_price,
+
+        ARG_MAX(
+            CAST(REPLACE(Nasdaq_100_Price, ',', '') AS DOUBLE),
+            Date
+        ) AS ending_price
+
+    FROM stock_market
+    GROUP BY YEAR(Date)
+),
+yearly_returns AS (
+    SELECT
+        year,
+        ROUND(
+            ((ending_price - starting_price) / starting_price) * 100,
+            2
+        ) AS return_percentage
+    FROM yearly_prices
+),
+ranked AS (
+    SELECT
+        *,
+        ROW_NUMBER() OVER (
+            ORDER BY return_percentage DESC
+        ) AS best_rank,
+        ROW_NUMBER() OVER (
+            ORDER BY return_percentage ASC
+        ) AS worst_rank
+    FROM yearly_returns
+)
+SELECT
+    year,
+    return_percentage,
+    CASE
+        WHEN best_rank = 1 THEN 'Best Year'
+        WHEN worst_rank = 1 THEN 'Worst Year'
+    END AS performance_category
+FROM ranked
+WHERE best_rank = 1
+   OR worst_rank = 1
+ORDER BY return_percentage DESC;
+
+
+-- ============================================================
+-- Query 50: Executive Cross-Asset Market Summary
+-- ============================================================
+
+WITH asset_prices AS (
+
+    SELECT
+        'S&P 500' AS asset,
+        ARG_MIN(
+            CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE),
+            Date
+        ) AS starting_price,
+        ARG_MAX(
+            CAST(REPLACE("S&P_500_Price", ',', '') AS DOUBLE),
+            Date
+        ) AS ending_price
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Nasdaq 100',
+        ARG_MIN(
+            CAST(REPLACE(Nasdaq_100_Price, ',', '') AS DOUBLE),
+            Date
+        ),
+        ARG_MAX(
+            CAST(REPLACE(Nasdaq_100_Price, ',', '') AS DOUBLE),
+            Date
+        )
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Gold',
+        ARG_MIN(
+            CAST(REPLACE(Gold_Price, ',', '') AS DOUBLE),
+            Date
+        ),
+        ARG_MAX(
+            CAST(REPLACE(Gold_Price, ',', '') AS DOUBLE),
+            Date
+        )
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Bitcoin',
+        ARG_MIN(
+            CAST(REPLACE(Bitcoin_Price, ',', '') AS DOUBLE),
+            Date
+        ),
+        ARG_MAX(
+            CAST(REPLACE(Bitcoin_Price, ',', '') AS DOUBLE),
+            Date
+        )
+    FROM stock_market
+
+    UNION ALL
+
+    SELECT
+        'Ethereum',
+        ARG_MIN(
+            CAST(REPLACE(Ethereum_Price, ',', '') AS DOUBLE),
+            Date
+        ),
+        ARG_MAX(
+            CAST(REPLACE(Ethereum_Price, ',', '') AS DOUBLE),
+            Date
+        )
+    FROM stock_market
+)
+SELECT
+    asset,
+    ROUND(starting_price, 2) AS starting_price,
+    ROUND(ending_price, 2) AS ending_price,
+    ROUND(
+        ((ending_price - starting_price) / starting_price) * 100,
+        2
+    ) AS total_return_percentage
+FROM asset_prices
+ORDER BY total_return_percentage DESC;
+
+
