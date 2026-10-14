@@ -381,3 +381,143 @@ Yearly rankings also showed that leadership among technology stocks changed subs
 The comparison between the S&P 500 and Nasdaq 100 further demonstrated the relationship between growth and risk. Nasdaq produced stronger returns in several periods, but its losses were also substantially greater during the 2022 downturn.
 
 Together, these analyses demonstrate practical use of **CTEs, `LAG()`, `RANK()`, `ROW_NUMBER()`, `PARTITION BY`, `ARG_MIN()`, `ARG_MAX()`, and rolling window calculations** for financial time-series analytics.
+
+# Day 5 – Final Market Intelligence & Executive Analysis
+
+## 1. Extreme Market Movements
+
+The largest daily market movements were concentrated around periods of severe market stress.
+
+### S&P 500
+- Largest positive daily return: **+9.38% on March 24, 2020**
+- Second-largest positive move: **+9.29% on March 13, 2020**
+- Largest negative daily return: **-11.98% on March 16, 2020**
+- Other major declines included **-9.51% on March 12, 2020** and **-7.60% on March 9, 2020**.
+
+### Nasdaq 100
+- Largest positive daily return: **+10.07% on March 13, 2020**
+- Largest negative daily return: **-12.19% on March 16, 2020**
+- The Nasdaq also recorded a **+7.49%** daily gain on November 10, 2022.
+
+The concentration of extreme movements during March 2020 highlights the extraordinary volatility experienced during the COVID-19 market shock.
+
+---
+
+## 2. Positive vs Negative S&P 500 Trading Days
+
+The percentage of positive S&P 500 trading days varied significantly by year.
+
+| Year | Positive Days | Negative Days | Positive Day % |
+|------|--------------:|--------------:|---------------:|
+| 2019 | 133 | 96 | 58.08% |
+| 2020 | 142 | 107 | 57.03% |
+| 2021 | 141 | 105 | 57.32% |
+| 2022 | 107 | 138 | 43.67% |
+| 2023 | 137 | 113 | 54.80% |
+| 2024* | 13 | 10 | 56.52% |
+
+**2022 was the only year in the dataset where negative trading days clearly outnumbered positive trading days**, consistent with the negative annual market performance observed during that year.
+
+*2024 contains only the available observations through February 2.
+
+---
+
+## 3. Average Daily Index Returns
+
+S&P 500 average daily returns were positive in every observed year except 2022.
+
+- 2019: **+0.0771%**
+- 2020: **+0.0843%**
+- 2021: **+0.1003%**
+- 2022: **-0.0763%**
+- 2023: **+0.0902%**
+- 2024*: **+0.1714%**
+
+Nasdaq 100 showed larger daily movements:
+
+- 2019: **+0.1037%**
+- 2020: **+0.1826%**
+- 2021: **+0.1029%**
+- 2022: **-0.1416%**
+- 2023: **+0.1788%**
+- 2024*: **+0.2117%**
+
+The Nasdaq generated stronger average daily returns during several growth periods, but its more negative 2022 result is also consistent with its higher volatility and drawdown risk.
+
+---
+
+## 4. Technology Stock Performance Ranking
+
+Across the available dataset period, the selected technology stocks ranked by cumulative price return as follows:
+
+| Rank | Asset | Total Return |
+|-----:|-------|-------------:|
+| 1 | Nvidia | 1673.73% |
+| 2 | Tesla | 800.81% |
+| 3 | Apple | 334.13% |
+| 4 | Microsoft | 288.90% |
+| 5 | Meta | 180.64% |
+| 6 | Google | 149.48% |
+| 7 | Amazon | 110.37% |
+| 8 | Netflix | 60.71% |
+
+Nvidia recorded the highest cumulative price return among the selected technology stocks. However, earlier risk analysis also showed that Nvidia experienced substantially higher volatility than the broad-market indices.
+
+---
+
+## 5. Cross-Asset Performance Ranking
+
+The final cross-asset comparison demonstrated the large difference in cumulative returns across asset classes.
+
+| Rank | Asset | Total Return |
+|-----:|-------|-------------:|
+| 1 | Ethereum | 2040.20% |
+| 2 | Nvidia | 1673.73% |
+| 3 | Bitcoin | 1147.39% |
+| 4 | Tesla | 800.81% |
+| 5 | Apple | 334.13% |
+| 6 | Nasdaq 100 | 153.49% |
+| 7 | S&P 500 | 81.98% |
+| 8 | Gold | 55.67% |
+
+Ethereum produced the highest cumulative return in this selected comparison, followed by Nvidia and Bitcoin.
+
+These results should not be interpreted as an investment ranking. Day 3 demonstrated that the highest-return assets also tended to carry substantially higher volatility.
+
+---
+
+## 6. Best and Worst Market Years
+
+### S&P 500
+- Best observed full year: **2021 (+28.79%)**
+- Worst observed full year: **2022 (-19.95%)**
+
+### Nasdaq 100
+- Best observed full year: **2023 (+54.90%)**
+- Worst observed full year: **2022 (-33.71%)**
+
+The Nasdaq's larger gain in 2023 and deeper loss in 2022 illustrate the stronger upside and downside sensitivity of the technology-heavy index.
+
+---
+
+## 7. Cross-Asset Executive Summary
+
+From the first available observation in February 2019 through February 2, 2024:
+
+- Ethereum: **+2040.20%**
+- Bitcoin: **+1147.39%**
+- Nasdaq 100: **+153.49%**
+- S&P 500: **+81.98%**
+- Gold: **+55.67%**
+
+The analysis reveals a broad risk-return spectrum. Crypto assets delivered exceptionally high cumulative returns but also exhibited the highest annualized volatility. Technology equities generated strong long-term growth with substantial company-specific drawdowns, while broad equity indices provided lower but more diversified performance. Gold generated the lowest return among these five assets but also exhibited considerably lower volatility in the earlier risk analysis.
+
+---
+
+## Day 5 Conclusion
+
+The final analysis combines market direction, extreme daily movements, annual performance, technology-stock rankings, and cross-asset comparisons into an executive-level market summary.
+
+Across the full project, the results demonstrate that return alone does not provide a complete picture of asset performance. Combining cumulative returns with volatility, drawdowns, rolling metrics, and market trends provides a more comprehensive view of historical risk and performance.
+
+> Note: The dataset begins on February 4, 2019 and ends on February 2, 2024. Therefore, 2019 and 2024 represent partial-year periods. All results are historical analytical observations and are not investment recommendations.
