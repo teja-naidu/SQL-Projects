@@ -328,3 +328,345 @@ Day 1 analysis used the following SQL concepts:
 - Duplicate Detection
 
 ---
+
+---
+
+# Day 2: Patient Demographics & Hospital Admission Pattern Analysis
+
+## 1. Overview
+
+Day 2 focuses on understanding patient admission patterns, demographic differences, department-level admission rates, patient arrival trends, and waiting-time variations.
+
+The analysis uses 9,216 patient records collected between April 1, 2023, and October 30, 2024.
+
+### Key Performance Indicators
+
+| Metric | Value |
+|---|---|
+| Total Patient Records | 9,216 |
+| Total Admitted Patients | 4,612 |
+| Total Non-Admitted Patients | 4,604 |
+| Overall Admission Rate | 50.04% |
+| Average Patient Wait Time | 35.26 minutes |
+| Peak Patient Arrival Hour | 11 PM |
+| Highest Monthly Admission Rate | 54.51% (July 2024) |
+| Invalid Admission Times | 0 |
+
+## 2. Admission Rates by Age Group
+
+The analysis compares admission rates across five age categories.
+
+| Age Group | Total Patients | Admitted | Admission Rate |
+|---|---:|---:|---:|
+| Under 18 | 1,971 | 1,014 | 51.45% |
+| 18–30 | 1,572 | 779 | 49.55% |
+| 31–45 | 1,748 | 864 | 49.43% |
+| 46–60 | 1,727 | 877 | 50.78% |
+| Above 60 | 2,198 | 1,078 | 49.04% |
+
+### Key Findings
+
+- Patients under 18 recorded the highest admission rate at 51.45%.
+- Patients above 60 accounted for the largest number of admissions, with 1,078 admitted patients.
+- The 31–45 age group had an admission rate of 49.43%.
+- Admission rates were relatively consistent across all age groups, ranging from 49.04% to 51.45%.
+
+### Business Insight
+
+Patient admission volumes vary across age groups, but admission rates show relatively small differences.
+
+The above-60 population contributes the highest absolute admission volume, making it an important group for hospital capacity planning.
+
+However, admission rates alone cannot establish differences in medical severity or healthcare needs.
+
+## 3. Gender-Based Admission Analysis
+
+Gender values were standardized within the SQL analysis by mapping the 17 records labeled "Femaleemale" to "Female".
+
+| Gender | Total Patients | Admitted | Admission Rate |
+|---|---:|---:|---:|
+| Female | 4,487 | 2,250 | 50.14% |
+| Male | 4,729 | 2,362 | 49.95% |
+
+### Key Findings
+
+- Male patients represented 4,729 records.
+- Female patients represented 4,487 records after standardizing the gender typo.
+- Female patients had a slightly higher admission rate of 50.14%.
+- Male patients had an admission rate of 49.95%.
+- The difference between gender-based admission rates was only 0.19 percentage points.
+
+### Business Insight
+
+Admission rates are nearly identical across male and female patients.
+
+The dataset does not show a substantial gender-based admission-rate difference.
+
+Gender standardization also demonstrates the importance of consistent categorical values before performing demographic analysis.
+
+## 4. Department-Wise Admission Analysis
+
+The analysis evaluates patient admission volume and admission rates across referral departments.
+
+| Department Referral | Total Patients | Admitted | Admission Rate |
+|---|---:|---:|---:|
+| None | 5,400 | 2,736 | 50.67% |
+| General Practice | 1,840 | 887 | 48.21% |
+| Orthopedics | 995 | 498 | 50.05% |
+| Physiotherapy | 276 | 137 | 49.64% |
+| Cardiology | 248 | 122 | 49.19% |
+| Neurology | 193 | 97 | 50.26% |
+| Gastroenterology | 178 | 89 | 50.00% |
+| Renal | 86 | 46 | 53.49% |
+
+### Key Findings
+
+- The "None" referral category accounted for the highest patient volume, with 5,400 records and 2,736 admissions.
+- General Practice recorded 887 admissions.
+- Orthopedics recorded 498 admissions.
+- Renal had the highest admission rate at 53.49%, but only 86 patient records.
+- General Practice had the lowest admission rate at 48.21%.
+
+### Business Insight
+
+Patient volume is concentrated in the "None", General Practice, and Orthopedics referral categories.
+
+The "None" value is an actual category in the dataset and should not automatically be interpreted as missing data.
+
+Renal recorded the highest admission rate, but its smaller sample size means that the result should be interpreted cautiously.
+
+Department-level patient volume can support referral workload analysis and resource-planning discussions.
+
+## 5. Daily and Weekly Patient Arrival Trends
+
+### Day-of-Week Analysis
+
+| Day | Total Patients | Admitted | Average Wait Time |
+|---|---:|---:|---:|
+| Monday | 1,314 | 653 | 35.67 min |
+| Tuesday | 1,305 | 672 | 35.09 min |
+| Wednesday | 1,260 | 629 | 35.19 min |
+| Thursday | 1,332 | 649 | 34.88 min |
+| Friday | 1,310 | 666 | 35.08 min |
+| Saturday | 1,377 | 686 | 35.65 min |
+| Sunday | 1,318 | 657 | 35.25 min |
+
+### Key Findings
+
+- Saturday recorded the highest total patient count at 1,377.
+- Wednesday recorded the lowest total patient count at 1,260.
+- Saturday also recorded the highest admitted-patient count at 686.
+- Monday had the highest average wait time at 35.67 minutes.
+- Thursday had the lowest average wait time at 34.88 minutes.
+
+### Business Insight
+
+Total patient volumes were relatively consistent across the seven weekdays.
+
+Saturday recorded the highest cumulative volume, but comparing average daily demand requires adjusting for the number of Mondays, Tuesdays, and other weekdays in the dataset.
+
+These findings provide an initial foundation for scheduling and workload analysis.
+
+## 6. Weekday vs. Weekend Analysis
+
+| Day Type | Total Patients | Admitted | Avg Wait Time | Admission Rate |
+|---|---:|---:|---:|---:|
+| Weekday | 6,521 | 3,269 | 35.18 min | 50.13% |
+| Weekend | 2,695 | 1,343 | 35.45 min | 49.83% |
+
+### Key Findings
+
+- Weekdays accounted for 6,521 patient records.
+- Weekends accounted for 2,695 patient records.
+- Weekend waiting times averaged 35.45 minutes.
+- Weekday waiting times averaged 35.18 minutes.
+- Weekday admission rates were 0.30 percentage points higher.
+
+### Business Insight
+
+Average waiting times and admission rates were very similar between weekdays and weekends.
+
+The higher cumulative weekday patient volume reflects the larger number of weekdays in the observation period and should not be interpreted directly as higher daily demand.
+
+## 7. Hourly Patient Arrival Analysis
+
+Patient admission times were converted from 12-hour AM/PM text into a 24-hour format using DuckDB's TRY_STRPTIME() function.
+
+### Top Five Patient Arrival Hours
+
+| Rank | Arrival Hour | Total Patients |
+|---|---|---:|
+| 1 | 11 PM (23:00) | 436 |
+| 2 | 7 AM (07:00) | 415 |
+| 3 | 1 PM (13:00) | 410 |
+| 4 | 12 AM (00:00) | 406 |
+| 5 | 11 AM (11:00) | 403 |
+
+### Key Findings
+
+- The highest number of recorded arrivals occurred at 11 PM, with 436 patients.
+- The second-highest arrival hour was 7 AM, with 415 patients.
+- The third-highest was 1 PM, with 410 patients.
+- Patient arrivals were distributed across all 24 hours.
+- All 9,216 admission-time values were successfully parsed.
+
+### Business Insight
+
+The 11 PM arrival hour represents the highest observed hourly patient volume.
+
+Hourly arrival analysis can help hospitals identify potential staffing and registration workload patterns.
+
+However, arrival volumes alone do not establish actual staffing shortages or capacity constraints.
+
+## 8. Waiting Time by Age Group
+
+| Age Group | Patients | Average Wait | Median Wait |
+|---|---:|---:|---:|
+| 31–45 | 1,748 | 35.51 min | 36 min |
+| Under 18 | 1,971 | 35.46 min | 36 min |
+| 18–30 | 1,572 | 35.30 min | 36 min |
+| Above 60 | 2,198 | 35.10 min | 35 min |
+| 46–60 | 1,727 | 34.94 min | 35 min |
+
+### Key Findings
+
+- Patients aged 31–45 had the highest average waiting time at 35.51 minutes.
+- Patients aged 46–60 had the lowest average waiting time at 34.94 minutes.
+- The difference between the highest and lowest average waiting times was only 0.57 minutes.
+- Median waiting times ranged between 35 and 36 minutes.
+- Recorded waiting times ranged from 10 to 60 minutes across age groups.
+
+### Business Insight
+
+Waiting times were highly consistent across age groups.
+
+The small differences suggest that age-based averages alone do not reveal major waiting-time disparities in this dataset.
+
+Further analysis by department, arrival hour, and admission status may help identify more meaningful operational patterns.
+
+## 9. Waiting Time by Admission Status
+
+| Admission Status | Patients | Average Wait | Median Wait |
+|---|---:|---:|---:|
+| Not Admission | 4,604 | 35.55 min | 36 min |
+| Admission | 4,612 | 34.97 min | 35 min |
+
+### Key Findings
+
+- Non-admitted patients waited an average of 35.55 minutes.
+- Admitted patients waited an average of 34.97 minutes.
+- Non-admitted patients had a 0.58-minute higher average wait.
+- Both groups had recorded waiting times between 10 and 60 minutes.
+
+### Business Insight
+
+The average waiting-time difference between admitted and non-admitted patients was minimal.
+
+The available data does not establish whether waiting time influences admission decisions.
+
+## 10. Monthly Admission Rate Trends
+
+### Notable Monthly Results
+
+| Month | Total Patients | Admitted | Admission Rate |
+|---|---:|---:|---:|
+| September 2023 | 469 | 249 | 53.09% |
+| January 2024 | 513 | 269 | 52.44% |
+| April 2024 | 469 | 217 | 46.27% |
+| July 2024 | 488 | 266 | 54.51% |
+| August 2024 | 530 | 242 | 45.66% |
+| October 2024 | 471 | 247 | 52.44% |
+
+### Key Findings
+
+- July 2024 had the highest monthly admission rate at 54.51%.
+- August 2024 had the lowest monthly admission rate at 45.66%.
+- August 2024 recorded the highest monthly patient volume, with 530 records.
+- January 2024 recorded the highest number of admitted patients, with 269.
+- Monthly admission rates fluctuated around the overall admission rate of 50.04%.
+
+### Business Insight
+
+Higher patient arrival volume does not necessarily correspond to a higher admission rate.
+
+August 2024 had the largest patient volume but the lowest admission rate.
+
+These trends could be explored further using referral department, patient demographics, and admission patterns.
+
+## 11. Combined Age Group and Gender Analysis
+
+The analysis compares admission rates across age and gender segments.
+
+### Notable Findings
+
+- Female patients under 18 had an admission rate of 52.11%.
+- Male patients aged 46–60 had an admission rate of 52.02%.
+- Male patients aged 31–45 had an admission rate of 51.45%.
+- Female patients above 60 had an admission rate of 51.29%.
+- Male patients above 60 had an admission rate of 46.85%, the lowest among the ten analyzed segments.
+
+### Business Insight
+
+Although overall male and female admission rates were almost identical, individual age-and-gender segments showed greater variation.
+
+For example, female patients above 60 had a 4.44-percentage-point higher admission rate than male patients in the same age group.
+
+These differences are descriptive and do not establish medical or demographic causes.
+
+## 12. Data Quality Validation
+
+An additional validation checked whether patient admission times could be converted into a usable time format.
+
+| Validation Metric | Result |
+|---|---:|
+| Total Records | 9,216 |
+| Invalid Arrival Times | 0 |
+| Successfully Parsed Times | 9,216 |
+| Gender Values Standardized in Analysis | 17 |
+
+All admission times were successfully parsed using TRY_STRPTIME().
+
+The gender correction was applied within the relevant analytical queries without changing the raw source data.
+
+## 13. Overall Day 2 Business Insights
+
+1. **Balanced Admission Rates:** Overall admission rates remained close to 50% across most demographic and referral categories.
+
+2. **Older Patient Volume:** Patients above 60 contributed the largest number of admissions among age groups, despite not having the highest admission rate.
+
+3. **Referral Workload Concentration:** The "None", General Practice, and Orthopedics categories accounted for most patient records.
+
+4. **Hourly Arrival Patterns:** The largest recorded arrival volume occurred at 11 PM, providing a useful starting point for examining staffing patterns.
+
+5. **Consistent Waiting Times:** Average waiting times showed relatively small differences across age groups, genders, and admission outcomes.
+
+6. **Monthly Variability:** Admission rates fluctuated across months, with July 2024 recording the highest rate and August 2024 recording the lowest.
+
+7. **Data Quality:** All admission-time values were valid, and a known gender-label inconsistency was standardized during analysis.
+
+## 14. SQL Concepts Practiced
+
+Day 2 applied the following SQL concepts:
+
+- Common Table Expressions (CTEs)
+- Conditional aggregation using FILTER
+- CASE WHEN expressions
+- GROUP BY and ORDER BY
+- DATE_TRUNC(), DAYNAME(), and DAYOFWEEK()
+- TRY_STRPTIME() for time parsing
+- HOUR() for hourly analysis
+- DENSE_RANK() window function
+- AVG(), MEDIAN(), MIN(), and MAX()
+- COUNT() and percentage calculations
+- NULLIF() to protect against division by zero
+- Data standardization during aggregation
+
+## 15. Day 2 Conclusion
+
+Day 2 expanded the healthcare analytics project from basic data exploration into demographic segmentation and operational trend analysis.
+
+The results show relatively balanced admission rates, consistent waiting times across demographic groups, and identifiable hourly and monthly patient-volume patterns.
+
+These findings establish a foundation for deeper waiting-time, department performance, and patient satisfaction analysis.
+
+**Day 2 Status: Completed**
