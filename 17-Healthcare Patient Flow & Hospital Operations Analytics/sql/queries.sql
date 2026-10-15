@@ -235,3 +235,332 @@ FROM healthcare_raw
 WHERE TRY_CAST("Patient Admission Date" AS DATE) IS NOT NULL
 GROUP BY 1
 ORDER BY admission_month;
+
+
+-- ============================================================
+-- SQL PROJECT 17
+-- Healthcare Patient Flow & Hospital Operations Analytics
+-- DAY 2: Patient Demographics & Admission Pattern Analysis
+-- Database: DuckDB
+-- ============================================================
+
+
+-- Query 16: Admission Rate by Patient Age Group
+
+WITH age_groups AS (
+    SELECT
+        CASE
+            WHEN "Patient Age" < 18 THEN 'Under 18'
+            WHEN "Patient Age" BETWEEN 18 AND 30 THEN '18-30'
+            WHEN "Patient Age" BETWEEN 31 AND 45 THEN '31-45'
+            WHEN "Patient Age" BETWEEN 46 AND 60 THEN '46-60'
+            ELSE 'Above 60'
+        END AS age_group,
+        "Patient Admission Flag" AS admission_status
+    FROM healthcare_raw
+    WHERE "Patient Age" IS NOT NULL
+)
+SELECT
+    age_group,
+    COUNT(*) AS total_patients,
+    COUNT(*) FILTER (
+        WHERE admission_status = 'Admission'
+    ) AS admitted_patients,
+    COUNT(*) FILTER (
+        WHERE admission_status = 'Not Admission'
+    ) AS non_admitted_patients,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE admission_status = 'Admission'
+        ) / NULLIF(COUNT(*), 0),
+        2
+    ) AS admission_rate_percentage
+FROM age_groups
+GROUP BY age_group
+ORDER BY
+    CASE age_group
+        WHEN 'Under 18' THEN 1
+        WHEN '18-30' THEN 2
+        WHEN '31-45' THEN 3
+        WHEN '46-60' THEN 4
+        ELSE 5
+    END;
+
+
+-- Query 17: Admission Rate by Gender
+-- Standardize the known gender typo in the query.
+
+SELECT
+    CASE
+        WHEN "Patient Gender" = 'Femaleemale'
+            THEN 'Female'
+        ELSE "Patient Gender"
+    END AS gender,
+    COUNT(*) AS total_patients,
+    COUNT(*) FILTER (
+        WHERE "Patient Admission Flag" = 'Admission'
+    ) AS admitted_patients,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE "Patient Admission Flag" = 'Admission'
+        ) / NULLIF(COUNT(*), 0),
+        2
+    ) AS admission_rate_percentage
+FROM healthcare_raw
+GROUP BY 1
+ORDER BY admission_rate_percentage DESC;
+
+
+-- Query 18: Department-Wise Admission Analysis
+
+SELECT
+    COALESCE(
+        NULLIF(TRIM("Department Referral"), ''),
+        'Not Specified'
+    ) AS department,
+    COUNT(*) AS total_patients,
+    COUNT(*) FILTER (
+        WHERE "Patient Admission Flag" = 'Admission'
+    ) AS admitted_patients,
+    COUNT(*) FILTER (
+        WHERE "Patient Admission Flag" = 'Not Admission'
+    ) AS non_admitted_patients,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE "Patient Admission Flag" = 'Admission'
+        ) / NULLIF(COUNT(*), 0),
+        2
+    ) AS admission_rate_percentage
+FROM healthcare_raw
+GROUP BY 1
+ORDER BY admitted_patients DESC;
+
+
+-- Query 19: Daily Patient Arrival Trends
+
+SELECT
+    "Patient Admission Date" AS visit_date,
+    COUNT(*) AS total_patients,
+    COUNT(*) FILTER (
+        WHERE "Patient Admission Flag" = 'Admission'
+    ) AS admitted_patients,
+    ROUND(AVG("Patient Waittime"), 2)
+        AS avg_wait_time
+FROM healthcare_raw
+GROUP BY 1
+ORDER BY visit_date;
+
+
+-- Query 20: Patient Volume by Day of Week
+
+SELECT
+    DAYNAME("Patient Admission Date") AS day_of_week,
+    COUNT(*) AS total_patients,
+    COUNT(*) FILTER (
+        WHERE "Patient Admission Flag" = 'Admission'
+    ) AS admitted_patients,
+    ROUND(AVG("Patient Waittime"), 2)
+        AS avg_wait_time
+FROM healthcare_raw
+GROUP BY 1
+ORDER BY
+    CASE day_of_week
+        WHEN 'Monday' THEN 1
+        WHEN 'Tuesday' THEN 2
+        WHEN 'Wednesday' THEN 3
+        WHEN 'Thursday' THEN 4
+        WHEN 'Friday' THEN 5
+        WHEN 'Saturday' THEN 6
+        ELSE 7
+    END;
+
+
+-- Query 21: Weekday vs Weekend Patient Analysis
+
+SELECT
+    CASE
+        WHEN DAYOFWEEK("Patient Admission Date")
+             IN (0, 6) THEN 'Weekend'
+        ELSE 'Weekday'
+    END AS day_type,
+    COUNT(*) AS total_patients,
+    COUNT(*) FILTER (
+        WHERE "Patient Admission Flag" = 'Admission'
+    ) AS admitted_patients,
+    ROUND(AVG("Patient Waittime"), 2)
+        AS avg_wait_time,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE "Patient Admission Flag" = 'Admission'
+        ) / NULLIF(COUNT(*), 0),
+        2
+    ) AS admission_rate_percentage
+FROM healthcare_raw
+GROUP BY 1
+ORDER BY total_patients DESC;
+
+
+-- Query 22: Hourly Patient Arrival Distribution
+-- Admission Time is stored as 12-hour text with AM/PM.
+
+WITH patient_hours AS (
+    SELECT
+        TRY_STRPTIME(
+            TRIM("Patient Admission Time"),
+            '%I:%M:%S %p'
+        ) AS parsed_time
+    FROM healthcare_raw
+)
+SELECT
+    HOUR(parsed_time) AS arrival_hour,
+    COUNT(*) AS total_patients
+FROM patient_hours
+WHERE parsed_time IS NOT NULL
+GROUP BY 1
+ORDER BY arrival_hour;
+
+
+-- Query 23: Peak Patient Arrival Hours
+
+WITH hourly_arrivals AS (
+    SELECT
+        HOUR(
+            TRY_STRPTIME(
+                TRIM("Patient Admission Time"),
+                '%I:%M:%S %p'
+            )
+        ) AS arrival_hour
+    FROM healthcare_raw
+),
+hourly_volume AS (
+    SELECT
+        arrival_hour,
+        COUNT(*) AS total_patients
+    FROM hourly_arrivals
+    WHERE arrival_hour IS NOT NULL
+    GROUP BY 1
+)
+SELECT
+    arrival_hour,
+    total_patients,
+    DENSE_RANK() OVER (
+        ORDER BY total_patients DESC
+    ) AS volume_rank
+FROM hourly_volume
+ORDER BY volume_rank, arrival_hour
+LIMIT 5;
+
+
+-- Query 24: Average Wait Time by Age Group
+
+WITH patient_age_groups AS (
+    SELECT
+        CASE
+            WHEN "Patient Age" < 18 THEN 'Under 18'
+            WHEN "Patient Age" BETWEEN 18 AND 30 THEN '18-30'
+            WHEN "Patient Age" BETWEEN 31 AND 45 THEN '31-45'
+            WHEN "Patient Age" BETWEEN 46 AND 60 THEN '46-60'
+            ELSE 'Above 60'
+        END AS age_group,
+        "Patient Waittime" AS wait_time
+    FROM healthcare_raw
+    WHERE "Patient Age" IS NOT NULL
+)
+SELECT
+    age_group,
+    COUNT(*) AS total_patients,
+    ROUND(AVG(wait_time), 2) AS avg_wait_time,
+    ROUND(MEDIAN(wait_time), 2) AS median_wait_time,
+    MIN(wait_time) AS min_wait_time,
+    MAX(wait_time) AS max_wait_time
+FROM patient_age_groups
+GROUP BY age_group
+ORDER BY avg_wait_time DESC;
+
+
+-- Query 25: Waiting Time by Admission Status
+
+SELECT
+    "Patient Admission Flag" AS admission_status,
+    COUNT(*) AS total_patients,
+    ROUND(AVG("Patient Waittime"), 2)
+        AS avg_wait_time,
+    ROUND(MEDIAN("Patient Waittime"), 2)
+        AS median_wait_time,
+    MIN("Patient Waittime") AS min_wait_time,
+    MAX("Patient Waittime") AS max_wait_time
+FROM healthcare_raw
+GROUP BY 1
+ORDER BY avg_wait_time DESC;
+
+
+-- Query 26: Monthly Admission Rate Trends
+
+SELECT
+    DATE_TRUNC(
+        'month', "Patient Admission Date"
+    )::DATE AS admission_month,
+    COUNT(*) AS total_patients,
+    COUNT(*) FILTER (
+        WHERE "Patient Admission Flag" = 'Admission'
+    ) AS admitted_patients,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE "Patient Admission Flag" = 'Admission'
+        ) / NULLIF(COUNT(*), 0),
+        2
+    ) AS admission_rate_percentage
+FROM healthcare_raw
+GROUP BY 1
+ORDER BY admission_month;
+
+
+-- Query 27: Admission Rates by Age Group and Gender
+
+WITH patient_segments AS (
+    SELECT
+        CASE
+            WHEN "Patient Age" < 18 THEN 'Under 18'
+            WHEN "Patient Age" BETWEEN 18 AND 30 THEN '18-30'
+            WHEN "Patient Age" BETWEEN 31 AND 45 THEN '31-45'
+            WHEN "Patient Age" BETWEEN 46 AND 60 THEN '46-60'
+            ELSE 'Above 60'
+        END AS age_group,
+        CASE
+            WHEN "Patient Gender" = 'Femaleemale'
+                THEN 'Female'
+            ELSE "Patient Gender"
+        END AS gender,
+        "Patient Admission Flag" AS admission_status
+    FROM healthcare_raw
+    WHERE "Patient Age" IS NOT NULL
+)
+SELECT
+    age_group,
+    gender,
+    COUNT(*) AS total_patients,
+    COUNT(*) FILTER (
+        WHERE admission_status = 'Admission'
+    ) AS admitted_patients,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE admission_status = 'Admission'
+        ) / NULLIF(COUNT(*), 0),
+        2
+    ) AS admission_rate_percentage
+FROM patient_segments
+GROUP BY age_group, gender
+ORDER BY age_group, gender;
+
+
+-- Query 28: Patient Arrival Time Data Quality Check
+
+SELECT
+    COUNT(*) AS total_records,
+    COUNT(*) FILTER (
+        WHERE TRY_STRPTIME(
+            TRIM("Patient Admission Time"),
+            '%I:%M:%S %p'
+        ) IS NULL
+    ) AS invalid_arrival_times
+FROM healthcare_raw;
