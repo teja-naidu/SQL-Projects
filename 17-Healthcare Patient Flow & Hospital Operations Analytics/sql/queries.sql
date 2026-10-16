@@ -564,3 +564,379 @@ SELECT
         ) IS NULL
     ) AS invalid_arrival_times
 FROM healthcare_raw;
+
+
+-- ============================================================
+-- SQL PROJECT 17
+-- Healthcare Patient Flow & Hospital Operations Analytics
+-- DAY 3: Hospital Waiting Time & Department Performance
+-- Queries 29-43
+-- ============================================================
+
+
+-- Query 29: Department-Wise Waiting Time Performance
+
+SELECT
+    "Department Referral" AS department,
+    COUNT(*) AS total_patients,
+    ROUND(AVG("Patient Waittime"), 2) AS avg_wait_time,
+    ROUND(MEDIAN("Patient Waittime"), 2) AS median_wait_time,
+    MIN("Patient Waittime") AS min_wait_time,
+    MAX("Patient Waittime") AS max_wait_time
+FROM healthcare_raw
+GROUP BY 1
+ORDER BY avg_wait_time DESC;
+
+
+-- Query 30: Patients Experiencing Long Waiting Times
+-- Long wait threshold: greater than 45 minutes
+
+SELECT
+    COUNT(*) AS total_patients,
+    COUNT(*) FILTER (
+        WHERE "Patient Waittime" > 45
+    ) AS long_wait_patients,
+    COUNT(*) FILTER (
+        WHERE "Patient Waittime" <= 45
+    ) AS patients_within_45_minutes,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE "Patient Waittime" > 45
+        ) / NULLIF(COUNT(*), 0),
+        2
+    ) AS long_wait_percentage
+FROM healthcare_raw;
+
+
+-- Query 31: Long Waiting Time Rate by Department
+
+SELECT
+    "Department Referral" AS department,
+    COUNT(*) AS total_patients,
+    COUNT(*) FILTER (
+        WHERE "Patient Waittime" > 45
+    ) AS long_wait_patients,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE "Patient Waittime" > 45
+        ) / NULLIF(COUNT(*), 0),
+        2
+    ) AS long_wait_percentage,
+    ROUND(AVG("Patient Waittime"), 2) AS avg_wait_time
+FROM healthcare_raw
+GROUP BY 1
+ORDER BY long_wait_percentage DESC;
+
+
+-- Query 32: Waiting Time Distribution
+
+WITH wait_categories AS (
+    SELECT
+        CASE
+            WHEN "Patient Waittime" <= 15 THEN '0-15 min'
+            WHEN "Patient Waittime" <= 30 THEN '16-30 min'
+            WHEN "Patient Waittime" <= 45 THEN '31-45 min'
+            ELSE '46-60+ min'
+        END AS wait_category
+    FROM healthcare_raw
+    WHERE "Patient Waittime" IS NOT NULL
+)
+SELECT
+    wait_category,
+    COUNT(*) AS total_patients,
+    ROUND(
+        100.0 * COUNT(*) / SUM(COUNT(*)) OVER (),
+        2
+    ) AS percentage
+FROM wait_categories
+GROUP BY 1
+ORDER BY
+    CASE wait_category
+        WHEN '0-15 min' THEN 1
+        WHEN '16-30 min' THEN 2
+        WHEN '31-45 min' THEN 3
+        ELSE 4
+    END;
+
+
+-- Query 33: Waiting Time Percentiles
+
+SELECT
+    ROUND(AVG("Patient Waittime"), 2) AS avg_wait_time,
+    ROUND(MEDIAN("Patient Waittime"), 2) AS median_wait_time,
+    ROUND(
+        QUANTILE_CONT("Patient Waittime", 0.75),
+        2
+    ) AS p75_wait_time,
+    ROUND(
+        QUANTILE_CONT("Patient Waittime", 0.90),
+        2
+    ) AS p90_wait_time,
+    ROUND(
+        QUANTILE_CONT("Patient Waittime", 0.95),
+        2
+    ) AS p95_wait_time,
+    MAX("Patient Waittime") AS max_wait_time
+FROM healthcare_raw;
+
+
+-- Query 34: Hourly Patient Arrivals and Average Wait Time
+
+WITH hourly_data AS (
+    SELECT
+        HOUR(
+            TRY_STRPTIME(
+                TRIM("Patient Admission Time"),
+                '%I:%M:%S %p'
+            )
+        ) AS arrival_hour,
+        "Patient Waittime" AS wait_time
+    FROM healthcare_raw
+)
+SELECT
+    arrival_hour,
+    COUNT(*) AS total_patients,
+    ROUND(AVG(wait_time), 2) AS avg_wait_time,
+    COUNT(*) FILTER (
+        WHERE wait_time > 45
+    ) AS long_wait_patients
+FROM hourly_data
+WHERE arrival_hour IS NOT NULL
+GROUP BY 1
+ORDER BY arrival_hour;
+
+
+-- Query 35: Top 5 Hours with Highest Average Waiting Time
+
+WITH hourly_waits AS (
+    SELECT
+        HOUR(
+            TRY_STRPTIME(
+                TRIM("Patient Admission Time"),
+                '%I:%M:%S %p'
+            )
+        ) AS arrival_hour,
+        "Patient Waittime" AS wait_time
+    FROM healthcare_raw
+),
+hourly_summary AS (
+    SELECT
+        arrival_hour,
+        COUNT(*) AS total_patients,
+        ROUND(AVG(wait_time), 2) AS avg_wait_time
+    FROM hourly_waits
+    WHERE arrival_hour IS NOT NULL
+    GROUP BY 1
+)
+SELECT
+    arrival_hour,
+    total_patients,
+    avg_wait_time,
+    DENSE_RANK() OVER (
+        ORDER BY avg_wait_time DESC
+    ) AS wait_rank
+FROM hourly_summary
+ORDER BY wait_rank, arrival_hour
+LIMIT 5;
+
+
+-- Query 36: Average Waiting Time by Day of Week
+
+SELECT
+    DAYNAME("Patient Admission Date") AS day_of_week,
+    COUNT(*) AS total_patients,
+    ROUND(AVG("Patient Waittime"), 2) AS avg_wait_time,
+    ROUND(MEDIAN("Patient Waittime"), 2) AS median_wait_time,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE "Patient Waittime" > 45
+        ) / NULLIF(COUNT(*), 0),
+        2
+    ) AS long_wait_percentage
+FROM healthcare_raw
+GROUP BY 1
+ORDER BY
+    CASE day_of_week
+        WHEN 'Monday' THEN 1
+        WHEN 'Tuesday' THEN 2
+        WHEN 'Wednesday' THEN 3
+        WHEN 'Thursday' THEN 4
+        WHEN 'Friday' THEN 5
+        WHEN 'Saturday' THEN 6
+        ELSE 7
+    END;
+
+
+-- Query 37: Monthly Waiting Time Trends
+
+SELECT
+    DATE_TRUNC(
+        'month', "Patient Admission Date"
+    )::DATE AS visit_month,
+    COUNT(*) AS total_patients,
+    ROUND(AVG("Patient Waittime"), 2) AS avg_wait_time,
+    ROUND(MEDIAN("Patient Waittime"), 2) AS median_wait_time,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE "Patient Waittime" > 45
+        ) / NULLIF(COUNT(*), 0),
+        2
+    ) AS long_wait_percentage
+FROM healthcare_raw
+GROUP BY 1
+ORDER BY visit_month;
+
+
+-- Query 38: Average Satisfaction Score by Waiting Time Category
+-- NULL satisfaction scores are excluded from AVG.
+
+WITH wait_groups AS (
+    SELECT
+        CASE
+            WHEN "Patient Waittime" <= 15 THEN '0-15 min'
+            WHEN "Patient Waittime" <= 30 THEN '16-30 min'
+            WHEN "Patient Waittime" <= 45 THEN '31-45 min'
+            ELSE '46-60+ min'
+        END AS wait_category,
+        "Patient Satisfaction Score" AS satisfaction_score
+    FROM healthcare_raw
+    WHERE "Patient Waittime" IS NOT NULL
+)
+SELECT
+    wait_category,
+    COUNT(*) AS total_patients,
+    COUNT(satisfaction_score) AS satisfaction_responses,
+    ROUND(AVG(satisfaction_score), 2) AS avg_satisfaction_score,
+    ROUND(
+        100.0 * COUNT(satisfaction_score)
+        / NULLIF(COUNT(*), 0),
+        2
+    ) AS response_rate_percentage
+FROM wait_groups
+GROUP BY 1
+ORDER BY
+    CASE wait_category
+        WHEN '0-15 min' THEN 1
+        WHEN '16-30 min' THEN 2
+        WHEN '31-45 min' THEN 3
+        ELSE 4
+    END;
+
+
+-- Query 39: Correlation Between Waiting Time and Satisfaction
+-- Only patients with recorded satisfaction scores.
+
+SELECT
+    COUNT(*) AS satisfaction_responses,
+    ROUND(
+        CORR(
+            "Patient Waittime",
+            "Patient Satisfaction Score"
+        ),
+        4
+    ) AS wait_satisfaction_correlation
+FROM healthcare_raw
+WHERE "Patient Satisfaction Score" IS NOT NULL
+  AND "Patient Waittime" IS NOT NULL;
+
+
+-- Query 40: Department Satisfaction and Waiting Time
+
+SELECT
+    "Department Referral" AS department,
+    COUNT(*) AS total_patients,
+    COUNT("Patient Satisfaction Score")
+        AS satisfaction_responses,
+    ROUND(AVG("Patient Waittime"), 2)
+        AS avg_wait_time,
+    ROUND(AVG("Patient Satisfaction Score"), 2)
+        AS avg_satisfaction_score,
+    ROUND(
+        100.0 * COUNT("Patient Satisfaction Score")
+        / NULLIF(COUNT(*), 0),
+        2
+    ) AS satisfaction_response_rate
+FROM healthcare_raw
+GROUP BY 1
+ORDER BY avg_wait_time DESC;
+
+
+-- Query 41: Department Performance Ranking by Wait Time
+
+WITH department_metrics AS (
+    SELECT
+        "Department Referral" AS department,
+        COUNT(*) AS total_patients,
+        ROUND(AVG("Patient Waittime"), 2) AS avg_wait_time,
+        ROUND(
+            100.0 * COUNT(*) FILTER (
+                WHERE "Patient Waittime" > 45
+            ) / NULLIF(COUNT(*), 0),
+            2
+        ) AS long_wait_percentage
+    FROM healthcare_raw
+    GROUP BY 1
+)
+SELECT
+    department,
+    total_patients,
+    avg_wait_time,
+    long_wait_percentage,
+    DENSE_RANK() OVER (
+        ORDER BY avg_wait_time DESC
+    ) AS wait_time_rank
+FROM department_metrics
+ORDER BY wait_time_rank, department;
+
+
+-- Query 42: Patient Waiting Time by Admission Status
+-- Compare admitted and non-admitted patients.
+
+SELECT
+    "Patient Admission Flag" AS admission_status,
+    COUNT(*) AS total_patients,
+    ROUND(AVG("Patient Waittime"), 2) AS avg_wait_time,
+    ROUND(MEDIAN("Patient Waittime"), 2) AS median_wait_time,
+    COUNT(*) FILTER (
+        WHERE "Patient Waittime" > 45
+    ) AS long_wait_patients,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE "Patient Waittime" > 45
+        ) / NULLIF(COUNT(*), 0),
+        2
+    ) AS long_wait_percentage
+FROM healthcare_raw
+GROUP BY 1
+ORDER BY avg_wait_time DESC;
+
+
+-- Query 43: Overall Waiting Time Performance Scorecard
+
+SELECT
+    COUNT(*) AS total_patients,
+    ROUND(AVG("Patient Waittime"), 2) AS avg_wait_time,
+    ROUND(MEDIAN("Patient Waittime"), 2) AS median_wait_time,
+    COUNT(*) FILTER (
+        WHERE "Patient Waittime" <= 30
+    ) AS patients_within_30_minutes,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE "Patient Waittime" <= 30
+        ) / NULLIF(COUNT(*), 0),
+        2
+    ) AS within_30_min_percentage,
+    COUNT(*) FILTER (
+        WHERE "Patient Waittime" > 45
+    ) AS patients_above_45_minutes,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE "Patient Waittime" > 45
+        ) / NULLIF(COUNT(*), 0),
+        2
+    ) AS above_45_min_percentage,
+    ROUND(
+        QUANTILE_CONT("Patient Waittime", 0.90),
+        2
+    ) AS p90_wait_time
+FROM healthcare_raw;
