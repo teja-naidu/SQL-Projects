@@ -1347,3 +1347,540 @@ SELECT
         ), 4
     ) AS wait_satisfaction_correlation
 FROM healthcare_raw;
+
+
+
+-- ============================================================
+-- SQL PROJECT 17
+-- Healthcare Patient Flow & Hospital Operations Analytics
+-- DAY 5: Final Hospital Operations KPI Dashboard
+-- Queries 59-73
+-- ============================================================
+
+
+-- Query 59: Executive Hospital Operations KPI Scorecard
+
+SELECT
+    COUNT(*) AS total_patients,
+    COUNT(DISTINCT "Patient Id") AS unique_patients,
+    COUNT(*) FILTER (
+        WHERE "Patient Admission Flag" = 'Admission'
+    ) AS admitted_patients,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE "Patient Admission Flag" = 'Admission'
+        ) / NULLIF(COUNT(*), 0), 2
+    ) AS admission_rate_percentage,
+    ROUND(AVG("Patient Waittime"), 2) AS avg_wait_time,
+    ROUND(MEDIAN("Patient Waittime"), 2) AS median_wait_time,
+    ROUND(
+        QUANTILE_CONT("Patient Waittime", 0.90), 2
+    ) AS p90_wait_time,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE "Patient Waittime" > 45
+        ) / NULLIF(COUNT(*), 0), 2
+    ) AS long_wait_percentage,
+    COUNT("Patient Satisfaction Score")
+        AS satisfaction_responses,
+    ROUND(
+        100.0 * COUNT("Patient Satisfaction Score")
+        / NULLIF(COUNT(*), 0), 2
+    ) AS satisfaction_response_rate,
+    ROUND(AVG("Patient Satisfaction Score"), 2)
+        AS avg_satisfaction_score
+FROM healthcare_raw;
+
+
+-- Query 60: Monthly Hospital Operations Dashboard
+
+SELECT
+    DATE_TRUNC(
+        'month', "Patient Admission Date"
+    )::DATE AS visit_month,
+    COUNT(*) AS total_patients,
+    COUNT(*) FILTER (
+        WHERE "Patient Admission Flag" = 'Admission'
+    ) AS admitted_patients,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE "Patient Admission Flag" = 'Admission'
+        ) / NULLIF(COUNT(*), 0), 2
+    ) AS admission_rate_percentage,
+    ROUND(AVG("Patient Waittime"), 2) AS avg_wait_time,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE "Patient Waittime" > 45
+        ) / NULLIF(COUNT(*), 0), 2
+    ) AS long_wait_percentage,
+    COUNT("Patient Satisfaction Score")
+        AS satisfaction_responses,
+    ROUND(AVG("Patient Satisfaction Score"), 2)
+        AS avg_satisfaction_score,
+    ROUND(
+        100.0 * COUNT("Patient Satisfaction Score")
+        / NULLIF(COUNT(*), 0), 2
+    ) AS satisfaction_response_rate
+FROM healthcare_raw
+GROUP BY 1
+ORDER BY visit_month;
+
+
+-- Query 61: Month-over-Month Patient Volume Growth
+
+WITH monthly_volume AS (
+    SELECT
+        DATE_TRUNC(
+            'month', "Patient Admission Date"
+        )::DATE AS visit_month,
+        COUNT(*) AS total_patients
+    FROM healthcare_raw
+    GROUP BY 1
+),
+volume_comparison AS (
+    SELECT
+        visit_month,
+        total_patients,
+        LAG(total_patients) OVER (
+            ORDER BY visit_month
+        ) AS previous_month_patients
+    FROM monthly_volume
+)
+SELECT
+    visit_month,
+    total_patients,
+    previous_month_patients,
+    total_patients - previous_month_patients
+        AS patient_volume_change,
+    ROUND(
+        100.0 * (
+            total_patients - previous_month_patients
+        ) / NULLIF(previous_month_patients, 0), 2
+    ) AS mom_growth_percentage
+FROM volume_comparison
+ORDER BY visit_month;
+
+
+-- Query 62: Monthly Admission Rate Changes
+
+WITH monthly_admissions AS (
+    SELECT
+        DATE_TRUNC(
+            'month', "Patient Admission Date"
+        )::DATE AS visit_month,
+        COUNT(*) AS total_patients,
+        ROUND(
+            100.0 * COUNT(*) FILTER (
+                WHERE "Patient Admission Flag" = 'Admission'
+            ) / NULLIF(COUNT(*), 0), 2
+        ) AS admission_rate_percentage
+    FROM healthcare_raw
+    GROUP BY 1
+),
+admission_comparison AS (
+    SELECT
+        visit_month,
+        total_patients,
+        admission_rate_percentage,
+        LAG(admission_rate_percentage) OVER (
+            ORDER BY visit_month
+        ) AS previous_month_admission_rate
+    FROM monthly_admissions
+)
+SELECT
+    visit_month,
+    total_patients,
+    admission_rate_percentage,
+    previous_month_admission_rate,
+    ROUND(
+        admission_rate_percentage
+        - previous_month_admission_rate, 2
+    ) AS admission_rate_change_pp
+FROM admission_comparison
+ORDER BY visit_month;
+
+
+-- Query 63: Department Operational Performance Scorecard
+
+SELECT
+    "Department Referral" AS department,
+    COUNT(*) AS total_patients,
+    ROUND(
+        100.0 * COUNT(*)
+        / NULLIF(
+            SUM(COUNT(*)) OVER (), 0
+        ), 2
+    ) AS patient_volume_share,
+    COUNT(*) FILTER (
+        WHERE "Patient Admission Flag" = 'Admission'
+    ) AS admitted_patients,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE "Patient Admission Flag" = 'Admission'
+        ) / NULLIF(COUNT(*), 0), 2
+    ) AS admission_rate_percentage,
+    ROUND(AVG("Patient Waittime"), 2) AS avg_wait_time,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE "Patient Waittime" > 45
+        ) / NULLIF(COUNT(*), 0), 2
+    ) AS long_wait_percentage,
+    COUNT("Patient Satisfaction Score")
+        AS satisfaction_responses,
+    ROUND(AVG("Patient Satisfaction Score"), 2)
+        AS avg_satisfaction_score
+FROM healthcare_raw
+GROUP BY 1
+ORDER BY total_patients DESC;
+
+
+-- Query 64: Department Contribution to All Long Waits
+
+WITH department_waits AS (
+    SELECT
+        "Department Referral" AS department,
+        COUNT(*) AS total_patients,
+        COUNT(*) FILTER (
+            WHERE "Patient Waittime" > 45
+        ) AS long_wait_patients
+    FROM healthcare_raw
+    GROUP BY 1
+)
+SELECT
+    department,
+    total_patients,
+    long_wait_patients,
+    ROUND(
+        100.0 * long_wait_patients
+        / NULLIF(
+            SUM(long_wait_patients) OVER (), 0
+        ), 2
+    ) AS share_of_all_long_waits
+FROM department_waits
+ORDER BY long_wait_patients DESC;
+
+
+-- Query 65: Patient Experience Risk Segments
+-- Risk labels are analytical categories, not clinical risk scores.
+
+WITH patient_segments AS (
+    SELECT
+        "Patient Waittime" AS wait_time,
+        "Patient Satisfaction Score" AS satisfaction_score,
+        CASE
+            WHEN "Patient Waittime" > 45
+             AND "Patient Satisfaction Score" BETWEEN 0 AND 4
+                THEN 'Long Wait + Low Satisfaction'
+            WHEN "Patient Waittime" > 45
+             AND "Patient Satisfaction Score" IS NULL
+                THEN 'Long Wait + Missing Feedback'
+            WHEN "Patient Waittime" > 45
+                THEN 'Long Wait + Other Feedback'
+            WHEN "Patient Satisfaction Score" BETWEEN 0 AND 4
+                THEN 'Shorter Wait + Low Satisfaction'
+            ELSE 'Other Patient Records'
+        END AS experience_segment
+    FROM healthcare_raw
+)
+SELECT
+    experience_segment,
+    COUNT(*) AS total_patients,
+    ROUND(
+        100.0 * COUNT(*)
+        / NULLIF(SUM(COUNT(*)) OVER (), 0), 2
+    ) AS percentage_of_patients,
+    ROUND(AVG(wait_time), 2) AS avg_wait_time,
+    COUNT(satisfaction_score) AS satisfaction_responses
+FROM patient_segments
+GROUP BY 1
+ORDER BY total_patients DESC;
+
+
+-- Query 66: Monthly Long-Wait Trend and Change
+
+WITH monthly_waits AS (
+    SELECT
+        DATE_TRUNC(
+            'month', "Patient Admission Date"
+        )::DATE AS visit_month,
+        COUNT(*) AS total_patients,
+        COUNT(*) FILTER (
+            WHERE "Patient Waittime" > 45
+        ) AS long_wait_patients,
+        ROUND(
+            100.0 * COUNT(*) FILTER (
+                WHERE "Patient Waittime" > 45
+            ) / NULLIF(COUNT(*), 0), 2
+        ) AS long_wait_percentage
+    FROM healthcare_raw
+    GROUP BY 1
+),
+wait_comparison AS (
+    SELECT
+        *,
+        LAG(long_wait_percentage) OVER (
+            ORDER BY visit_month
+        ) AS previous_month_long_wait_rate
+    FROM monthly_waits
+)
+SELECT
+    visit_month,
+    total_patients,
+    long_wait_patients,
+    long_wait_percentage,
+    previous_month_long_wait_rate,
+    ROUND(
+        long_wait_percentage
+        - previous_month_long_wait_rate, 2
+    ) AS long_wait_rate_change_pp
+FROM wait_comparison
+ORDER BY visit_month;
+
+
+-- Query 67: Rolling Three-Month Patient Volume and Wait Time
+-- Each row includes the current month and up to two prior months.
+
+WITH monthly_metrics AS (
+    SELECT
+        DATE_TRUNC(
+            'month', "Patient Admission Date"
+        )::DATE AS visit_month,
+        COUNT(*) AS total_patients,
+        SUM("Patient Waittime") AS total_wait_minutes,
+        COUNT("Patient Waittime") AS wait_observations
+    FROM healthcare_raw
+    GROUP BY 1
+),
+rolling_metrics AS (
+    SELECT
+        visit_month,
+        total_patients,
+        SUM(total_patients) OVER (
+            ORDER BY visit_month
+            ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+        ) AS rolling_3_month_patients,
+        SUM(total_wait_minutes) OVER (
+            ORDER BY visit_month
+            ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+        ) AS rolling_wait_minutes,
+        SUM(wait_observations) OVER (
+            ORDER BY visit_month
+            ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+        ) AS rolling_wait_observations
+    FROM monthly_metrics
+)
+SELECT
+    visit_month,
+    total_patients,
+    rolling_3_month_patients,
+    ROUND(
+        1.0 * rolling_wait_minutes
+        / NULLIF(rolling_wait_observations, 0), 2
+    ) AS rolling_3_month_avg_wait
+FROM rolling_metrics
+ORDER BY visit_month;
+
+
+-- Query 68: Peak Patient Arrival Hours with Operations KPIs
+
+WITH hourly_patients AS (
+    SELECT
+        HOUR(
+            TRY_STRPTIME(
+                TRIM("Patient Admission Time"),
+                '%I:%M:%S %p'
+            )
+        ) AS arrival_hour,
+        "Patient Admission Flag" AS admission_status,
+        "Patient Waittime" AS wait_time,
+        "Patient Satisfaction Score" AS satisfaction_score
+    FROM healthcare_raw
+)
+SELECT
+    arrival_hour,
+    COUNT(*) AS total_patients,
+    COUNT(*) FILTER (
+        WHERE admission_status = 'Admission'
+    ) AS admitted_patients,
+    ROUND(AVG(wait_time), 2) AS avg_wait_time,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE wait_time > 45
+        ) / NULLIF(COUNT(*), 0), 2
+    ) AS long_wait_percentage,
+    COUNT(satisfaction_score) AS satisfaction_responses,
+    ROUND(AVG(satisfaction_score), 2)
+        AS avg_satisfaction_score
+FROM hourly_patients
+WHERE arrival_hour IS NOT NULL
+GROUP BY 1
+ORDER BY total_patients DESC;
+
+
+-- Query 69: Daily Patient Volume and Waiting Time Relationship
+
+WITH daily_metrics AS (
+    SELECT
+        "Patient Admission Date" AS visit_date,
+        COUNT(*) AS total_patients,
+        AVG("Patient Waittime") AS avg_wait_time
+    FROM healthcare_raw
+    GROUP BY 1
+)
+SELECT
+    COUNT(*) AS total_days,
+    ROUND(AVG(total_patients), 2) AS avg_daily_patients,
+    MIN(total_patients) AS min_daily_patients,
+    MAX(total_patients) AS max_daily_patients,
+    ROUND(
+        CORR(total_patients, avg_wait_time), 4
+    ) AS daily_volume_wait_correlation
+FROM daily_metrics;
+
+
+-- Query 70: Department Waiting Time Compared with Hospital Average
+
+WITH hospital_baseline AS (
+    SELECT
+        AVG("Patient Waittime") AS hospital_avg_wait
+    FROM healthcare_raw
+),
+department_waits AS (
+    SELECT
+        "Department Referral" AS department,
+        COUNT(*) AS total_patients,
+        AVG("Patient Waittime") AS department_avg_wait
+    FROM healthcare_raw
+    GROUP BY 1
+)
+SELECT
+    d.department,
+    d.total_patients,
+    ROUND(d.department_avg_wait, 2)
+        AS department_avg_wait,
+    ROUND(h.hospital_avg_wait, 2)
+        AS hospital_avg_wait,
+    ROUND(
+        d.department_avg_wait - h.hospital_avg_wait,
+        2
+    ) AS difference_from_hospital_avg,
+    CASE
+        WHEN d.department_avg_wait > h.hospital_avg_wait
+            THEN 'Above Hospital Average'
+        WHEN d.department_avg_wait < h.hospital_avg_wait
+            THEN 'Below Hospital Average'
+        ELSE 'Equal to Hospital Average'
+    END AS performance_category
+FROM department_waits d
+CROSS JOIN hospital_baseline h
+ORDER BY difference_from_hospital_avg DESC;
+
+
+-- Query 71: Monthly Satisfaction and Waiting Time Comparison
+
+SELECT
+    DATE_TRUNC(
+        'month', "Patient Admission Date"
+    )::DATE AS visit_month,
+    COUNT(*) AS total_patients,
+    ROUND(AVG("Patient Waittime"), 2)
+        AS avg_wait_time,
+    COUNT("Patient Satisfaction Score")
+        AS satisfaction_responses,
+    ROUND(AVG("Patient Satisfaction Score"), 2)
+        AS avg_satisfaction_score,
+    ROUND(
+        100.0 * COUNT("Patient Satisfaction Score")
+        / NULLIF(COUNT(*), 0), 2
+    ) AS satisfaction_response_rate
+FROM healthcare_raw
+GROUP BY 1
+ORDER BY visit_month;
+
+
+-- Query 72: Executive Priority Matrix by Referral Department
+-- Thresholds are defined for portfolio analysis only.
+-- This is not a clinical or official hospital priority rating.
+
+WITH department_metrics AS (
+    SELECT
+        "Department Referral" AS department,
+        COUNT(*) AS total_patients,
+        ROUND(AVG("Patient Waittime"), 2)
+            AS avg_wait_time,
+        ROUND(
+            100.0 * COUNT(*) FILTER (
+                WHERE "Patient Waittime" > 45
+            ) / NULLIF(COUNT(*), 0), 2
+        ) AS long_wait_percentage,
+        COUNT("Patient Satisfaction Score")
+            AS satisfaction_responses,
+        ROUND(AVG("Patient Satisfaction Score"), 2)
+            AS avg_satisfaction_score
+    FROM healthcare_raw
+    GROUP BY 1
+)
+SELECT
+    department,
+    total_patients,
+    avg_wait_time,
+    long_wait_percentage,
+    satisfaction_responses,
+    avg_satisfaction_score,
+    CASE
+        WHEN total_patients >= 1000
+         AND long_wait_percentage >= 30
+            THEN 'High Volume + High Long-Wait Rate'
+        WHEN total_patients >= 1000
+            THEN 'High Volume - Monitor'
+        WHEN long_wait_percentage >= 30
+            THEN 'Higher Long-Wait Rate - Review'
+        ELSE 'Routine Monitoring'
+    END AS operational_priority
+FROM department_metrics
+ORDER BY
+    CASE
+        WHEN total_patients >= 1000
+         AND long_wait_percentage >= 30 THEN 1
+        WHEN total_patients >= 1000 THEN 2
+        WHEN long_wait_percentage >= 30 THEN 3
+        ELSE 4
+    END,
+    total_patients DESC;
+
+
+-- Query 73: Final Project Validation and Data Quality Scorecard
+
+SELECT
+    COUNT(*) AS total_records,
+    COUNT(DISTINCT "Patient Id") AS unique_patient_ids,
+    COUNT(*) - COUNT(DISTINCT "Patient Id")
+        AS repeated_patient_id_records,
+    COUNT(*) FILTER (
+        WHERE "Patient Id" IS NULL
+    ) AS missing_patient_ids,
+    COUNT(*) FILTER (
+        WHERE "Patient Admission Date" IS NULL
+    ) AS missing_admission_dates,
+    COUNT(*) FILTER (
+        WHERE TRY_STRPTIME(
+            TRIM("Patient Admission Time"),
+            '%I:%M:%S %p'
+        ) IS NULL
+    ) AS invalid_admission_times,
+    COUNT(*) FILTER (
+        WHERE "Patient Age" < 0
+           OR "Patient Age" > 120
+    ) AS invalid_ages,
+    COUNT(*) FILTER (
+        WHERE "Patient Waittime" < 0
+    ) AS negative_wait_times,
+    COUNT(*) FILTER (
+        WHERE "Patient Satisfaction Score" IS NULL
+    ) AS missing_satisfaction_scores,
+    COUNT(*) FILTER (
+        WHERE "Patient Satisfaction Score" NOT BETWEEN 0 AND 10
+    ) AS invalid_satisfaction_scores,
+    MIN("Patient Admission Date") AS first_visit_date,
+    MAX("Patient Admission Date") AS last_visit_date
+FROM healthcare_raw;
