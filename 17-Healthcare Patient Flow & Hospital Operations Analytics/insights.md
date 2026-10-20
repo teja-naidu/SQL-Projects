@@ -1611,3 +1611,558 @@ Most importantly, the 72.69% missing satisfaction rate highlights the need for b
 The findings establish a foundation for a final hospital operations performance dashboard and executive-level recommendations.
 
 **Day 4 Status: Completed**
+
+---
+
+# Day 5: Hospital Operations KPI Dashboard & Executive Analytics
+
+## 1. Overview
+
+Day 5 consolidates the previous four days of healthcare analytics into a comprehensive hospital operations performance assessment.
+
+The objective is to evaluate patient volume, admissions, waiting times, department performance, patient satisfaction, operational trends, and data quality using advanced SQL techniques.
+
+**Dataset:** Healthcare Patient Flow & Hospital Operations Analytics  
+**Database:** DuckDB  
+**Analysis Period:** April 1, 2023 – October 30, 2024  
+**Total Records:** 9,216  
+**SQL Queries:** 59–73
+
+### Executive KPI Summary
+
+| KPI | Result |
+|---|---:|
+| Total Patient Records | 9,216 |
+| Unique Patient IDs | 9,216 |
+| Admitted Patients | 4,612 |
+| Admission Rate | 50.04% |
+| Average Waiting Time | 35.26 minutes |
+| Median Waiting Time | 35 minutes |
+| 90th Percentile Waiting Time | 56 minutes |
+| Patients Waiting Over 45 Minutes | 2,750 |
+| Long-Wait Rate | 29.84% |
+| Satisfaction Responses | 2,517 |
+| Satisfaction Response Rate | 27.31% |
+| Average Satisfaction Score | 4.99/10 |
+
+**Executive Insight:** Approximately half of the recorded patients were admitted, nearly 30% experienced waits exceeding 45 minutes, and satisfaction scores were available for only 27.31% of records. These metrics establish a baseline for monitoring hospital operations and patient experience.
+
+The 45-minute threshold is an analytical definition used in this project, not a verified hospital service-level agreement.
+
+## 2. Executive Hospital Operations KPI Scorecard (Query 59)
+
+### Key Findings
+
+- All 9,216 patient records have distinct patient IDs.
+- A total of 4,612 patients were classified as admitted.
+- The admission rate was approximately 50.04%.
+- Average waiting time was 35.26 minutes, with a median of 35 minutes.
+- The 90th percentile waiting time was 56 minutes.
+- Approximately 29.84% of patients waited longer than 45 minutes.
+- Satisfaction scores were recorded for 2,517 patients, with an average of 4.99/10.
+
+### Business Insight
+
+The consolidated scorecard brings patient-flow efficiency, admission outcomes, and patient-experience measures into a single reporting framework.
+
+Waiting-time performance and satisfaction-response coverage are particularly useful areas for further operational investigation.
+
+## 3. Monthly Hospital Operations Dashboard (Query 60)
+
+### Selected Monthly Performance
+
+| Month | Patients | Admitted | Avg Wait | Avg Satisfaction |
+|---|---:|---:|---:|---:|
+| Apr 2023 | 479 | 237 | 34.90 min | 5.30 |
+| Aug 2023 | 494 | 234 | 36.39 min | 5.06 |
+| Jan 2024 | 513 | 269 | 36.32 min | 4.96 |
+| Feb 2024 | 431 | 224 | 36.67 min | 4.72 |
+| May 2024 | 519 | 266 | 35.81 min | 5.15 |
+| Aug 2024 | 530 | 242 | 35.11 min | 5.18 |
+| Oct 2024 | 471 | 247 | 34.05 min | 5.31 |
+
+### Key Findings
+
+- August 2024 recorded the highest monthly patient volume at 530.
+- February 2024 recorded the lowest monthly volume at 431.
+- February 2024 had the highest monthly average waiting time at 36.67 minutes.
+- October 2024 had the lowest monthly average waiting time at 34.05 minutes.
+- Monthly satisfaction averages fluctuated without a consistent directional trend.
+
+### Business Insight
+
+Monthly patient volume and average waiting time did not move consistently together.
+
+For example, August 2024 had the highest recorded monthly volume but an average waiting time close to the overall hospital average.
+
+Monthly volume should therefore be considered alongside patient arrival patterns and other operational factors rather than treated as the sole explanation for waiting times.
+
+**Limitation:** Monthly patient totals are not adjusted for differences in the number of calendar days.
+
+## 4. Month-over-Month Patient Volume Growth (Query 61)
+
+### Significant Monthly Changes
+
+| Month | Patients | Change | MoM Growth |
+|---|---:|---:|---:|
+| Feb 2024 | 431 | -82 | -15.98% |
+| Mar 2024 | 506 | +75 | +17.40% |
+| May 2024 | 519 | +50 | +10.66% |
+| Aug 2024 | 530 | +42 | +8.61% |
+| Sep 2024 | 466 | -64 | -12.08% |
+| Oct 2024 | 471 | +5 | +1.07% |
+
+### Key Findings
+
+- March 2024 recorded the largest month-over-month increase at 17.40%.
+- February 2024 recorded the largest decline at 15.98%.
+- September 2024 experienced a 12.08% decrease following the August volume peak.
+- October 2024 showed a modest recovery of 1.07%.
+
+### Business Insight
+
+Patient volumes fluctuated across the analysis period.
+
+Month-over-month reporting can help identify periods requiring closer review, but raw monthly growth percentages may also reflect calendar differences, seasonal patterns, or other factors not captured in the dataset.
+
+## 5. Monthly Admission Rate Changes (Query 62)
+
+### Key Findings
+
+- The highest monthly admission rate was 54.51% in July 2024.
+- The lowest monthly admission rate was 45.66% in August 2024.
+- August 2024 experienced the largest month-over-month admission-rate decrease, falling by 8.85 percentage points.
+- July 2024 recorded the largest increase, rising by 6.06 percentage points.
+- The overall admission rate remained close to 50%.
+
+### Business Insight
+
+Admission rates varied across months even when overall patient volumes were relatively stable.
+
+Tracking these changes may help identify shifts in the proportion of visits resulting in admission.
+
+However, the dataset does not include clinical severity, diagnosis, or admission criteria, so the reasons for these changes cannot be established.
+
+## 6. Department Operational Performance Scorecard (Query 63)
+
+| Referral Category | Patients | Volume Share | Avg Wait | Long-Wait Rate | Avg Satisfaction |
+|---|---:|---:|---:|---:|---:|
+| None | 5,400 | 58.59% | 35.29 | 29.44% | 4.95 |
+| General Practice | 1,840 | 19.97% | 34.91 | 29.84% | 5.06 |
+| Orthopedics | 995 | 10.80% | 34.98 | 30.05% | 4.86 |
+| Physiotherapy | 276 | 2.99% | 36.57 | 33.33% | 4.99 |
+| Cardiology | 248 | 2.69% | 35.35 | 31.85% | 5.14 |
+| Neurology | 193 | 2.09% | 36.80 | 32.64% | 5.28 |
+| Gastroenterology | 178 | 1.93% | 35.83 | 31.46% | 5.80 |
+| Renal | 86 | 0.93% | 34.70 | 25.58% | 4.57 |
+
+### Key Findings
+
+- The "None" referral category represented 58.59% of all records.
+- General Practice accounted for 19.97% of patient records.
+- Neurology had the highest average waiting time at 36.80 minutes.
+- Physiotherapy had the highest long-wait rate at 33.33%.
+- Gastroenterology recorded the highest average satisfaction among respondents at 5.80.
+- Renal recorded the lowest average satisfaction at 4.57, based on only 23 responses.
+
+### Business Insight
+
+Department referral categories vary in both volume and waiting-time performance.
+
+High-volume categories have greater influence on overall hospital metrics, while smaller categories may show higher waiting-time percentages.
+
+Department comparisons should consider patient counts, response coverage, and differences in service requirements.
+
+**Data Interpretation:** "None" means no department referral was recorded. It should not be treated as a clinical department.
+
+## 7. Department Contribution to Long Waiting Times (Query 64)
+
+| Referral Category | Long-Wait Patients | Share of All Long Waits |
+|---|---:|---:|
+| None | 1,590 | 57.82% |
+| General Practice | 549 | 19.96% |
+| Orthopedics | 299 | 10.87% |
+| Physiotherapy | 92 | 3.35% |
+| Cardiology | 79 | 2.87% |
+| Neurology | 63 | 2.29% |
+| Gastroenterology | 56 | 2.04% |
+| Renal | 22 | 0.80% |
+
+### Key Findings
+
+- The "None" category contributed 1,590 long-wait records.
+- General Practice contributed 549 long-wait records.
+- Together, these categories accounted for 77.78% of all long waits.
+- Physiotherapy had the highest long-wait rate, but only 92 long-wait records.
+
+### Business Insight
+
+There is an important distinction between **long-wait volume** and **long-wait rate**.
+
+High-volume referral categories account for more long-wait records, while smaller categories can have higher percentages.
+
+An effective operational review should consider both measures when identifying areas for investigation.
+
+## 8. Patient Experience Risk Segmentation (Query 65)
+
+| Experience Segment | Patients | Percentage | Avg Wait |
+|---|---:|---:|---:|
+| Other Patient Records | 5,649 | 61.30% | 27.58 min |
+| Long Wait + Missing Feedback | 2,010 | 21.81% | 53.02 min |
+| Shorter Wait + Low Satisfaction | 817 | 8.87% | 28.31 min |
+| Long Wait + Other Feedback | 409 | 4.44% | 53.18 min |
+| Long Wait + Low Satisfaction | 331 | 3.59% | 53.56 min |
+
+### Key Findings
+
+- A total of 2,010 patients experienced long waits without providing satisfaction feedback.
+- This group represented 21.81% of all patient records.
+- Approximately 73.09% of long-wait patients had missing satisfaction scores.
+- Another 331 patients experienced long waits and recorded low satisfaction scores.
+- A total of 817 patients recorded low satisfaction despite waiting 45 minutes or less.
+
+### Business Insight
+
+The largest clearly identified patient-experience information gap involved patients who waited longer than 45 minutes and had no recorded satisfaction score.
+
+Low satisfaction also occurred among patients with shorter waits, suggesting that waiting time alone does not explain every negative patient experience.
+
+Additional service-quality and patient-feedback data would be needed to investigate potential causes.
+
+**Methodology Note:** These segments are mutually exclusive, based on the CASE expression used in Query 65. They are analytical categories rather than clinical risk classifications.
+
+## 9. Monthly Long-Wait Trend Analysis (Query 66)
+
+### Selected Results
+
+| Month | Long-Wait Patients | Long-Wait Rate |
+|---|---:|---:|
+| Jul 2023 | 126 | 27.16% |
+| Nov 2023 | 152 | 32.76% |
+| Jan 2024 | 169 | 32.94% |
+| Feb 2024 | 140 | 32.48% |
+| May 2024 | 149 | 28.71% |
+| Aug 2024 | 151 | 28.49% |
+| Oct 2024 | 136 | 28.87% |
+
+### Key Findings
+
+- January 2024 had the highest long-wait rate at 32.94%.
+- July 2023 had the lowest rate at 27.16%.
+- November 2023 recorded a month-over-month increase of 4.16 percentage points.
+- August 2023 recorded an increase of 4.01 percentage points.
+- October 2024 ended with a long-wait rate of 28.87%.
+
+### Business Insight
+
+Long-wait rates fluctuated throughout the analysis period, generally remaining near the overall rate of 29.84%.
+
+The monthly variations provide useful signals for further investigation but do not establish consistent improvement or deterioration.
+
+## 10. Rolling Three-Month Patient Volume and Waiting Time (Query 67)
+
+### Selected Rolling Metrics
+
+| Month | Rolling 3-Month Patients | Rolling Avg Wait |
+|---|---:|---:|
+| Jun 2023 | 1,465 | 34.98 min |
+| Sep 2023 | 1,427 | 35.15 min |
+| Dec 2023 | 1,446 | 34.96 min |
+| Mar 2024 | 1,450 | 36.27 min |
+| Jun 2024 | 1,473 | 35.47 min |
+| Aug 2024 | 1,503 | 35.27 min |
+| Oct 2024 | 1,467 | 34.76 min |
+
+### Key Findings
+
+- March 2024 recorded the highest three-month rolling average wait at 36.27 minutes.
+- August 2024 recorded the highest three-month rolling patient total at 1,503.
+- By October 2024, the rolling average wait had decreased to 34.76 minutes.
+- Rolling averages were less volatile than individual monthly values.
+
+### Business Insight
+
+Rolling metrics help identify broader operational patterns by reducing the effect of individual monthly fluctuations.
+
+The decline from 36.27 minutes in March 2024 to 34.76 minutes in October 2024 suggests an improvement in the rolling waiting-time measure over that interval.
+
+This observation does not establish the cause of the change.
+
+**Methodology Note:** The first two rolling-window rows use fewer than three months of available data.
+
+## 11. Peak Arrival Hours and Operational Performance (Query 68)
+
+### Selected Hourly Results
+
+| Arrival Hour | Patients | Admitted | Long-Wait Rate | Avg Satisfaction |
+|---|---:|---:|---:|---:|
+| 11 PM | 436 | 226 | 30.73% | 4.88 |
+| 7 AM | 415 | 207 | 28.67% | 4.83 |
+| 1 PM | 410 | 220 | 32.68% | 5.34 |
+| 12 AM | 406 | 197 | 26.11% | 4.68 |
+| 11 AM | 403 | 211 | 33.25% | 5.28 |
+| 3 AM | 385 | 177 | 34.81% | 5.33 |
+
+### Key Findings
+
+- The 11 PM hour had the highest patient volume at 436 records.
+- The 3 AM hour had the highest long-wait rate at 34.81%.
+- The 11 AM hour recorded a long-wait rate of 33.25%.
+- The 1 PM hour recorded a long-wait rate of 32.68%.
+- The busiest arrival hour was not the hour with the highest long-wait rate.
+
+### Business Insight
+
+Arrival volume and waiting-time performance differed across hours.
+
+These patterns can help identify time periods for additional operational review, but the dataset does not include staffing levels, available treatment resources, or patient acuity.
+
+Therefore, staffing requirements cannot be calculated directly from these results.
+
+## 12. Daily Patient Volume and Waiting-Time Correlation (Query 69)
+
+| Metric | Result |
+|---|---:|
+| Total Days | 579 |
+| Average Daily Patients | 15.92 |
+| Minimum Daily Patients | 7 |
+| Maximum Daily Patients | 30 |
+| Daily Volume–Wait Correlation | +0.0429 |
+
+### Key Findings
+
+- The dataset contained patient records across 579 dates.
+- Average daily patient volume was approximately 15.92.
+- Daily patient counts ranged from 7 to 30.
+- The correlation between daily patient volume and daily average waiting time was +0.0429.
+
+### Business Insight
+
+The correlation indicates almost no linear relationship between daily patient volume and daily average waiting time in this dataset.
+
+This does not mean patient volume can never affect waiting time.
+
+Other operational factors and relationships not represented in the available data may influence patient waiting times.
+
+## 13. Department Waiting Time vs. Hospital Average (Query 70)
+
+**Hospital Average Waiting Time: 35.26 minutes**
+
+| Referral Category | Avg Wait | Difference from Hospital |
+|---|---:|---:|
+| Neurology | 36.80 | +1.54 min |
+| Physiotherapy | 36.57 | +1.31 min |
+| Gastroenterology | 35.83 | +0.57 min |
+| Cardiology | 35.35 | +0.09 min |
+| None | 35.29 | +0.03 min |
+| Orthopedics | 34.98 | -0.28 min |
+| General Practice | 34.91 | -0.35 min |
+| Renal | 34.70 | -0.56 min |
+
+### Key Findings
+
+- Neurology exceeded the hospital average by 1.54 minutes.
+- Physiotherapy exceeded the hospital average by 1.31 minutes.
+- Renal was 0.56 minutes below the hospital average.
+- The difference between the highest and lowest department averages was 2.10 minutes.
+
+### Business Insight
+
+Although Neurology and Physiotherapy had the highest average waits, differences between referral categories were relatively small.
+
+The comparison helps identify categories for further review, but being above the hospital average does not automatically indicate unacceptable performance.
+
+## 14. Monthly Satisfaction and Waiting-Time Comparison (Query 71)
+
+### Key Findings
+
+- February 2024 had the highest monthly average waiting time at 36.67 minutes, with average satisfaction of 4.72.
+- March 2024 recorded average waiting time of 35.88 minutes and average satisfaction of 5.33.
+- April 2024 recorded the lowest monthly average satisfaction at 4.63.
+- August 2024 had the lowest satisfaction-response rate at 21.32%.
+- October 2024 recorded average waiting time of 34.05 minutes and satisfaction of 5.31.
+
+### Business Insight
+
+Monthly satisfaction scores did not consistently move in the opposite direction of waiting times.
+
+This is consistent with the earlier overall wait–satisfaction correlation of -0.0212, which showed almost no linear relationship among patients with recorded satisfaction scores.
+
+Satisfaction comparisons remain limited by missing responses.
+
+## 15. Executive Operational Priority Matrix (Query 72)
+
+| Referral Category | Operational Priority |
+|---|---|
+| None | High Volume – Monitor |
+| General Practice | High Volume – Monitor |
+| Orthopedics | Higher Long-Wait Rate – Review |
+| Physiotherapy | Higher Long-Wait Rate – Review |
+| Cardiology | Higher Long-Wait Rate – Review |
+| Neurology | Higher Long-Wait Rate – Review |
+| Gastroenterology | Higher Long-Wait Rate – Review |
+| Renal | Routine Monitoring |
+
+### Key Findings
+
+- The "None" and General Practice categories met the project's high-volume threshold.
+- Physiotherapy, Neurology, Cardiology, Gastroenterology, and Orthopedics exceeded the project's 30% long-wait-rate threshold.
+- Renal was classified under routine monitoring.
+- No referral category met both the 1,000-patient volume threshold and the 30% long-wait-rate threshold.
+
+### Business Insight
+
+The priority matrix provides a repeatable method for organizing operational review.
+
+However, its thresholds are project-defined and should not be treated as official hospital service standards.
+
+For practical use, the thresholds should be validated against hospital goals, patient needs, and operational capacity.
+
+## 16. Final Data Quality Validation (Query 73)
+
+| Validation Metric | Result |
+|---|---:|
+| Total Records | 9,216 |
+| Unique Patient IDs | 9,216 |
+| Repeated Patient ID Records | 0 |
+| Invalid Satisfaction Scores | 0 |
+| First Visit Date | April 1, 2023 |
+| Last Visit Date | October 30, 2024 |
+| Missing Satisfaction Scores | 6,699 |
+
+### Key Findings
+
+- All 9,216 patient IDs were unique.
+- No repeated patient ID records were identified.
+- No satisfaction scores outside the permitted 0–10 range were identified.
+- Satisfaction scores were missing for 72.69% of records.
+- The dataset covered April 2023 through October 2024.
+
+### Data Quality Limitations
+
+The exported Query 73 output truncated several fields, including some missing-value and invalid-value checks. Those specific results require expanded output before being documented as fully verified.
+
+Additional interpretation considerations:
+
+- The raw gender data contains the category "Femaleemale", which was normalized to "Female" during analysis.
+- The "None" department referral value represents an unrecorded referral category.
+- Missing satisfaction scores limit conclusions about overall patient experience.
+- The dataset does not contain staffing, discharge, bed capacity, treatment cost, insurance, or clinical severity information.
+
+## 17. Final Executive Business Insights
+
+### Insight 1: Long Waiting Times Affect a Substantial Share of Records
+
+A total of 2,750 patients, representing 29.84% of the dataset, experienced waiting times exceeding 45 minutes.
+
+This provides a useful baseline for future waiting-time monitoring.
+
+### Insight 2: High-Volume Categories Dominate Absolute Long-Wait Counts
+
+The "None" referral category and General Practice accounted for 77.78% of long-wait records.
+
+Their contribution primarily reflects their large share of total patient volume.
+
+### Insight 3: Smaller Categories Can Have Higher Long-Wait Rates
+
+Physiotherapy had the highest long-wait percentage at 33.33%, followed by Neurology at 32.64%.
+
+These categories may warrant further investigation, even though their absolute patient counts were smaller.
+
+### Insight 4: Satisfaction Data Completeness Is a Major Limitation
+
+Only 27.31% of patients had recorded satisfaction scores.
+
+This limits the extent to which satisfaction results can be generalized to the entire patient population.
+
+### Insight 5: Waiting Time Alone Does Not Explain Satisfaction
+
+The overall waiting-time and satisfaction correlation was -0.0212 among respondents.
+
+The data does not support a strong linear association between these measures.
+
+### Insight 6: Monthly Patient Volume Fluctuates
+
+Patient volume ranged from 431 to 530 records per month.
+
+These fluctuations provide useful operational context but do not establish a consistent long-term growth trend.
+
+### Insight 7: Daily Patient Volume Has Almost No Linear Association with Average Waiting Time
+
+The daily volume–wait correlation was +0.0429.
+
+Daily patient counts alone were not strongly associated with average waiting times in this dataset.
+
+### Insight 8: Rolling Waiting-Time Performance Improved Toward the End of the Period
+
+The three-month rolling average wait decreased from 36.27 minutes in March 2024 to 34.76 minutes in October 2024.
+
+This suggests an improvement over that specific interval, although the causes remain unknown.
+
+## 18. Final Operational Recommendations
+
+Based on the five-day analysis, the following recommendations are proposed for further evaluation.
+
+1. **Monitor Long-Wait Rates:** Track the proportion of patients waiting over 45 minutes, together with average and percentile waiting times.
+
+2. **Review High-Volume Referral Categories:** Investigate the patient-flow processes associated with General Practice and the large "None" referral category.
+
+3. **Investigate Higher Long-Wait Rates:** Examine Physiotherapy, Neurology, and other categories with elevated long-wait percentages.
+
+4. **Improve Satisfaction Data Collection:** Increase response coverage and track missing satisfaction scores by department, month, and arrival hour.
+
+5. **Monitor Peak Arrival Hours:** Review patient-flow patterns during high-volume and high-wait periods, particularly late evening and early morning.
+
+6. **Use Rolling Performance Metrics:** Track three-month rolling patient volumes and waiting times to distinguish short-term fluctuations from broader patterns.
+
+7. **Maintain Data Quality Checks:** Validate patient identifiers, admission timestamps, demographic categories, and satisfaction-score completeness.
+
+8. **Expand Future Data Collection:** Incorporate staffing, treatment duration, clinical severity, discharge, and capacity data when available to support deeper operational analysis.
+
+These are exploratory recommendations based on descriptive analytics, not confirmed findings of clinical or operational deficiencies.
+
+## 19. Advanced SQL Concepts Applied
+
+Day 5 demonstrated the following SQL techniques:
+
+- Common Table Expressions (CTEs)
+- Conditional aggregation using FILTER
+- Window functions
+- LAG() for month-over-month comparisons
+- SUM() OVER() for contribution analysis
+- Rolling window calculations
+- Weighted rolling averages
+- CORR() for Pearson correlation
+- QUANTILE_CONT() for percentile analysis
+- CASE WHEN for operational segmentation
+- DATE_TRUNC() for monthly aggregation
+- TRY_STRPTIME() and HOUR() for arrival-time analysis
+- NULLIF() for safe percentage calculations
+- CROSS JOIN for hospital-wide baseline comparisons
+- Data validation and missing-value analysis
+
+## 20. Final Project Conclusion
+
+The Healthcare Patient Flow & Hospital Operations Analytics project analyzed 9,216 patient records using DuckDB and SQL.
+
+Across five days and 73 analytical queries, the project examined:
+
+- Patient demographics and admission patterns
+- Daily, weekly, and monthly patient-flow trends
+- Department referral distribution
+- Waiting-time performance and percentiles
+- Long-wait patient segments
+- Patient satisfaction and response coverage
+- Operational correlations
+- Month-over-month growth
+- Rolling three-month performance
+- Executive KPI scorecards
+- Data quality and reporting limitations
+
+The analysis identified meaningful opportunities for further investigation in long-wait monitoring, department-level patient flow, and satisfaction-data completeness.
+
+It also demonstrated that patient volume and waiting time had little linear association at the daily level, while waiting time and satisfaction showed almost no overall linear association among respondents.
+
+**Final Outcome:** A reproducible SQL analytics portfolio project combining 73 queries, operational KPIs, trend analysis, patient-experience segmentation, and evidence-based executive recommendations.
+
+**Day 5 Status: Completed**
