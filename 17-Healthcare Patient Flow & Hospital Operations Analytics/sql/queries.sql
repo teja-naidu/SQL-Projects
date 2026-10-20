@@ -940,3 +940,410 @@ SELECT
         2
     ) AS p90_wait_time
 FROM healthcare_raw;
+
+
+-- ============================================================
+-- SQL PROJECT 17
+-- Healthcare Patient Flow & Hospital Operations Analytics
+-- DAY 4: Patient Satisfaction & Experience Analytics
+-- Queries 44-58
+-- ============================================================
+
+
+-- Query 44: Overall Patient Satisfaction Scorecard
+-- Satisfaction is measured only for non-NULL responses.
+
+SELECT
+    COUNT(*) AS total_patients,
+    COUNT("Patient Satisfaction Score") AS satisfaction_responses,
+    COUNT(*) - COUNT("Patient Satisfaction Score") AS missing_responses,
+    ROUND(
+        100.0 * COUNT("Patient Satisfaction Score")
+        / NULLIF(COUNT(*), 0), 2
+    ) AS response_rate_percentage,
+    ROUND(AVG("Patient Satisfaction Score"), 2)
+        AS avg_satisfaction_score,
+    ROUND(MEDIAN("Patient Satisfaction Score"), 2)
+        AS median_satisfaction_score,
+    MIN("Patient Satisfaction Score") AS min_score,
+    MAX("Patient Satisfaction Score") AS max_score
+FROM healthcare_raw;
+
+
+-- Query 45: Satisfaction Score Distribution
+
+SELECT
+    "Patient Satisfaction Score" AS satisfaction_score,
+    COUNT(*) AS total_responses,
+    ROUND(
+        100.0 * COUNT(*)
+        / NULLIF(
+            SUM(COUNT(*)) OVER (), 0
+        ), 2
+    ) AS percentage_of_responses
+FROM healthcare_raw
+WHERE "Patient Satisfaction Score" IS NOT NULL
+GROUP BY 1
+ORDER BY satisfaction_score;
+
+
+-- Query 46: Low, Moderate, and High Satisfaction Segments
+-- Project-defined categories, not official clinical standards.
+
+WITH satisfaction_groups AS (
+    SELECT
+        CASE
+            WHEN "Patient Satisfaction Score" BETWEEN 0 AND 4
+                THEN 'Low (0-4)'
+            WHEN "Patient Satisfaction Score" BETWEEN 5 AND 7
+                THEN 'Moderate (5-7)'
+            WHEN "Patient Satisfaction Score" BETWEEN 8 AND 10
+                THEN 'High (8-10)'
+            ELSE 'Invalid Score'
+        END AS satisfaction_segment
+    FROM healthcare_raw
+    WHERE "Patient Satisfaction Score" IS NOT NULL
+)
+SELECT
+    satisfaction_segment,
+    COUNT(*) AS total_responses,
+    ROUND(
+        100.0 * COUNT(*)
+        / NULLIF(SUM(COUNT(*)) OVER (), 0), 2
+    ) AS percentage_of_responses
+FROM satisfaction_groups
+GROUP BY 1
+ORDER BY
+    CASE satisfaction_segment
+        WHEN 'Low (0-4)' THEN 1
+        WHEN 'Moderate (5-7)' THEN 2
+        WHEN 'High (8-10)' THEN 3
+        ELSE 4
+    END;
+
+
+-- Query 47: Patient Satisfaction by Gender
+-- Standardize the known gender typo during analysis.
+
+WITH normalized_patients AS (
+    SELECT
+        CASE
+            WHEN "Patient Gender" = 'Femaleemale'
+                THEN 'Female'
+            ELSE "Patient Gender"
+        END AS gender,
+        "Patient Satisfaction Score" AS satisfaction_score
+    FROM healthcare_raw
+)
+SELECT
+    gender,
+    COUNT(*) AS total_patients,
+    COUNT(satisfaction_score) AS satisfaction_responses,
+    ROUND(AVG(satisfaction_score), 2)
+        AS avg_satisfaction_score,
+    ROUND(
+        100.0 * COUNT(satisfaction_score)
+        / NULLIF(COUNT(*), 0), 2
+    ) AS response_rate_percentage
+FROM normalized_patients
+GROUP BY 1
+ORDER BY gender;
+
+
+-- Query 48: Satisfaction by Age Group
+
+WITH patient_ages AS (
+    SELECT
+        CASE
+            WHEN "Patient Age" < 18 THEN 'Under 18'
+            WHEN "Patient Age" <= 30 THEN '18-30'
+            WHEN "Patient Age" <= 45 THEN '31-45'
+            WHEN "Patient Age" <= 60 THEN '46-60'
+            ELSE 'Above 60'
+        END AS age_group,
+        "Patient Satisfaction Score" AS satisfaction_score
+    FROM healthcare_raw
+)
+SELECT
+    age_group,
+    COUNT(*) AS total_patients,
+    COUNT(satisfaction_score) AS satisfaction_responses,
+    ROUND(AVG(satisfaction_score), 2)
+        AS avg_satisfaction_score,
+    ROUND(
+        100.0 * COUNT(satisfaction_score)
+        / NULLIF(COUNT(*), 0), 2
+    ) AS response_rate_percentage
+FROM patient_ages
+GROUP BY 1
+ORDER BY
+    CASE age_group
+        WHEN 'Under 18' THEN 1
+        WHEN '18-30' THEN 2
+        WHEN '31-45' THEN 3
+        WHEN '46-60' THEN 4
+        ELSE 5
+    END;
+
+
+-- Query 49: Satisfaction by Admission Status
+
+SELECT
+    "Patient Admission Flag" AS admission_status,
+    COUNT(*) AS total_patients,
+    COUNT("Patient Satisfaction Score")
+        AS satisfaction_responses,
+    ROUND(AVG("Patient Satisfaction Score"), 2)
+        AS avg_satisfaction_score,
+    ROUND(
+        100.0 * COUNT("Patient Satisfaction Score")
+        / NULLIF(COUNT(*), 0), 2
+    ) AS response_rate_percentage,
+    ROUND(AVG("Patient Waittime"), 2) AS avg_wait_time
+FROM healthcare_raw
+GROUP BY 1
+ORDER BY admission_status;
+
+
+-- Query 50: Satisfaction by Referral Department
+
+SELECT
+    "Department Referral" AS department,
+    COUNT(*) AS total_patients,
+    COUNT("Patient Satisfaction Score")
+        AS satisfaction_responses,
+    ROUND(AVG("Patient Satisfaction Score"), 2)
+        AS avg_satisfaction_score,
+    ROUND(
+        100.0 * COUNT("Patient Satisfaction Score")
+        / NULLIF(COUNT(*), 0), 2
+    ) AS response_rate_percentage
+FROM healthcare_raw
+GROUP BY 1
+ORDER BY avg_satisfaction_score DESC;
+
+
+-- Query 51: Monthly Satisfaction Trends
+
+SELECT
+    DATE_TRUNC(
+        'month', "Patient Admission Date"
+    )::DATE AS visit_month,
+    COUNT(*) AS total_patients,
+    COUNT("Patient Satisfaction Score")
+        AS satisfaction_responses,
+    ROUND(AVG("Patient Satisfaction Score"), 2)
+        AS avg_satisfaction_score,
+    ROUND(
+        100.0 * COUNT("Patient Satisfaction Score")
+        / NULLIF(COUNT(*), 0), 2
+    ) AS response_rate_percentage
+FROM healthcare_raw
+GROUP BY 1
+ORDER BY visit_month;
+
+
+-- Query 52: Satisfaction by Arrival Hour
+
+WITH hourly_patients AS (
+    SELECT
+        HOUR(
+            TRY_STRPTIME(
+                TRIM("Patient Admission Time"),
+                '%I:%M:%S %p'
+            )
+        ) AS arrival_hour,
+        "Patient Satisfaction Score" AS satisfaction_score,
+        "Patient Waittime" AS wait_time
+    FROM healthcare_raw
+)
+SELECT
+    arrival_hour,
+    COUNT(*) AS total_patients,
+    COUNT(satisfaction_score) AS satisfaction_responses,
+    ROUND(AVG(satisfaction_score), 2)
+        AS avg_satisfaction_score,
+    ROUND(AVG(wait_time), 2) AS avg_wait_time,
+    ROUND(
+        100.0 * COUNT(satisfaction_score)
+        / NULLIF(COUNT(*), 0), 2
+    ) AS response_rate_percentage
+FROM hourly_patients
+WHERE arrival_hour IS NOT NULL
+GROUP BY 1
+ORDER BY arrival_hour;
+
+
+-- Query 53: Low Satisfaction Rate by Department
+-- Low satisfaction defined as scores 0-4.
+
+SELECT
+    "Department Referral" AS department,
+    COUNT("Patient Satisfaction Score")
+        AS satisfaction_responses,
+    COUNT(*) FILTER (
+        WHERE "Patient Satisfaction Score" BETWEEN 0 AND 4
+    ) AS low_satisfaction_responses,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE "Patient Satisfaction Score" BETWEEN 0 AND 4
+        )
+        / NULLIF(COUNT("Patient Satisfaction Score"), 0),
+        2
+    ) AS low_satisfaction_rate,
+    ROUND(AVG("Patient Satisfaction Score"), 2)
+        AS avg_satisfaction_score
+FROM healthcare_raw
+GROUP BY 1
+ORDER BY low_satisfaction_rate DESC;
+
+
+-- Query 54: Satisfaction Response Coverage by Age and Gender
+
+WITH demographic_data AS (
+    SELECT
+        CASE
+            WHEN "Patient Age" < 18 THEN 'Under 18'
+            WHEN "Patient Age" <= 30 THEN '18-30'
+            WHEN "Patient Age" <= 45 THEN '31-45'
+            WHEN "Patient Age" <= 60 THEN '46-60'
+            ELSE 'Above 60'
+        END AS age_group,
+        CASE
+            WHEN "Patient Gender" = 'Femaleemale'
+                THEN 'Female'
+            ELSE "Patient Gender"
+        END AS gender,
+        "Patient Satisfaction Score" AS satisfaction_score
+    FROM healthcare_raw
+)
+SELECT
+    age_group,
+    gender,
+    COUNT(*) AS total_patients,
+    COUNT(satisfaction_score) AS satisfaction_responses,
+    COUNT(*) - COUNT(satisfaction_score) AS missing_responses,
+    ROUND(
+        100.0 * COUNT(satisfaction_score)
+        / NULLIF(COUNT(*), 0), 2
+    ) AS response_rate_percentage
+FROM demographic_data
+GROUP BY 1, 2
+ORDER BY
+    CASE age_group
+        WHEN 'Under 18' THEN 1
+        WHEN '18-30' THEN 2
+        WHEN '31-45' THEN 3
+        WHEN '46-60' THEN 4
+        ELSE 5
+    END,
+    gender;
+
+
+-- Query 55: Satisfaction vs. Wait Time Within Each Department
+-- Correlation uses only records with valid satisfaction scores.
+
+SELECT
+    "Department Referral" AS department,
+    COUNT(*) FILTER (
+        WHERE "Patient Satisfaction Score" IS NOT NULL
+          AND "Patient Waittime" IS NOT NULL
+    ) AS satisfaction_responses,
+    ROUND(
+        CORR(
+            "Patient Waittime",
+            "Patient Satisfaction Score"
+        ), 4
+    ) AS wait_satisfaction_correlation,
+    ROUND(AVG("Patient Satisfaction Score"), 2)
+        AS avg_satisfaction_score
+FROM healthcare_raw
+GROUP BY 1
+ORDER BY department;
+
+
+-- Query 56: Waiting Time Comparison for Satisfaction Respondents
+-- Check whether respondents and nonrespondents differ in waiting time.
+
+SELECT
+    CASE
+        WHEN "Patient Satisfaction Score" IS NOT NULL
+            THEN 'Responded'
+        ELSE 'No Response'
+    END AS response_status,
+    COUNT(*) AS total_patients,
+    ROUND(AVG("Patient Waittime"), 2)
+        AS avg_wait_time,
+    ROUND(MEDIAN("Patient Waittime"), 2)
+        AS median_wait_time,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE "Patient Waittime" > 45
+        ) / NULLIF(COUNT(*), 0), 2
+    ) AS long_wait_percentage
+FROM healthcare_raw
+GROUP BY 1
+ORDER BY response_status;
+
+
+-- Query 57: Patient Satisfaction by Weekday vs Weekend
+
+SELECT
+    CASE
+        WHEN DAYOFWEEK("Patient Admission Date") IN (0, 6)
+            THEN 'Weekend'
+        ELSE 'Weekday'
+    END AS day_type,
+    COUNT(*) AS total_patients,
+    COUNT("Patient Satisfaction Score")
+        AS satisfaction_responses,
+    ROUND(AVG("Patient Satisfaction Score"), 2)
+        AS avg_satisfaction_score,
+    ROUND(
+        100.0 * COUNT("Patient Satisfaction Score")
+        / NULLIF(COUNT(*), 0), 2
+    ) AS response_rate_percentage,
+    ROUND(AVG("Patient Waittime"), 2) AS avg_wait_time
+FROM healthcare_raw
+GROUP BY 1
+ORDER BY day_type;
+
+
+-- Query 58: Final Patient Experience Scorecard
+
+SELECT
+    COUNT(*) AS total_patients,
+    COUNT("Patient Satisfaction Score")
+        AS satisfaction_responses,
+    ROUND(
+        100.0 * COUNT("Patient Satisfaction Score")
+        / NULLIF(COUNT(*), 0), 2
+    ) AS response_rate_percentage,
+    ROUND(AVG("Patient Satisfaction Score"), 2)
+        AS avg_satisfaction_score,
+    COUNT(*) FILTER (
+        WHERE "Patient Satisfaction Score" BETWEEN 0 AND 4
+    ) AS low_satisfaction_responses,
+    COUNT(*) FILTER (
+        WHERE "Patient Satisfaction Score" BETWEEN 8 AND 10
+    ) AS high_satisfaction_responses,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE "Patient Satisfaction Score" BETWEEN 0 AND 4
+        )
+        / NULLIF(COUNT("Patient Satisfaction Score"), 0), 2
+    ) AS low_satisfaction_rate,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE "Patient Satisfaction Score" BETWEEN 8 AND 10
+        )
+        / NULLIF(COUNT("Patient Satisfaction Score"), 0), 2
+    ) AS high_satisfaction_rate,
+    ROUND(AVG("Patient Waittime"), 2) AS avg_wait_time,
+    ROUND(
+        CORR(
+            "Patient Waittime",
+            "Patient Satisfaction Score"
+        ), 4
+    ) AS wait_satisfaction_correlation
+FROM healthcare_raw;
