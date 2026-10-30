@@ -353,3 +353,265 @@ SELECT
 FROM housing
 ORDER BY price_rank
 LIMIT 20;
+
+
+-- =====================================================
+-- PROJECT 18: REAL ESTATE HOUSING MARKET ANALYTICS
+-- DAY 3: PROPERTY CHARACTERISTICS & HOUSING VALUE DRIVERS
+-- =====================================================
+
+
+-- Query 25: Housing Prices by Construction Decade
+SELECT
+    CAST(FLOOR(YearBuilt / 10.0) * 10 AS INTEGER)
+        AS construction_decade,
+    COUNT(*) AS total_properties,
+    ROUND(AVG(Price), 2) AS average_price,
+    ROUND(MEDIAN(Price), 2) AS median_price,
+    ROUND(AVG(SquareFeet), 2) AS average_sqft
+FROM housing
+GROUP BY 1
+ORDER BY construction_decade;
+
+
+-- Query 26: Property Age and Housing Prices
+WITH property_age AS (
+    SELECT
+        Price,
+        SquareFeet,
+        YearBuilt,
+        2026 - YearBuilt AS property_age,
+        CASE
+            WHEN 2026 - YearBuilt <= 10 THEN '0-10 Years'
+            WHEN 2026 - YearBuilt <= 25 THEN '11-25 Years'
+            WHEN 2026 - YearBuilt <= 50 THEN '26-50 Years'
+            WHEN 2026 - YearBuilt <= 75 THEN '51-75 Years'
+            ELSE 'Over 75 Years'
+        END AS age_category
+    FROM housing
+)
+SELECT
+    age_category,
+    COUNT(*) AS total_properties,
+    ROUND(AVG(property_age), 2) AS average_age,
+    ROUND(AVG(Price), 2) AS average_price,
+    ROUND(MEDIAN(Price), 2) AS median_price,
+    ROUND(AVG(SquareFeet), 2) AS average_sqft
+FROM property_age
+GROUP BY age_category
+ORDER BY MIN(property_age);
+
+
+-- Query 27: Garage Spaces and Property Valuation
+SELECT
+    GarageSpaces,
+    COUNT(*) AS total_properties,
+    ROUND(AVG(Price), 2) AS average_price,
+    ROUND(MEDIAN(Price), 2) AS median_price,
+    ROUND(AVG(SquareFeet), 2) AS average_sqft,
+    ROUND(
+        AVG(Price * 1.0 / NULLIF(SquareFeet, 0)), 2
+    ) AS average_price_per_sqft
+FROM housing
+GROUP BY GarageSpaces
+ORDER BY GarageSpaces;
+
+
+-- Query 28: Lot Size and Property Prices
+WITH lot_categories AS (
+    SELECT
+        Price,
+        LotSize,
+        SquareFeet,
+        CASE
+            WHEN LotSize < 0.5 THEN 'Small Lot'
+            WHEN LotSize < 1.0 THEN 'Medium Lot'
+            WHEN LotSize < 1.5 THEN 'Large Lot'
+            ELSE 'Extra Large Lot'
+        END AS lot_category
+    FROM housing
+)
+SELECT
+    lot_category,
+    COUNT(*) AS total_properties,
+    ROUND(AVG(LotSize), 2) AS average_lot_size,
+    ROUND(AVG(Price), 2) AS average_price,
+    ROUND(MEDIAN(Price), 2) AS median_price,
+    ROUND(AVG(SquareFeet), 2) AS average_sqft
+FROM lot_categories
+GROUP BY lot_category
+ORDER BY MIN(LotSize);
+
+
+-- Query 29: School Ratings and Housing Prices
+SELECT
+    SchoolRating,
+    COUNT(*) AS total_properties,
+    ROUND(AVG(Price), 2) AS average_price,
+    ROUND(MEDIAN(Price), 2) AS median_price,
+    ROUND(AVG(SquareFeet), 2) AS average_sqft,
+    ROUND(AVG(CrimeRate), 2) AS average_crime_rate
+FROM housing
+GROUP BY SchoolRating
+ORDER BY SchoolRating;
+
+
+-- Query 30: Crime Rate and Property Valuation
+WITH crime_categories AS (
+    SELECT
+        Price,
+        CrimeRate,
+        SchoolRating,
+        SquareFeet,
+        CASE
+            WHEN CrimeRate < 25 THEN 'Low Crime'
+            WHEN CrimeRate < 50 THEN 'Moderate Crime'
+            WHEN CrimeRate < 75 THEN 'High Crime'
+            ELSE 'Very High Crime'
+        END AS crime_category
+    FROM housing
+)
+SELECT
+    crime_category,
+    COUNT(*) AS total_properties,
+    ROUND(AVG(CrimeRate), 2) AS average_crime_rate,
+    ROUND(AVG(Price), 2) AS average_price,
+    ROUND(MEDIAN(Price), 2) AS median_price,
+    ROUND(AVG(SchoolRating), 2) AS average_school_rating
+FROM crime_categories
+GROUP BY crime_category
+ORDER BY MIN(CrimeRate);
+
+
+-- Query 31: School Rating vs Crime Rate
+SELECT
+    SchoolRating,
+    COUNT(*) AS total_properties,
+    ROUND(AVG(CrimeRate), 2) AS average_crime_rate,
+    ROUND(MIN(CrimeRate), 2) AS minimum_crime_rate,
+    ROUND(MAX(CrimeRate), 2) AS maximum_crime_rate,
+    ROUND(AVG(Price), 2) AS average_price
+FROM housing
+GROUP BY SchoolRating
+ORDER BY SchoolRating;
+
+
+-- Query 32: Correlation Between Features and Price
+SELECT
+    ROUND(CORR(Price, SquareFeet), 4)
+        AS price_sqft_correlation,
+    ROUND(CORR(Price, Bedrooms), 4)
+        AS price_bedrooms_correlation,
+    ROUND(CORR(Price, Bathrooms), 4)
+        AS price_bathrooms_correlation,
+    ROUND(CORR(Price, YearBuilt), 4)
+        AS price_yearbuilt_correlation,
+    ROUND(CORR(Price, GarageSpaces), 4)
+        AS price_garage_correlation,
+    ROUND(CORR(Price, LotSize), 4)
+        AS price_lotsize_correlation,
+    ROUND(CORR(Price, CrimeRate), 4)
+        AS price_crimerate_correlation,
+    ROUND(CORR(Price, SchoolRating), 4)
+        AS price_schoolrating_correlation
+FROM housing;
+
+
+-- Query 33: Newer vs Older Properties
+WITH property_comparison AS (
+    SELECT
+        Price,
+        SquareFeet,
+        YearBuilt,
+        CASE
+            WHEN YearBuilt >= 2000 THEN 'Built 2000 or Later'
+            ELSE 'Built Before 2000'
+        END AS construction_group
+    FROM housing
+)
+SELECT
+    construction_group,
+    COUNT(*) AS total_properties,
+    ROUND(AVG(Price), 2) AS average_price,
+    ROUND(MEDIAN(Price), 2) AS median_price,
+    ROUND(AVG(SquareFeet), 2) AS average_sqft,
+    ROUND(
+        AVG(Price * 1.0 / NULLIF(SquareFeet, 0)), 2
+    ) AS average_price_per_sqft
+FROM property_comparison
+GROUP BY construction_group
+ORDER BY construction_group;
+
+
+-- Query 34: Combined Property Characteristics
+SELECT
+    CASE
+        WHEN Bedrooms <= 2 THEN '1-2 Bedrooms'
+        WHEN Bedrooms <= 4 THEN '3-4 Bedrooms'
+        ELSE '5+ Bedrooms'
+    END AS bedroom_category,
+    CASE
+        WHEN GarageSpaces = 0 THEN 'No Garage'
+        WHEN GarageSpaces = 1 THEN '1 Garage Space'
+        ELSE '2+ Garage Spaces'
+    END AS garage_category,
+    COUNT(*) AS total_properties,
+    ROUND(AVG(Price), 2) AS average_price,
+    ROUND(AVG(SquareFeet), 2) AS average_sqft
+FROM housing
+GROUP BY 1, 2
+ORDER BY bedroom_category, garage_category;
+
+
+-- Query 35: High-Value Property Characteristics
+WITH ranked_properties AS (
+    SELECT
+        Price,
+        Bedrooms,
+        Bathrooms,
+        SquareFeet,
+        YearBuilt,
+        GarageSpaces,
+        LotSize,
+        SchoolRating,
+        CrimeRate,
+        NTILE(4) OVER (ORDER BY Price DESC)
+            AS value_quartile
+    FROM housing
+)
+SELECT
+    COUNT(*) AS high_value_properties,
+    ROUND(AVG(Price), 2) AS average_price,
+    ROUND(AVG(Bedrooms), 2) AS average_bedrooms,
+    ROUND(AVG(Bathrooms), 2) AS average_bathrooms,
+    ROUND(AVG(SquareFeet), 2) AS average_sqft,
+    ROUND(AVG(YearBuilt), 0) AS average_year_built,
+    ROUND(AVG(GarageSpaces), 2) AS average_garage_spaces,
+    ROUND(AVG(LotSize), 2) AS average_lot_size,
+    ROUND(AVG(SchoolRating), 2) AS average_school_rating,
+    ROUND(AVG(CrimeRate), 2) AS average_crime_rate
+FROM ranked_properties
+WHERE value_quartile = 1;
+
+
+-- Query 36: Property Ranking by Price Within Bedroom Groups
+SELECT
+    Price,
+    Bedrooms,
+    Bathrooms,
+    SquareFeet,
+    GarageSpaces,
+    SchoolRating,
+    DENSE_RANK() OVER (
+        PARTITION BY Bedrooms
+        ORDER BY Price DESC
+    ) AS price_rank_within_bedrooms,
+    ROUND(
+        Price * 1.0 / NULLIF(SquareFeet, 0), 2
+    ) AS price_per_sqft
+FROM housing
+QUALIFY DENSE_RANK() OVER (
+    PARTITION BY Bedrooms
+    ORDER BY Price DESC
+) <= 3
+ORDER BY Bedrooms, price_rank_within_bedrooms;
