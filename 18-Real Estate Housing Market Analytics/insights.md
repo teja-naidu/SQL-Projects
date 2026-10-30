@@ -1194,3 +1194,195 @@ Safe Division: NULLIF
 Sorting and Ranking: ORDER BY, LIMIT
 
 Grouping and Segmentation: GROUP BY
+
+# Day 3: Property Characteristics & Housing Value Drivers
+
+## 1. Construction Decade Analysis
+
+Properties were grouped by construction decade to examine the relationship between building age and housing prices.
+
+| Decade | Properties | Average Price |
+|---|---:|---:|
+| 1900s | 22 | $473,292.86 |
+| 1910s | 30 | $506,113.93 |
+| 1920s | 19 | $475,332.84 |
+| 1930s | 23 | $558,168.96 |
+| 1940s | 25 | $611,706.20 |
+| 1950s | 24 | $504,949.04 |
+| 1960s | 23 | $546,232.04 |
+| 1970s | 21 | $558,340.86 |
+| 1980s | 27 | $503,893.37 |
+| 1990s | 29 | $532,721.28 |
+| 2000s | 23 | $480,463.43 |
+| 2010s | 23 | $552,076.48 |
+| 2020s | 11 | $441,920.09 |
+
+**Key Insight:** Properties built during the 1940s have the highest average price, while properties built during the 2020s have the lowest. Newer construction does not consistently correspond to higher prices.
+
+## 2. Property Age Analysis
+
+Property age was calculated using 2026 as the reference year.
+
+| Age Category | Properties | Average Price |
+|---|---:|---:|
+| 0–10 Years | 20 | $483,700.95 |
+| 11–25 Years | 34 | $519,155.06 |
+| 26–50 Years | 70 | $516,661.99 |
+| 51–75 Years | 57 | $536,477.53 |
+| Over 75 Years | 119 | $527,375.85 |
+
+**Key Insight:** Properties aged 51–75 years have the highest average price. Properties aged 10 years or less have the lowest average price. Property age alone does not explain housing valuation.
+
+## 3. Garage Spaces and Property Valuation
+
+| Garage Spaces | Properties | Average Price | Average Price/Sqft |
+|---|---:|---:|---:|
+| 0 | 72 | $523,492.56 | $215.20 |
+| 1 | 79 | $529,592.06 | $220.56 |
+| 2 | 72 | $495,158.39 | $191.51 |
+| 3 | 77 | $540,882.26 | $213.22 |
+
+**Key Insight:** Three-garage-space properties have the highest average total price, while one-garage-space properties have the highest average price per square foot. Garage capacity does not show a consistent increasing relationship with housing prices.
+
+## 4. Lot Size and Housing Prices
+
+| Lot Category | Properties | Average Lot Size | Average Price |
+|---|---:|---:|---:|
+| Small Lot | 59 | 0.30 | $529,792.44 |
+| Medium Lot | 78 | 0.74 | $529,788.90 |
+| Large Lot | 90 | 1.27 | $517,973.62 |
+| Extra Large Lot | 73 | 1.77 | $515,474.81 |
+
+**Key Insight:** Small Lot properties have the highest average price, while Extra Large Lot properties have the lowest. Larger lots do not consistently command higher prices in the dataset.
+
+Lot-size units have not been verified, and the categories use project-defined thresholds.
+
+## 5. School Ratings and Housing Prices
+
+| School Rating | Properties | Average Price |
+|---|---:|---:|
+| 1 | 34 | $517,210.82 |
+| 2 | 27 | $498,167.81 |
+| 3 | 43 | $575,489.28 |
+| 4 | 31 | $455,112.39 |
+| 5 | 30 | $476,083.77 |
+| 6 | 29 | $533,959.72 |
+| 7 | 28 | $517,270.39 |
+| 8 | 34 | $607,485.09 |
+| 9 | 44 | $500,748.73 |
+
+**Key Insight:** School rating 8 has the highest average housing price, while rating 4 has the lowest. Higher school ratings do not consistently correspond to higher property prices.
+
+## 6. Crime Rate and Property Valuation
+
+| Crime Category | Properties | Average Crime Rate | Average Price |
+|---|---:|---:|---:|
+| Low Crime | 80 | 12.63 | $505,241.61 |
+| Moderate Crime | 70 | 37.48 | $521,304.30 |
+| High Crime | 80 | 63.55 | $554,671.46 |
+| Very High Crime | 70 | 86.85 | $507,774.69 |
+
+**Key Insight:** The High Crime category has the highest average property price, while the Low Crime category has the lowest. The dataset does not demonstrate a consistent inverse relationship between the crime indicator and property prices.
+
+The crime categories are project-defined and should not be interpreted as official neighborhood safety classifications.
+
+## 7. School Rating and Crime Rate Comparison
+
+- School rating 6 has the lowest average crime-rate indicator: 32.09.
+- School rating 5 has the highest average crime-rate indicator: 56.49.
+- School rating 8 has the highest average property price: $607,485.09.
+- School rating 9 has the largest property count: 44.
+
+**Key Insight:** School ratings and crime-rate indicators vary independently across the grouped results. Higher school ratings do not consistently correspond to lower average crime indicators.
+
+## 8. Correlation Between Property Features and Prices
+
+Pearson correlation was used to measure linear relationships between housing prices and property characteristics.
+
+| Feature | Correlation |
+|---|---:|
+| Square Footage | +0.0438 |
+| Bedrooms | +0.0181 |
+| Bathrooms | +0.0364 |
+| Crime Rate | +0.0096 |
+| School Rating | +0.0248 |
+
+The remaining correlations for construction year, garage spaces, and lot size require confirmation from the complete query output.
+
+**Key Insight:** All five visible correlation coefficients are close to zero, indicating very weak linear relationships with property prices.
+
+These findings describe statistical associations and do not establish causation.
+
+## 9. Newer vs Older Properties
+
+| Construction Group | Properties | Average Price | Average Price/Sqft |
+|---|---:|---:|---:|
+| Built 2000 or Later | 57 | $501,921.74 | $193.32 |
+| Built Before 2000 | 243 | $527,650.35 | $214.43 |
+
+**Key Insight:** Properties built before 2000 have an average price approximately $25,728.61 higher than properties built in 2000 or later. They also have a higher average price per square foot.
+
+This comparison does not establish that older construction causes higher property prices.
+
+## 10. Combined Bedroom and Garage Characteristics
+
+| Bedroom Category | Garage Category | Properties | Average Price |
+|---|---|---:|---:|
+| 1–2 Bedrooms | 1 Garage Space | 36 | $520,955.33 |
+| 1–2 Bedrooms | 2+ Garage Spaces | 63 | $478,882.41 |
+| 1–2 Bedrooms | No Garage | 27 | $575,831.56 |
+| 3–4 Bedrooms | 1 Garage Space | 25 | $538,361.44 |
+| 3–4 Bedrooms | 2+ Garage Spaces | 62 | $550,427.58 |
+| 3–4 Bedrooms | No Garage | 27 | $489,582.04 |
+| 5+ Bedrooms | 1 Garage Space | 18 | $534,685.83 |
+| 5+ Bedrooms | 2+ Garage Spaces | 24 | $541,801.50 |
+| 5+ Bedrooms | No Garage | 18 | $495,849.83 |
+
+**Key Insight:** One- to two-bedroom properties without garages have the highest average price among the combined categories. Property prices do not increase consistently with bedroom count or garage capacity.
+
+## 11. High-Value Property Characteristics
+
+The highest-priced quartile was analyzed using SQL `NTILE(4)`.
+
+- High-Value Properties: 75
+- Average Property Price: $869,969.04
+- Average Bedrooms: 3.04
+- Average School Rating: 4.92
+- Average Crime Rate: 52.56
+
+**Key Insight:** The top 25% of properties have an average price of approximately $870K and an average of three bedrooms. High total property prices are not necessarily associated with the highest school ratings or lowest crime-rate indicators.
+
+Additional feature averages were calculated but were not fully visible in the terminal output.
+
+## 12. Property Ranking Within Bedroom Groups
+
+SQL `DENSE_RANK()` was used to identify the three highest-priced properties within each bedroom category.
+
+| Bedrooms | Highest Price | Price/Sqft |
+|---|---:|---:|
+| 1 | $999,684 | $319.18 |
+| 2 | $981,691 | $465.70 |
+| 3 | $974,371 | $296.16 |
+| 4 | $996,942 | $241.68 |
+| 5 | $998,613 | $225.47 |
+
+**Key Insight:** The highest-priced properties across bedroom groups have relatively similar total prices despite different bedroom counts and square footage.
+
+The five-bedroom property priced at $979,858 ranks third within its bedroom category but has the highest price per square foot in the entire dataset at $1,016.45.
+
+## Day 3 Conclusion
+
+The analysis examined construction decade, property age, garage capacity, lot size, school ratings, crime indicators, and combined property characteristics.
+
+**Major Findings:**
+
+1. Properties built during the 1940s have the highest average prices by construction decade.
+2. Older properties have slightly higher average prices than properties built in 2000 or later.
+3. Garage capacity and lot size do not show consistently increasing relationships with property prices.
+4. Higher school ratings do not consistently correspond to higher housing prices.
+5. Crime-rate categories do not demonstrate a straightforward inverse relationship with property prices.
+6. The five visible Pearson correlations indicate very weak linear relationships between individual features and property prices.
+7. The highest-priced quartile contains 75 properties with an average price of $869,969.04.
+8. Property ranking within bedroom groups highlights substantial differences in price per square foot.
+
+**Overall Insight:** No single property characteristic examined in the visible results provides a strong standalone explanation for housing price variation. Further multivariable analysis would be needed to assess their combined predictive relationships.
