@@ -1386,3 +1386,243 @@ The analysis examined construction decade, property age, garage capacity, lot si
 8. Property ranking within bedroom groups highlights substantial differences in price per square foot.
 
 **Overall Insight:** No single property characteristic examined in the visible results provides a strong standalone explanation for housing price variation. Further multivariable analysis would be needed to assess their combined predictive relationships.
+
+# Day 4: Advanced Property Valuation & Market Segmentation
+
+## 1. Housing Price Distribution by Bedroom Segment
+
+| Bedroom Segment | Properties | Average Price | Median Price | Price Standard Deviation |
+|---|---:|---:|---:|---:|
+| 1–2 Bedrooms | 126 | $511,678.06 | $515,353.50 | $256,419.81 |
+| 3–4 Bedrooms | 114 | $533,370.71 | $521,598.00 | $264,212.30 |
+| 5 Bedrooms | 60 | $525,881.30 | $476,209.50 | $247,037.21 |
+
+**Key Insights:**
+- Three- to four-bedroom properties have the highest average price at $533,370.71.
+- Five-bedroom properties have a lower average price than three- to four-bedroom properties.
+- All three groups show substantial price variation.
+- Bedroom count alone does not explain differences in housing prices.
+
+## 2. Property Price Compared With Bedroom-Group Average
+
+Individual property prices were compared against the average price of properties with the same bedroom count using SQL window functions.
+
+**Notable Findings:**
+- A two-bedroom property priced at $981,691 is 106.87% above the two-bedroom group average.
+- A five-bedroom property priced at $998,613 is 89.89% above its bedroom-group average.
+- A four-bedroom property priced at $115,708 is 78.95% below its bedroom-group average.
+- A one-bedroom property priced at $121,959 is 77.60% below its bedroom-group average.
+
+**Key Insight:** Properties with identical bedroom counts can have significantly different prices. Comparing properties against bedroom-group averages reveals differences that overall market averages may conceal.
+
+## 3. Price Per Square Foot by Property Size
+
+| Property Size | Properties | Average Price/Sqft | Minimum Price/Sqft | Maximum Price/Sqft |
+|---|---:|---:|---:|---:|
+| Small | 40 | $458.94 | $117.72 | $1,016.45 |
+| Medium | 104 | $226.55 | $40.38 | $556.42 |
+| Large | 121 | $143.00 | $29.57 | $319.18 |
+| Extra Large | 35 | $111.49 | $27.04 | $214.87 |
+
+**Key Insights:**
+- Small properties have the highest average price per square foot.
+- Extra Large properties have the lowest average price per square foot.
+- Small properties average approximately 4.12 times the price per square foot of Extra Large properties.
+- Significant price-per-square-foot variation exists even within the same size category.
+
+## 4. Relative Property Valuation Classification
+
+Properties were classified based on their price per square foot relative to the average of their size group.
+
+Classification rules:
+- Below Peer Average: More than 20% below the size-group average.
+- Near Peer Average: Within ±20% of the size-group average.
+- Above Peer Average: More than 20% above the size-group average.
+
+| Size Category | Below Peer | Near Peer | Above Peer | Total |
+|---|---:|---:|---:|---:|
+| Small | 17 | 8 | 15 | 40 |
+| Medium | 46 | 22 | 36 | 104 |
+| Large | 53 | 24 | 44 | 121 |
+| Extra Large | 15 | 6 | 14 | 35 |
+| **Total** | **131** | **60** | **109** | **300** |
+
+**Key Insights:**
+- 131 properties (43.67%) are classified below their size-group average.
+- 60 properties (20%) are near their size-group average.
+- 109 properties (36.33%) are above their size-group average.
+- Large properties account for the greatest number of below-average classifications, with 53 records.
+
+**Business Interpretation:** Relative valuation categories help identify properties for further comparison. They do not establish actual market undervaluation or overvaluation because location, condition, sale date, and other relevant characteristics are not controlled.
+
+## 5. Price Per Square Foot Outlier Detection
+
+The Interquartile Range method was applied to price per square foot.
+
+| Metric | Result |
+|---|---:|
+| Total Properties | 300 |
+| First Quartile (Q1) | $98.14 |
+| Third Quartile (Q3) | $255.64 |
+| Lower Boundary | −$138.12 |
+| Upper Boundary | $491.89 |
+| Outlier Properties | 16 |
+| Outlier Percentage | 5.33% |
+
+**Key Insights:**
+- Sixteen properties are identified as price-per-square-foot outliers.
+- Day 2 identified zero outliers using total property prices.
+- This difference demonstrates how outlier detection depends on the metric being analyzed.
+- All identified price-per-square-foot outliers are above the calculated upper boundary.
+
+**Business Interpretation:** Price-per-square-foot analysis can highlight unusual property valuations that are not apparent when examining total prices alone.
+
+## 6. Top 10 Properties Below Their Size-Group Average
+
+Properties were ranked according to how far their price per square foot falls below their size-group average.
+
+| Rank | Property Price | Square Feet | Size Category | Price/Sqft | Deviation |
+|---|---:|---:|---|---:|---:|
+| 1 | $112,666 | 2,790 | Medium | $40.38 | −82.18% |
+| 2 | $125,939 | 2,720 | Medium | $46.30 | −79.56% |
+| 3 | $123,247 | 4,168 | Large | $29.57 | −79.32% |
+| 4 | $139,353 | 2,889 | Medium | $48.24 | −78.71% |
+| 5 | $122,671 | 2,439 | Medium | $50.30 | −77.80% |
+| 6 | $115,708 | 2,258 | Medium | $51.24 | −77.38% |
+| 7 | $124,300 | 4,597 | Extra Large | $27.04 | −75.75% |
+| 8 | $121,959 | 1,036 | Small | $117.72 | −74.35% |
+| 9 | $130,535 | 4,501 | Extra Large | $29.00 | −73.99% |
+| 10 | $141,090 | 3,698 | Large | $38.15 | −73.32% |
+
+**Key Insights:**
+- The highest-ranked property is 82.18% below its size-group average price per square foot.
+- Multiple large properties appear among the lowest relative price-per-square-foot rankings.
+- Low relative prices may justify further investigation, but they are not proof of investment opportunities.
+
+## 7. Top 10 Properties Above Their Size-Group Average
+
+| Rank | Property Price | Size Category | Price/Sqft | Deviation |
+|---|---:|---|---:|---:|
+| 1 | $967,055 | Medium | $556.42 | +145.60% |
+| 2 | $999,684 | Large | $319.18 | +123.20% |
+| 3 | $979,858 | Small | $1,016.45 | +121.48% |
+| 4 | $950,937 | Large | $316.66 | +121.44% |
+| 5 | $778,843 | Medium | $488.92 | +115.81% |
+| 6 | $877,089 | Small | $981.08 | +113.77% |
+| 7 | $937,291 | Medium | $484.14 | +113.70% |
+| 8 | $974,371 | Large | $296.16 | +107.10% |
+| 9 | $981,691 | Medium | $465.70 | +105.56% |
+| 10 | $723,094 | Medium | $461.16 | +103.55% |
+
+**Key Insights:**
+- The highest-ranked property exceeds its size-group average price per square foot by 145.60%.
+- All ten properties exceed their respective size-group averages by more than 100%.
+- Relative price rankings differ from rankings based solely on total property price.
+
+## 8. School Rating and Crime Indicator Segmentation
+
+| School Rating Segment | Crime Indicator Segment | Properties | Average Price |
+|---|---|---:|---:|
+| High | Higher | 35 | $543,581.03 |
+| High | Lower | 33 | $460,686.24 |
+| High | Middle | 38 | $603,763.84 |
+| Low | Higher | 37 | $487,825.92 |
+| Low | Lower | 32 | $602,267.94 |
+| Low | Middle | 35 | $527,417.29 |
+| Medium | Higher | 29 | $510,386.72 |
+| Medium | Lower | 38 | $467,185.55 |
+| Medium | Middle | 23 | $492,241.87 |
+
+**Key Insights:**
+- The High School Rating / Middle Crime Indicator group has the highest average price at $603,763.84.
+- The Low School Rating / Lower Crime Indicator group has the second-highest average price at $602,267.94.
+- The High School Rating / Lower Crime Indicator group has the lowest average price at $460,686.24.
+- No consistent price progression is observed across school and crime indicator combinations.
+
+These categories are project-defined and do not represent official school quality or neighborhood safety assessments.
+
+## 9. Construction Age and Property Size Segmentation
+
+| Age Segment | Size Segment | Properties | Average Price |
+|---|---|---:|---:|
+| Mid-Age | Large | 51 | $533,155.43 |
+| Mid-Age | Medium | 46 | $557,102.35 |
+| Mid-Age | Small | 27 | $468,284.26 |
+| Newer | Large | 21 | $491,696.90 |
+| Newer | Medium | 27 | $528,066.19 |
+| Newer | Small | 9 | $447,346.33 |
+| Older | Large | 53 | $536,059.79 |
+| Older | Medium | 35 | $510,154.23 |
+| Older | Small | 31 | $531,972.87 |
+
+**Key Insights:**
+- Mid-Age / Medium properties have the highest average price at $557,102.35.
+- Newer / Small properties have the lowest average price at $447,346.33.
+- Larger properties are not consistently the most expensive within each age group.
+- Construction age and size categories show different pricing patterns when examined together.
+
+## 10. Housing Price Percentile Ranking
+
+SQL `PERCENT_RANK()` was used to rank properties by total price.
+
+**Notable Findings:**
+- The highest-priced property ($999,684) has a percentile rank of 100%.
+- The second-highest property ($999,159) has a percentile rank of 99.67%.
+- The property priced at $887,201 has a percentile rank of 90.30%.
+- The query returned the top 30 properties by total price.
+
+**Key Insight:** Percentile ranking provides a standardized method for identifying the highest-priced properties relative to the full dataset.
+
+## 11. Property Feature Correlation Ranking
+
+Pearson correlation was calculated for eight property characteristics.
+
+| Rank | Property Feature | Correlation With Price |
+|---|---|---:|
+| 1 | Square Footage | +0.0438 |
+| 2 | Bathrooms | +0.0364 |
+| 3 | School Rating | +0.0248 |
+| 4 | Lot Size | −0.0226 |
+| 5 | Bedrooms | +0.0181 |
+| 6 | Crime Rate | +0.0096 |
+| 7 | Garage Spaces | +0.0087 |
+| 8 | Construction Year | +0.0050 |
+
+**Key Insights:**
+- Square footage has the highest absolute correlation with price, but the coefficient is only 0.0438.
+- Lot size has a very weak negative correlation with price.
+- Construction year has the weakest absolute correlation at 0.0050.
+- None of the eight features exhibits a meaningful standalone linear correlation with property price in this dataset.
+
+**Business Interpretation:** Individual property characteristics have very weak linear associations with housing prices. Multivariable modeling and better geographic data would be needed for reliable price prediction.
+
+## 12. Housing Market Segmentation Summary
+
+| Price Segment | Properties | Average Price | Properties With 4+ Bedrooms | Percentage With 4+ Bedrooms |
+|---|---:|---:|---:|---:|
+| Affordable | 58 | $186,977.31 | 19 | 32.76% |
+| Mid-Range | 90 | $369,099.58 | 42 | 46.67% |
+| Premium | 82 | $625,078.95 | 30 | 36.59% |
+| Luxury | 70 | $878,692.21 | 32 | 45.71% |
+
+**Key Insights:**
+- Mid-Range properties represent the largest segment, with 90 records.
+- The Mid-Range segment has the highest proportion of four-plus-bedroom properties at 46.67%.
+- The Luxury segment has 45.71% four-plus-bedroom properties.
+- The Affordable segment has the lowest proportion of four-plus-bedroom properties at 32.76%.
+- Larger bedroom counts are not exclusively concentrated in the highest-priced segment.
+
+## Day 4 Conclusion
+
+Advanced property valuation and segmentation identified several important patterns:
+
+1. Housing prices vary substantially even within the same bedroom group.
+2. Average price per square foot decreases across larger property-size categories.
+3. Of 300 properties, 131 fall below, 60 near, and 109 above their size-group price-per-square-foot averages under the ±20% classification.
+4. Sixteen price-per-square-foot outliers were detected, compared with zero total-price outliers in Day 2.
+5. Properties ranked by relative valuation differ from those ranked by total price.
+6. School ratings, crime indicators, construction age, and size do not show consistent price patterns across the analyzed segments.
+7. All eight property features exhibit extremely weak individual linear correlations with housing price.
+8. The Mid-Range segment contains the largest proportion of four-plus-bedroom properties.
+
+**Overall Insight:** Comparing properties against relevant peer groups provides a more informative descriptive perspective than relying on total price alone. However, meaningful property valuation requires additional data about geographic location, property condition, transaction dates, and comparable sales.
