@@ -1626,3 +1626,130 @@ Advanced property valuation and segmentation identified several important patter
 8. The Mid-Range segment contains the largest proportion of four-plus-bedroom properties.
 
 **Overall Insight:** Comparing properties against relevant peer groups provides a more informative descriptive perspective than relying on total price alone. However, meaningful property valuation requires additional data about geographic location, property condition, transaction dates, and comparable sales.
+
+# Day 5: Advanced Housing Analytics & Final Project Findings
+
+## 1. Housing Price Distribution
+
+The analysis of 300 properties produced an average price of $522,761.92, a median price of $505,806.50, and a standard deviation of $256,922.35.
+
+Price skewness was 0.1917, indicating a slightly right-skewed distribution. Excess kurtosis was -1.1771, indicating a flatter distribution with lighter tails than a normal distribution.
+
+## 2. Feature Correlations by Price Segment
+
+Correlation analysis revealed that relationships between housing prices and individual property characteristics vary across price segments.
+
+- Affordable properties showed a positive square-footage correlation of 0.2730.
+- Mid-Range properties showed a negative construction-year correlation of -0.2467.
+- Luxury properties showed a positive bedroom-count correlation of 0.2455.
+- Most other relationships were weak.
+
+These are descriptive correlations within price-defined groups, not evidence of causation.
+
+## 3. Median-Based Property Valuation
+
+| Size Segment | Average Price/Sqft | Median Price/Sqft |
+|---|---:|---:|
+| Small | $458.94 | $435.33 |
+| Medium | $226.55 | $207.65 |
+| Large | $143.00 | $140.10 |
+| Extra Large | $111.49 | $114.27 |
+
+Smaller properties have substantially higher prices per square foot than larger properties. Median-based comparisons provide an additional perspective on valuation by reducing the influence of extreme observations.
+
+## 4. Property Price Variability
+
+The coefficient of variation was highest for Medium properties (53.82%), followed by Small (51.19%), Extra Large (50.78%), and Large (50.69%).
+
+All four groups demonstrated considerable relative price-per-square-foot variation.
+
+## 5. Housing Price Deciles
+
+The lowest price decile contained 30 properties with an average price of $151,838.30.
+
+The highest price decile contained 30 properties with an average price of $947,833.13.
+
+The highest-decile average was approximately 6.24 times the lowest-decile average.
+
+## 6. School Rating and Crime Indicator Analysis
+
+The Higher School Rating / Higher Crime Indicator group had the highest average price at $564,418.98.
+
+The Higher School Rating / Lower Crime Indicator group averaged $511,270.90.
+
+The results did not demonstrate a consistent pricing advantage associated with the project-defined school and crime indicator categories.
+
+## 7. Similar-Property Peer Benchmarking
+
+Properties were compared using bedroom count and square-footage category.
+
+The largest positive deviation was 158.85%, observed for a three-bedroom, 3,003-square-foot property priced at $950,937.
+
+This property had a price per square foot of $316.66, compared with its peer median of $122.34.
+
+Peer benchmarking identifies unusual relative valuations but cannot independently determine whether a property is fairly priced.
+
+## 8. Price Per Square Foot Outliers
+
+Using the Interquartile Range method, 16 properties (5.33%) were identified as high price-per-square-foot outliers.
+
+The highest outlier was a 964-square-foot property priced at $979,858, equivalent to $1,016.45 per square foot.
+
+No low outliers were detected.
+
+## 9. Housing Price Concentration
+
+| Property Group | Properties | Share of Combined Value |
+|---|---:|---:|
+| Top 10% | 30 | 18.13% |
+| Next 15% | 45 | 23.47% |
+| Next 25% | 75 | 29.66% |
+| Bottom 50% | 150 | 28.74% |
+
+The highest-priced 25% of properties accounted for 41.60% of combined property value.
+
+This is a dataset-level concentration measure, not an estimate of real-world market share.
+
+## 10. Property Valuation Consistency
+
+Medium-sized properties had the highest relative absolute deviation from their size-group median price per square foot at 48.06%.
+
+Extra Large properties had the lowest at 42.87%.
+
+These results demonstrate substantial pricing differences even among properties of similar sizes.
+
+## 11. Property Characteristics by Price Quartile
+
+The highest price quartile contained 75 properties averaging $869,969.04.
+
+Its average property size was 3,048.87 square feet, compared with 2,957.73 square feet in the lowest price quartile.
+
+Average bedrooms, bathrooms, construction year, school rating, and crime indicator did not follow consistent increasing patterns across price quartiles.
+
+## 12. Final Housing Market Scorecard
+
+| Metric | Value |
+|---|---:|
+| Total Properties | 300 |
+| Average Price | $522,761.92 |
+| Median Price | $505,806.50 |
+| Minimum Price | $112,666 |
+| Maximum Price | $999,684 |
+| Average Square Feet | 3,052.75 |
+| Average Price/Sqft | $210.42 |
+| Median Price/Sqft | $171.81 |
+| Luxury Properties | 70 |
+| Affordable Properties | 58 |
+| Price/Sqft Outliers | 16 |
+| Average School Rating | 5.10 |
+| Average Crime Indicator | 49.32 |
+
+## Final Day 5 Conclusion
+
+The final analysis demonstrates that property prices vary substantially across the dataset and that individual housing characteristics have weak overall linear relationships with price.
+
+Size-based and bedroom-based peer comparisons reveal meaningful descriptive differences that total-price rankings alone cannot identify.
+
+The project demonstrates practical applications of DuckDB, SQL aggregations, Common Table Expressions, window functions, percentile calculations, correlation analysis, statistical dispersion, and outlier detection.
+
+**Limitations:** The dataset contains no transaction dates, property-condition details, or reliable geographic grouping for comparable-sales analysis. Findings should be interpreted as descriptive dataset analytics rather than real-world housing market forecasts or investment recommendations.
