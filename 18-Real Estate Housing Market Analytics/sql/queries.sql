@@ -1085,3 +1085,484 @@ SELECT
 FROM property_segments
 GROUP BY price_segment
 ORDER BY MIN(Price);
+
+
+-- =====================================================
+-- PROJECT 18: REAL ESTATE HOUSING MARKET ANALYTICS
+-- DAY 5: ADVANCED HOUSING ANALYTICS & FINAL FINDINGS
+-- QUERIES 49-60
+-- DATABASE: DUCKDB
+-- =====================================================
+
+
+-- Query 49: Housing Price Distribution & Statistical Shape
+SELECT
+    COUNT(*) AS total_properties,
+    ROUND(AVG(Price), 2) AS average_price,
+    ROUND(MEDIAN(Price), 2) AS median_price,
+    ROUND(STDDEV_SAMP(Price), 2) AS price_stddev,
+    ROUND(SKEWNESS(Price), 4) AS price_skewness,
+    ROUND(KURTOSIS(Price), 4) AS price_excess_kurtosis,
+    MIN(Price) AS minimum_price,
+    MAX(Price) AS maximum_price
+FROM housing;
+
+
+-- Query 50: Feature Correlations Within Price Segments
+WITH price_segments AS (
+    SELECT
+        Price,
+        SquareFeet,
+        Bedrooms,
+        Bathrooms,
+        YearBuilt,
+        SchoolRating,
+        CrimeRate,
+        CASE
+            WHEN Price < 250000 THEN 'Affordable'
+            WHEN Price < 500000 THEN 'Mid-Range'
+            WHEN Price < 750000 THEN 'Premium'
+            ELSE 'Luxury'
+        END AS price_segment
+    FROM housing
+)
+SELECT
+    price_segment,
+    COUNT(*) AS total_properties,
+    ROUND(CORR(Price, SquareFeet), 4)
+        AS sqft_price_correlation,
+    ROUND(CORR(Price, Bedrooms), 4)
+        AS bedrooms_price_correlation,
+    ROUND(CORR(Price, Bathrooms), 4)
+        AS bathrooms_price_correlation,
+    ROUND(CORR(Price, YearBuilt), 4)
+        AS yearbuilt_price_correlation,
+    ROUND(CORR(Price, SchoolRating), 4)
+        AS school_price_correlation,
+    ROUND(CORR(Price, CrimeRate), 4)
+        AS crime_price_correlation
+FROM price_segments
+GROUP BY price_segment
+ORDER BY MIN(Price);
+
+
+-- Query 51: Median-Based Property Valuation
+WITH property_segments AS (
+    SELECT
+        Price,
+        SquareFeet,
+        Bedrooms,
+        ZipCode,
+        CASE
+            WHEN SquareFeet < 1500 THEN 'Small'
+            WHEN SquareFeet < 3000 THEN 'Medium'
+            WHEN SquareFeet < 4500 THEN 'Large'
+            ELSE 'Extra Large'
+        END AS size_segment,
+        Price * 1.0 / NULLIF(SquareFeet, 0)
+            AS price_per_sqft
+    FROM housing
+),
+peer_medians AS (
+    SELECT
+        *,
+        MEDIAN(price_per_sqft) OVER (
+            PARTITION BY size_segment
+        ) AS peer_median_price_per_sqft
+    FROM property_segments
+)
+SELECT
+    size_segment,
+    COUNT(*) AS total_properties,
+    ROUND(AVG(price_per_sqft), 2)
+        AS average_price_per_sqft,
+    ROUND(MAX(peer_median_price_per_sqft), 2)
+        AS median_price_per_sqft,
+    COUNT(*) FILTER (
+        WHERE price_per_sqft < peer_median_price_per_sqft
+    ) AS below_median_properties,
+    COUNT(*) FILTER (
+        WHERE price_per_sqft > peer_median_price_per_sqft
+    ) AS above_median_properties,
+    COUNT(*) FILTER (
+        WHERE price_per_sqft = peer_median_price_per_sqft
+    ) AS at_median_properties
+FROM peer_medians
+GROUP BY size_segment
+ORDER BY
+    CASE size_segment
+        WHEN 'Small' THEN 1
+        WHEN 'Medium' THEN 2
+        WHEN 'Large' THEN 3
+        ELSE 4
+    END;
+
+
+-- Query 52: Price Per Sqft Variation by Size Category
+WITH size_groups AS (
+    SELECT
+        Price,
+        SquareFeet,
+        CASE
+            WHEN SquareFeet < 1500 THEN 'Small'
+            WHEN SquareFeet < 3000 THEN 'Medium'
+            WHEN SquareFeet < 4500 THEN 'Large'
+            ELSE 'Extra Large'
+        END AS size_segment,
+        Price * 1.0 / NULLIF(SquareFeet, 0)
+            AS price_per_sqft
+    FROM housing
+)
+SELECT
+    size_segment,
+    COUNT(*) AS total_properties,
+    ROUND(AVG(price_per_sqft), 2)
+        AS average_price_per_sqft,
+    ROUND(MEDIAN(price_per_sqft), 2)
+        AS median_price_per_sqft,
+    ROUND(STDDEV_SAMP(price_per_sqft), 2)
+        AS price_per_sqft_stddev,
+    ROUND(
+        100.0 * STDDEV_SAMP(price_per_sqft)
+        / NULLIF(AVG(price_per_sqft), 0), 2
+    ) AS coefficient_of_variation_pct
+FROM size_groups
+GROUP BY size_segment
+ORDER BY
+    CASE size_segment
+        WHEN 'Small' THEN 1
+        WHEN 'Medium' THEN 2
+        WHEN 'Large' THEN 3
+        ELSE 4
+    END;
+
+
+-- Query 53: Housing Price Decile Analysis
+WITH price_deciles AS (
+    SELECT
+        Price,
+        SquareFeet,
+        Bedrooms,
+        NTILE(10) OVER (
+            ORDER BY Price
+        ) AS price_decile
+    FROM housing
+)
+SELECT
+    price_decile,
+    COUNT(*) AS total_properties,
+    MIN(Price) AS minimum_price,
+    MAX(Price) AS maximum_price,
+    ROUND(AVG(Price), 2) AS average_price,
+    ROUND(AVG(SquareFeet), 2) AS average_sqft,
+    ROUND(AVG(Bedrooms), 2) AS average_bedrooms
+FROM price_deciles
+GROUP BY price_decile
+ORDER BY price_decile;
+
+
+-- Query 54: School and Crime Indicator Price Comparison
+WITH neighborhood_segments AS (
+    SELECT
+        Price,
+        SquareFeet,
+        SchoolRating,
+        CrimeRate,
+        CASE
+            WHEN SchoolRating >= 7
+                THEN 'Higher School Rating'
+            ELSE 'Lower-Middle School Rating'
+        END AS school_group,
+        CASE
+            WHEN CrimeRate < 50
+                THEN 'Lower Crime Indicator'
+            ELSE 'Higher Crime Indicator'
+        END AS crime_group
+    FROM housing
+)
+SELECT
+    school_group,
+    crime_group,
+    COUNT(*) AS total_properties,
+    ROUND(AVG(Price), 2) AS average_price,
+    ROUND(MEDIAN(Price), 2) AS median_price,
+    ROUND(AVG(SquareFeet), 2) AS average_sqft,
+    ROUND(AVG(SchoolRating), 2) AS average_school_rating,
+    ROUND(AVG(CrimeRate), 2) AS average_crime_rate
+FROM neighborhood_segments
+GROUP BY school_group, crime_group
+ORDER BY school_group, crime_group;
+
+
+-- Query 55: Similar-Property Peer Benchmarking
+WITH property_peers AS (
+    SELECT
+        Price,
+        Bedrooms,
+        SquareFeet,
+        YearBuilt,
+        ZipCode,
+        CASE
+            WHEN SquareFeet < 1500 THEN 'Small'
+            WHEN SquareFeet < 3000 THEN 'Medium'
+            WHEN SquareFeet < 4500 THEN 'Large'
+            ELSE 'Extra Large'
+        END AS size_segment,
+        Price * 1.0 / NULLIF(SquareFeet, 0)
+            AS price_per_sqft
+    FROM housing
+),
+benchmarked AS (
+    SELECT
+        *,
+        COUNT(*) OVER (
+            PARTITION BY Bedrooms, size_segment
+        ) AS peer_count,
+        AVG(price_per_sqft) OVER (
+            PARTITION BY Bedrooms, size_segment
+        ) AS peer_avg_price_per_sqft,
+        MEDIAN(price_per_sqft) OVER (
+            PARTITION BY Bedrooms, size_segment
+        ) AS peer_median_price_per_sqft
+    FROM property_peers
+)
+SELECT
+    Price,
+    Bedrooms,
+    SquareFeet,
+    YearBuilt,
+    ZipCode,
+    size_segment,
+    peer_count,
+    ROUND(price_per_sqft, 2) AS price_per_sqft,
+    ROUND(peer_median_price_per_sqft, 2)
+        AS peer_median_price_per_sqft,
+    ROUND(
+        100.0 * (price_per_sqft - peer_median_price_per_sqft)
+        / NULLIF(peer_median_price_per_sqft, 0), 2
+    ) AS median_deviation_pct
+FROM benchmarked
+WHERE peer_count >= 5
+ORDER BY ABS(
+    (price_per_sqft - peer_median_price_per_sqft)
+    / NULLIF(peer_median_price_per_sqft, 0)
+) DESC NULLS LAST
+LIMIT 20;
+
+
+-- Query 56: Extreme Price Per Sqft Outlier Properties
+WITH property_metrics AS (
+    SELECT
+        Price,
+        Bedrooms,
+        SquareFeet,
+        YearBuilt,
+        ZipCode,
+        ROUND(
+            Price * 1.0 / NULLIF(SquareFeet, 0), 2
+        ) AS price_per_sqft
+    FROM housing
+),
+quartiles AS (
+    SELECT
+        QUANTILE_CONT(price_per_sqft, 0.25) AS q1,
+        QUANTILE_CONT(price_per_sqft, 0.75) AS q3
+    FROM property_metrics
+),
+outlier_bounds AS (
+    SELECT
+        q1 - 1.5 * (q3 - q1) AS lower_bound,
+        q3 + 1.5 * (q3 - q1) AS upper_bound
+    FROM quartiles
+)
+SELECT
+    p.Price,
+    p.Bedrooms,
+    p.SquareFeet,
+    p.YearBuilt,
+    p.ZipCode,
+    p.price_per_sqft,
+    ROUND(b.upper_bound, 2) AS upper_iqr_bound,
+    CASE
+        WHEN p.price_per_sqft > b.upper_bound
+            THEN 'High Outlier'
+        WHEN p.price_per_sqft < b.lower_bound
+            THEN 'Low Outlier'
+    END AS outlier_type
+FROM property_metrics p
+CROSS JOIN outlier_bounds b
+WHERE p.price_per_sqft > b.upper_bound
+   OR p.price_per_sqft < b.lower_bound
+ORDER BY p.price_per_sqft DESC;
+
+
+-- Query 57: Housing Price Concentration
+WITH ranked_prices AS (
+    SELECT
+        Price,
+        ROW_NUMBER() OVER (
+            ORDER BY Price DESC
+        ) AS price_rank,
+        COUNT(*) OVER () AS total_properties,
+        SUM(Price) OVER () AS total_property_value
+    FROM housing
+)
+SELECT
+    CASE
+        WHEN price_rank <= total_properties * 0.10
+            THEN 'Top 10%'
+        WHEN price_rank <= total_properties * 0.25
+            THEN 'Next 15%'
+        WHEN price_rank <= total_properties * 0.50
+            THEN 'Next 25%'
+        ELSE 'Bottom 50%'
+    END AS property_group,
+    COUNT(*) AS total_properties,
+    ROUND(SUM(Price), 2) AS combined_property_value,
+    ROUND(
+        100.0 * SUM(Price)
+        / NULLIF(MAX(total_property_value), 0), 2
+    ) AS share_of_total_value_pct
+FROM ranked_prices
+GROUP BY property_group
+ORDER BY
+    CASE property_group
+        WHEN 'Top 10%' THEN 1
+        WHEN 'Next 15%' THEN 2
+        WHEN 'Next 25%' THEN 3
+        ELSE 4
+    END;
+
+
+-- Query 58: Property Valuation Consistency by Size
+WITH property_groups AS (
+    SELECT
+        Price,
+        SquareFeet,
+        CASE
+            WHEN SquareFeet < 1500 THEN 'Small'
+            WHEN SquareFeet < 3000 THEN 'Medium'
+            WHEN SquareFeet < 4500 THEN 'Large'
+            ELSE 'Extra Large'
+        END AS size_segment,
+        Price * 1.0 / NULLIF(SquareFeet, 0)
+            AS price_per_sqft
+    FROM housing
+),
+peer_medians AS (
+    SELECT
+        *,
+        MEDIAN(price_per_sqft) OVER (
+            PARTITION BY size_segment
+        ) AS peer_median
+    FROM property_groups
+)
+SELECT
+    size_segment,
+    COUNT(*) AS total_properties,
+    ROUND(MAX(peer_median), 2)
+        AS median_price_per_sqft,
+    ROUND(
+        AVG(ABS(price_per_sqft - peer_median)), 2
+    ) AS mean_absolute_deviation_from_median,
+    ROUND(
+        100.0 * AVG(
+            ABS(price_per_sqft - peer_median)
+        ) / NULLIF(MAX(peer_median), 0), 2
+    ) AS relative_absolute_deviation_pct
+FROM peer_medians
+GROUP BY size_segment
+ORDER BY relative_absolute_deviation_pct DESC;
+
+
+-- Query 59: Property Characteristics by Price Quartile
+WITH price_quartiles AS (
+    SELECT
+        Price,
+        Bedrooms,
+        Bathrooms,
+        SquareFeet,
+        YearBuilt,
+        GarageSpaces,
+        LotSize,
+        SchoolRating,
+        CrimeRate,
+        NTILE(4) OVER (
+            ORDER BY Price
+        ) AS price_quartile
+    FROM housing
+)
+SELECT
+    price_quartile,
+    COUNT(*) AS total_properties,
+    ROUND(AVG(Price), 2) AS average_price,
+    ROUND(AVG(Bedrooms), 2) AS average_bedrooms,
+    ROUND(AVG(Bathrooms), 2) AS average_bathrooms,
+    ROUND(AVG(SquareFeet), 2) AS average_sqft,
+    ROUND(AVG(YearBuilt), 2) AS average_year_built,
+    ROUND(AVG(GarageSpaces), 2) AS average_garage_spaces,
+    ROUND(AVG(LotSize), 2) AS average_lot_size,
+    ROUND(AVG(SchoolRating), 2) AS average_school_rating,
+    ROUND(AVG(CrimeRate), 2) AS average_crime_rate
+FROM price_quartiles
+GROUP BY price_quartile
+ORDER BY price_quartile;
+
+
+-- Query 60: Final Housing Market Analytical Scorecard
+WITH property_metrics AS (
+    SELECT
+        Price,
+        Bedrooms,
+        SquareFeet,
+        SchoolRating,
+        CrimeRate,
+        Price * 1.0 / NULLIF(SquareFeet, 0)
+            AS price_per_sqft,
+        CASE
+            WHEN Price < 250000 THEN 'Affordable'
+            WHEN Price < 500000 THEN 'Mid-Range'
+            WHEN Price < 750000 THEN 'Premium'
+            ELSE 'Luxury'
+        END AS price_segment
+    FROM housing
+),
+quartiles AS (
+    SELECT
+        QUANTILE_CONT(price_per_sqft, 0.25) AS q1,
+        QUANTILE_CONT(price_per_sqft, 0.75) AS q3
+    FROM property_metrics
+),
+outlier_bounds AS (
+    SELECT
+        q1 - 1.5 * (q3 - q1) AS lower_bound,
+        q3 + 1.5 * (q3 - q1) AS upper_bound
+    FROM quartiles
+)
+SELECT
+    COUNT(*) AS total_properties,
+    ROUND(AVG(p.Price), 2) AS average_price,
+    ROUND(MEDIAN(p.Price), 2) AS median_price,
+    MIN(p.Price) AS minimum_price,
+    MAX(p.Price) AS maximum_price,
+    ROUND(AVG(p.SquareFeet), 2) AS average_sqft,
+    ROUND(AVG(p.price_per_sqft), 2)
+        AS average_price_per_sqft,
+    ROUND(MEDIAN(p.price_per_sqft), 2)
+        AS median_price_per_sqft,
+    COUNT(*) FILTER (
+        WHERE p.Price >= 750000
+    ) AS luxury_properties,
+    COUNT(*) FILTER (
+        WHERE p.Price < 250000
+    ) AS affordable_properties,
+    COUNT(*) FILTER (
+        WHERE p.price_per_sqft < b.lower_bound
+           OR p.price_per_sqft > b.upper_bound
+    ) AS price_per_sqft_outliers,
+    ROUND(AVG(p.SchoolRating), 2)
+        AS average_school_rating,
+    ROUND(AVG(p.CrimeRate), 2)
+        AS average_crime_rate
+FROM property_metrics p
+CROSS JOIN outlier_bounds b;
