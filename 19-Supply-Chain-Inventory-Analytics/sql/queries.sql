@@ -304,3 +304,478 @@ SELECT
     COUNT(DISTINCT year_month) AS total_inventory_months
 FROM inventory;
 
+
+-- ============================================================
+-- SQL PROJECT 19: SUPPLY CHAIN & INVENTORY ANALYTICS
+-- DAY 2: INVENTORY & STOCK LEVEL ANALYSIS
+-- ============================================================
+
+
+-- ============================================================
+-- QUERY 14: MONTHLY INVENTORY TRENDS
+-- ============================================================
+
+SELECT
+    year_month,
+    COUNT(DISTINCT product_name) AS total_products,
+    ROUND(SUM(warehouse_inventory), 2) AS total_inventory_units,
+    ROUND(AVG(warehouse_inventory), 2) AS avg_inventory_per_product,
+    ROUND(
+        SUM(warehouse_inventory * inventory_cost_per_unit),
+        2
+    ) AS total_inventory_value
+FROM inventory
+GROUP BY year_month
+ORDER BY year_month;
+
+
+-- ============================================================
+-- QUERY 15: LATEST MONTH INVENTORY OVERVIEW
+-- ============================================================
+
+SELECT
+    year_month,
+    COUNT(DISTINCT product_name) AS total_products,
+    ROUND(SUM(warehouse_inventory), 2) AS total_stock_units,
+    ROUND(
+        SUM(warehouse_inventory * inventory_cost_per_unit),
+        2
+    ) AS inventory_value,
+    ROUND(AVG(warehouse_inventory), 2) AS avg_stock_per_product
+FROM inventory
+WHERE year_month = (
+    SELECT MAX(year_month)
+    FROM inventory
+)
+GROUP BY year_month;
+
+
+-- ============================================================
+-- QUERY 16: TOP 10 PRODUCTS BY INVENTORY LEVEL
+-- ============================================================
+
+SELECT
+    product_name,
+    year_month,
+    warehouse_inventory,
+    inventory_cost_per_unit,
+    ROUND(
+        warehouse_inventory * inventory_cost_per_unit,
+        2
+    ) AS inventory_value
+FROM inventory
+WHERE year_month = (
+    SELECT MAX(year_month)
+    FROM inventory
+)
+ORDER BY warehouse_inventory DESC
+LIMIT 10;
+
+
+-- ============================================================
+-- QUERY 17: BOTTOM 10 PRODUCTS BY INVENTORY LEVEL
+-- ============================================================
+
+SELECT
+    product_name,
+    year_month,
+    warehouse_inventory,
+    inventory_cost_per_unit,
+    ROUND(
+        warehouse_inventory * inventory_cost_per_unit,
+        2
+    ) AS inventory_value
+FROM inventory
+WHERE year_month = (
+    SELECT MAX(year_month)
+    FROM inventory
+)
+ORDER BY warehouse_inventory ASC
+LIMIT 10;
+
+
+-- ============================================================
+-- QUERY 18: INVENTORY VALUATION BY PRODUCT
+-- ============================================================
+
+SELECT
+    product_name,
+    warehouse_inventory AS stock_units,
+    inventory_cost_per_unit,
+    ROUND(
+        warehouse_inventory * inventory_cost_per_unit,
+        2
+    ) AS inventory_value
+FROM inventory
+WHERE year_month = (
+    SELECT MAX(year_month)
+    FROM inventory
+)
+ORDER BY inventory_value DESC
+LIMIT 15;
+
+
+-- ============================================================
+-- QUERY 19: MONTHLY PRODUCT DEMAND
+-- ============================================================
+
+SELECT
+    order_year_month AS year_month,
+    product_name,
+    SUM(order_quantity) AS total_units_sold,
+    COUNT(DISTINCT order_id) AS total_orders,
+    ROUND(SUM(gross_sales), 2) AS total_gross_sales
+FROM orders_shipments
+GROUP BY
+    order_year_month,
+    product_name
+ORDER BY
+    year_month,
+    total_units_sold DESC;
+
+
+-- ============================================================
+-- QUERY 20: TOP 15 PRODUCTS BY TOTAL UNITS SOLD
+-- ============================================================
+
+SELECT
+    product_name,
+    SUM(order_quantity) AS total_units_sold,
+    COUNT(DISTINCT order_id) AS total_orders,
+    ROUND(SUM(gross_sales), 2) AS gross_sales,
+    ROUND(SUM(profit), 2) AS reported_profit
+FROM orders_shipments
+GROUP BY product_name
+ORDER BY total_units_sold DESC
+LIMIT 15;
+
+
+-- ============================================================
+-- QUERY 21: PRODUCT INVENTORY VS MONTHLY DEMAND
+-- Latest inventory compared with average monthly sales
+-- across the 36-month reporting period.
+-- ============================================================
+
+WITH monthly_demand AS (
+    SELECT
+        product_name,
+        order_year_month,
+        SUM(order_quantity) AS monthly_units_sold
+    FROM orders_shipments
+    GROUP BY
+        product_name,
+        order_year_month
+),
+product_demand AS (
+    SELECT
+        product_name,
+        ROUND(
+            SUM(monthly_units_sold) / 36.0,
+            2
+        ) AS avg_monthly_demand
+    FROM monthly_demand
+    GROUP BY product_name
+),
+latest_inventory AS (
+    SELECT
+        product_name,
+        warehouse_inventory AS stock_units
+    FROM inventory
+    WHERE year_month = (
+        SELECT MAX(year_month)
+        FROM inventory
+    )
+)
+SELECT
+    i.product_name,
+    i.stock_units,
+    COALESCE(d.avg_monthly_demand, 0) AS avg_monthly_demand,
+    ROUND(
+        i.stock_units /
+        NULLIF(d.avg_monthly_demand, 0),
+        2
+    ) AS months_of_stock_coverage
+FROM latest_inventory i
+LEFT JOIN product_demand d
+    ON i.product_name = d.product_name
+ORDER BY months_of_stock_coverage ASC NULLS LAST;
+
+
+-- ============================================================
+-- QUERY 22: POTENTIAL STOCKOUT RISK CLASSIFICATION
+-- Risk thresholds are analytical assumptions:
+-- Critical: < 1 month
+-- High: 1 to < 2 months
+-- Moderate: 2 to < 3 months
+-- Low: >= 3 months
+-- No Demand: no matching sales recorded
+-- ============================================================
+
+WITH product_demand AS (
+    SELECT
+        product_name,
+        SUM(order_quantity) / 36.0 AS avg_monthly_demand
+    FROM orders_shipments
+    GROUP BY product_name
+),
+latest_inventory AS (
+    SELECT
+        product_name,
+        warehouse_inventory AS stock_units
+    FROM inventory
+    WHERE year_month = (
+        SELECT MAX(year_month)
+        FROM inventory
+    )
+),
+stock_analysis AS (
+    SELECT
+        i.product_name,
+        i.stock_units,
+        COALESCE(d.avg_monthly_demand, 0) AS avg_monthly_demand,
+        i.stock_units /
+            NULLIF(d.avg_monthly_demand, 0)
+            AS months_of_stock_coverage
+    FROM latest_inventory i
+    LEFT JOIN product_demand d
+        ON i.product_name = d.product_name
+)
+SELECT
+    product_name,
+    ROUND(stock_units, 2) AS stock_units,
+    ROUND(avg_monthly_demand, 2) AS avg_monthly_demand,
+    ROUND(months_of_stock_coverage, 2)
+        AS months_of_stock_coverage,
+    CASE
+        WHEN avg_monthly_demand = 0
+            THEN 'No Recorded Demand'
+        WHEN months_of_stock_coverage < 1
+            THEN 'Critical Risk'
+        WHEN months_of_stock_coverage < 2
+            THEN 'High Risk'
+        WHEN months_of_stock_coverage < 3
+            THEN 'Moderate Risk'
+        ELSE 'Low Risk'
+    END AS stockout_risk
+FROM stock_analysis
+ORDER BY
+    CASE
+        WHEN avg_monthly_demand = 0 THEN 5
+        WHEN months_of_stock_coverage < 1 THEN 1
+        WHEN months_of_stock_coverage < 2 THEN 2
+        WHEN months_of_stock_coverage < 3 THEN 3
+        ELSE 4
+    END,
+    months_of_stock_coverage ASC NULLS LAST;
+
+
+-- ============================================================
+-- QUERY 23: INVENTORY RISK SUMMARY
+-- ============================================================
+
+WITH product_demand AS (
+    SELECT
+        product_name,
+        SUM(order_quantity) / 36.0 AS avg_monthly_demand
+    FROM orders_shipments
+    GROUP BY product_name
+),
+latest_inventory AS (
+    SELECT
+        product_name,
+        warehouse_inventory AS stock_units
+    FROM inventory
+    WHERE year_month = (
+        SELECT MAX(year_month)
+        FROM inventory
+    )
+),
+coverage AS (
+    SELECT
+        i.product_name,
+        i.stock_units,
+        COALESCE(d.avg_monthly_demand, 0) AS avg_monthly_demand,
+        i.stock_units /
+            NULLIF(d.avg_monthly_demand, 0)
+            AS months_of_coverage
+    FROM latest_inventory i
+    LEFT JOIN product_demand d
+        ON i.product_name = d.product_name
+),
+risk_segments AS (
+    SELECT
+        *,
+        CASE
+            WHEN avg_monthly_demand = 0
+                THEN 'No Recorded Demand'
+            WHEN months_of_coverage < 1
+                THEN 'Critical Risk'
+            WHEN months_of_coverage < 2
+                THEN 'High Risk'
+            WHEN months_of_coverage < 3
+                THEN 'Moderate Risk'
+            ELSE 'Low Risk'
+        END AS risk_segment
+    FROM coverage
+)
+SELECT
+    risk_segment,
+    COUNT(*) AS total_products,
+    ROUND(SUM(stock_units), 2) AS total_stock_units,
+    ROUND(AVG(months_of_coverage), 2)
+        AS avg_months_of_coverage
+FROM risk_segments
+GROUP BY risk_segment
+ORDER BY
+    CASE risk_segment
+        WHEN 'Critical Risk' THEN 1
+        WHEN 'High Risk' THEN 2
+        WHEN 'Moderate Risk' THEN 3
+        WHEN 'Low Risk' THEN 4
+        ELSE 5
+    END;
+
+
+-- ============================================================
+-- QUERY 24: INVENTORY LEVEL VS FULFILLMENT TIME
+-- ============================================================
+
+WITH latest_inventory AS (
+    SELECT
+        product_name,
+        warehouse_inventory AS stock_units
+    FROM inventory
+    WHERE year_month = (
+        SELECT MAX(year_month)
+        FROM inventory
+    )
+)
+SELECT
+    i.product_name,
+    i.stock_units,
+    f.fulfillment_days,
+    CASE
+        WHEN f.fulfillment_days > 7
+            THEN 'Slow Fulfillment'
+        WHEN f.fulfillment_days > 4
+            THEN 'Moderate Fulfillment'
+        ELSE 'Fast Fulfillment'
+    END AS fulfillment_category
+FROM latest_inventory i
+LEFT JOIN fulfillment f
+    ON i.product_name = f.product_name
+ORDER BY
+    f.fulfillment_days DESC NULLS LAST,
+    i.stock_units ASC;
+
+
+-- ============================================================
+-- QUERY 25: INVENTORY MONTH-OVER-MONTH CHANGES
+-- ============================================================
+
+WITH monthly_inventory AS (
+    SELECT
+        year_month,
+        SUM(warehouse_inventory) AS total_inventory_units
+    FROM inventory
+    GROUP BY year_month
+),
+inventory_trends AS (
+    SELECT
+        year_month,
+        total_inventory_units,
+        LAG(total_inventory_units) OVER (
+            ORDER BY year_month
+        ) AS previous_month_inventory
+    FROM monthly_inventory
+)
+SELECT
+    year_month,
+    ROUND(total_inventory_units, 2)
+        AS total_inventory_units,
+    ROUND(previous_month_inventory, 2)
+        AS previous_month_inventory,
+    ROUND(
+        total_inventory_units - previous_month_inventory,
+        2
+    ) AS inventory_change,
+    ROUND(
+        100.0 * (
+            total_inventory_units - previous_month_inventory
+        ) / NULLIF(previous_month_inventory, 0),
+        2
+    ) AS inventory_change_pct
+FROM inventory_trends
+ORDER BY year_month;
+
+
+-- ============================================================
+-- QUERY 26: PRODUCT MATCHING VALIDATION
+-- Check whether product names match across datasets.
+-- ============================================================
+
+WITH product_lists AS (
+    SELECT
+        product_name,
+        1 AS in_inventory,
+        0 AS in_orders,
+        0 AS in_fulfillment
+    FROM (
+        SELECT DISTINCT product_name
+        FROM inventory
+    )
+
+    UNION ALL
+
+    SELECT
+        product_name,
+        0,
+        1,
+        0
+    FROM (
+        SELECT DISTINCT product_name
+        FROM orders_shipments
+    )
+
+    UNION ALL
+
+    SELECT
+        product_name,
+        0,
+        0,
+        1
+    FROM (
+        SELECT DISTINCT product_name
+        FROM fulfillment
+    )
+),
+product_coverage AS (
+    SELECT
+        product_name,
+        MAX(in_inventory) AS in_inventory,
+        MAX(in_orders) AS in_orders,
+        MAX(in_fulfillment) AS in_fulfillment
+    FROM product_lists
+    GROUP BY product_name
+)
+SELECT
+    COUNT(*) AS total_distinct_products,
+    SUM(in_inventory) AS inventory_products,
+    SUM(in_orders) AS order_products,
+    SUM(in_fulfillment) AS fulfillment_products,
+    COUNT(*) FILTER (
+        WHERE in_inventory = 1
+          AND in_orders = 1
+          AND in_fulfillment = 1
+    ) AS products_in_all_three,
+    COUNT(*) FILTER (
+        WHERE in_inventory = 1
+          AND in_orders = 0
+    ) AS inventory_products_without_orders,
+    COUNT(*) FILTER (
+        WHERE in_orders = 1
+          AND in_inventory = 0
+    ) AS order_products_without_inventory
+FROM product_coverage;
+
+
