@@ -536,5 +536,520 @@ The datasets do not contain explicit supplier identifiers or purchase-order info
 
 **Day 2 Status: Completed**
 
+---
+
+# Day 3: Warehouse, Shipping & Logistics Performance
+
+## 1. Objective
+
+The objective of Day 3 is to evaluate warehouse performance, shipping mode distribution, regional logistics, scheduled shipping times, product fulfillment efficiency, and logistics-related data quality.
+
+The analysis uses two primary datasets:
+
+- **Orders & Shipments:** 30,871 order-item records containing warehouse locations, shipment modes, customer markets, scheduled shipping days, sales, and profit.
+- **Fulfillment:** 118 product-level records containing warehouse order fulfillment times.
+
+**Analysis Period:** January 2015 – December 2017
+
+**SQL Queries:** 27–40
+
+### Key Performance Indicators
+
+| Metric | Value |
+|---|---:|
+| Total Orders | 11,072 |
+| Total Order Items | 30,871 |
+| Warehouse Countries | 2 |
+| Shipping Modes | 4 |
+| Customer Markets | 5 |
+| Products with Fulfillment Records | 118 |
+| Total Gross Sales | $6,181,476 |
+| Reported Total Profit | $3,994,192 |
+
+---
+
+## 2. Warehouse Country Performance
+
+Warehouse activity was analyzed across the USA and Puerto Rico.
+
+| Warehouse Country | Total Orders | Order Items | Gross Sales | Reported Profit | Profit Margin |
+|---|---:|---:|---:|---:|---:|
+| USA | 6,825 | 18,997 | $3,798,206 | $2,458,430 | 64.73% |
+| Puerto Rico | 4,247 | 11,874 | $2,383,270 | $1,535,762 | 64.44% |
+| **Total** | **11,072** | **30,871** | **$6,181,476** | **$3,994,192** | **64.62%** |
+
+### Key Insights
+
+1. USA warehouses processed approximately 61.64% of all orders.
+2. Puerto Rico warehouses processed approximately 38.36% of orders.
+3. USA warehouses generated approximately $3.80 million in gross sales.
+4. Puerto Rico warehouses generated approximately $2.38 million in gross sales.
+5. The USA recorded a slightly higher calculated profit margin of 64.73%, compared with 64.44% for Puerto Rico.
+6. Both warehouse countries contributed substantially to overall business activity.
+
+### Business Interpretation
+
+The USA accounted for the majority of warehouse-associated order volume and gross sales.
+
+However, warehouse-level profitability cannot be fully evaluated without actual warehouse operating expenses and logistics costs.
+
+**Business Recommendation:** Compare warehouse processing capacity, operational expenses, and fulfillment efficiency before making warehouse allocation decisions.
+
+---
+
+## 3. Shipping Mode Distribution
+
+The dataset contains four shipping modes.
+
+| Shipping Mode | Total Orders | Order Items | Units | Item Share |
+|---|---:|---:|---:|---:|
+| Standard Class | 6,457 | 17,994 | 38,765 | 58.29% |
+| Second Class | 2,153 | 6,038 | 13,023 | 19.56% |
+| First Class | 1,749 | 4,859 | 10,262 | 15.74% |
+| Same Day | 713 | 1,980 | 4,317 | 6.41% |
+| **Total** | **11,072** | **30,871** | **66,367** | **100%** |
+
+### Key Insights
+
+1. Standard Class was the most frequently used shipping mode, accounting for 58.29% of order items.
+2. Second Class represented 19.56% of order items.
+3. First Class accounted for 15.74%.
+4. Same Day was the least frequently used shipping mode, representing 6.41%.
+5. Standard Class generated the largest shipping-related order volume.
+
+### Business Interpretation
+
+The business relied primarily on Standard Class shipping.
+
+This distribution may reflect customer preferences, shipping policies, or available fulfillment options. The dataset does not establish why customers selected each mode.
+
+**Business Recommendation:** Evaluate shipping mode usage alongside actual delivery performance, customer satisfaction, and logistics expenses when those data become available.
+
+---
+
+## 4. Scheduled Shipping Days Analysis
+
+Scheduled shipping days were compared across the four shipping modes.
+
+| Shipping Mode | Average Scheduled Days | Maximum Scheduled Days | Standard Deviation |
+|---|---:|---:|---:|
+| Standard Class | 4.00 | 4.00 | 0.00 |
+| Same Day | 3.00 | 3.00 | 0.00 |
+| Second Class | 2.00 | 2.00 | 0.00 |
+| First Class | 1.00 | 1.00 | 0.00 |
+
+### Key Insights
+
+- Standard Class had the longest scheduled shipping duration at four days.
+- First Class had the shortest scheduled shipping duration at one day.
+- Second Class was consistently scheduled for two days.
+- Same Day was consistently recorded with a three-day scheduled duration.
+- Scheduled shipping days showed no variation within each shipping mode.
+
+### Important Data Observation
+
+The Same Day shipping mode was assigned three scheduled days, which is inconsistent with the usual interpretation of same-day delivery.
+
+This may reflect a dataset-specific definition, data transformation, or source-system mapping.
+
+The underlying cause cannot be determined from the available records.
+
+### Business Recommendation
+
+Validate the business definition of scheduled shipping days and the mapping between shipment modes and scheduled durations before using these fields to evaluate delivery commitments.
+
+---
+
+## 5. Customer Market & Shipping Mode Performance
+
+Shipping mode usage was analyzed across five customer markets:
+
+- Africa
+- Europe
+- LATAM
+- North America
+- Pacific Asia
+
+### Standard Class Performance by Market
+
+| Customer Market | Standard Class Orders | Gross Sales |
+|---|---:|---:|
+| Europe | 1,912 | $1,026,399 |
+| LATAM | 1,784 | $1,062,165 |
+| Pacific Asia | 1,474 | $747,308 |
+| North America | 861 | $514,038 |
+| Africa | 426 | $249,470 |
+
+### Key Insights
+
+1. Standard Class was the leading shipping mode in every customer market.
+2. Europe recorded the highest Standard Class order count, with 1,912 orders.
+3. LATAM generated the highest Standard Class gross sales, at approximately $1.06 million.
+4. Pacific Asia ranked third in Standard Class order volume.
+5. Scheduled shipping durations remained consistent by shipping mode across all customer markets.
+
+### Business Recommendation
+
+Investigate regional shipping demand and customer preferences to determine whether shipping service offerings align with market requirements.
+
+---
+
+## 6. Customer Region Performance
+
+The top customer regions were ranked by unique order volume.
+
+### Leading Customer Regions
+
+| Customer Region | Market | Orders | Gross Sales | Reported Profit |
+|---|---|---:|---:|---:|
+| Western Europe | Europe | 1,743 | $967,053 | $613,574 |
+| Central America | LATAM | 1,705 | $1,019,057 | $666,514 |
+| South America | LATAM | 897 | $523,447 | $341,756 |
+| Northern Europe | Europe | 693 | $372,500 | $235,607 |
+| Southeast Asia | Pacific Asia | 622 | $314,263 | $201,252 |
+
+### Key Insights
+
+- Western Europe generated the highest number of orders among individual customer regions.
+- Central America generated the highest gross sales among the leading regions, at approximately $1.02 million.
+- Central America also recorded the highest reported profit among these regions.
+- South America ranked third by order volume.
+- Demand was distributed across multiple geographic markets.
+
+### Business Recommendation
+
+Use regional demand concentration to support warehouse capacity planning, shipment allocation, and future logistics network optimization.
+
+---
+
+## 7. Warehouse Country vs. Customer Market
+
+The analysis examined which warehouse countries served different customer markets.
+
+### Selected Warehouse-Market Relationships
+
+| Warehouse Country | Customer Market | Orders | Gross Sales | Avg. Scheduled Days |
+|---|---|---:|---:|---:|
+| USA | Europe | 1,995 | $1,092,668 | 3.04 |
+| USA | LATAM | 1,864 | $1,101,937 | 3.11 |
+| USA | Pacific Asia | 1,597 | $788,808 | 3.07 |
+| Puerto Rico | Europe | 1,273 | $695,456 | 3.10 |
+| Puerto Rico | LATAM | 1,196 | $705,050 | 3.02 |
+| Puerto Rico | Pacific Asia | 956 | $491,767 | 3.07 |
+
+### Key Insights
+
+1. Both warehouse countries served customers across multiple international markets.
+2. USA warehouses processed more orders than Puerto Rico warehouses in the major markets shown.
+3. USA-to-Europe recorded the highest order count among the warehouse-market combinations.
+4. USA-to-LATAM generated the highest gross sales among these combinations.
+5. Average scheduled shipping times across these warehouse-market combinations ranged from approximately 3.02 to 3.11 days.
+
+### Business Interpretation
+
+Scheduled shipping times were similar across major warehouse-market combinations.
+
+This reflects the distribution of shipping modes rather than verified physical transportation time.
+
+**Business Recommendation:** Analyze actual delivery timestamps and transportation costs to determine whether warehouse location affects delivery efficiency.
+
+---
+
+## 8. Warehouse Country vs. Shipping Mode
+
+Shipping activity was analyzed separately for USA and Puerto Rico warehouses.
+
+### USA Warehouses
+
+| Shipping Mode | Orders | Order Items | Gross Sales |
+|---|---:|---:|---:|
+| Standard Class | 3,990 | 11,058 | $2,214,155 |
+| Second Class | 1,326 | 3,706 | $735,957 |
+| First Class | 1,058 | 2,939 | $593,443 |
+| Same Day | 451 | 1,294 | $254,651 |
+
+### Puerto Rico Warehouses
+
+| Shipping Mode | Orders | Order Items | Gross Sales |
+|---|---:|---:|---:|
+| Standard Class | 2,467 | 6,936 | $1,385,225 |
+| Second Class | 827 | 2,332 | $472,234 |
+| First Class | 691 | 1,920 | $389,296 |
+| Same Day | 262 | 686 | $136,515 |
+
+### Key Insights
+
+- Standard Class was the dominant shipping mode in both warehouse countries.
+- USA warehouses processed more orders and order items across all four shipping modes.
+- Puerto Rico also relied heavily on Standard Class.
+- Scheduled shipping days were identical for the same mode regardless of warehouse country.
+
+### Business Recommendation
+
+Compare warehouse-specific shipment processing times and actual logistics expenses to identify operational efficiency opportunities.
+
+---
+
+## 9. Product Fulfillment Performance
+
+Product-level warehouse fulfillment times were classified into three categories.
+
+### Fulfillment Classification
+
+| Category | Definition |
+|---|---|
+| Fast Fulfillment | 4 days or less |
+| Moderate Fulfillment | More than 4 and up to 7 days |
+| Slow Fulfillment | More than 7 days |
+
+### Fulfillment Results
+
+| Category | Products | Average Days | Minimum Days | Maximum Days |
+|---|---:|---:|---:|---:|
+| Slow Fulfillment | 28 | 8.57 | 7.1 | 9.9 |
+| Moderate Fulfillment | 53 | 5.60 | 4.1 | 7.0 |
+| Fast Fulfillment | 37 | 2.51 | 1.0 | 3.9 |
+| **Total** | **118** | | | |
+
+### Key Insights
+
+1. 28 products were classified as Slow Fulfillment.
+2. 53 products were classified as Moderate Fulfillment.
+3. 37 products were classified as Fast Fulfillment.
+4. Slow-fulfillment products averaged 8.57 days.
+5. Fast-fulfillment products averaged 2.51 days.
+6. The difference between average slow and fast fulfillment times was 6.06 days.
+
+### Business Recommendation
+
+Investigate products with fulfillment times exceeding seven days to identify potential warehouse processing bottlenecks and replenishment constraints.
+
+---
+
+## 10. Products with the Longest Fulfillment Times
+
+| Product | Fulfillment Days |
+|---|---:|
+| Titleist Pro V1x Golf Balls | 9.9 |
+| Nike Kids' Grade School KD VI Basketball Shoe | 9.9 |
+| Elevation Training Mask 2.0 | 9.8 |
+| LIJA Women's Eyelet Sleeveless Golf Polo | 9.5 |
+| Bridgestone e6 Straight Distance NFL Tennessee | 9.5 |
+| Nike Men's Free 5.0+ Running Shoe | 9.4 |
+| Rock music | 9.3 |
+| adidas Brazuca 2017 Official Match Ball | 9.3 |
+| Columbia Men's PFG Anchor Tough T-Shirt | 9.1 |
+| Team Golf Pittsburgh Steelers Putter Grip | 9.1 |
+
+### Key Insights
+
+- Two products recorded the maximum fulfillment time of 9.9 days.
+- Several products required more than nine days for warehouse fulfillment.
+- Nike Men's Free 5.0+ Running Shoe was among the slowest products, despite substantial historical demand.
+
+### Business Recommendation
+
+Prioritize products with long fulfillment times and significant demand when investigating operational improvements.
+
+---
+
+## 11. Product Demand vs. Fulfillment Time
+
+Product sales volume was compared with warehouse fulfillment duration.
+
+### Selected High-Demand Products
+
+| Product | Units Sold | Fulfillment Days | Category |
+|---|---:|---:|---|
+| Perfect Fitness Perfect Rip Deck | 12,952 | 8.3 | Slow |
+| Nike Men's Dri-FIT Victory Golf Polo | 10,886 | 6.6 | Moderate |
+| O'Brien Men's Neoprene Life Vest | 10,164 | 5.5 | Moderate |
+| Nike Men's Free 5.0+ Running Shoe | 6,455 | 9.4 | Slow |
+| Under Armour Girls' Toddler Spine Surge Running | 5,689 | 6.3 | Moderate |
+| Nike Men's CJ Elite 2 TD Football Cleat | 3,855 | 7.0 | Moderate |
+| Field & Stream Sportsman 16 Gun Fire Safe | 2,878 | 4.9 | Moderate |
+| Pelican Sunstream 100 Kayak | 2,681 | 1.8 | Fast |
+
+### Key Insights
+
+1. Perfect Fitness Perfect Rip Deck had the highest demand, with 12,952 units sold, and a fulfillment time of 8.3 days.
+2. Nike Men's Free 5.0+ Running Shoe sold 6,455 units and required 9.4 fulfillment days.
+3. Pelican Sunstream 100 Kayak recorded a relatively fast fulfillment time of 1.8 days.
+4. High sales volume did not consistently correspond to faster warehouse fulfillment.
+5. Some of the most frequently purchased products experienced relatively long fulfillment times.
+
+### Business Recommendation
+
+Focus operational reviews on high-demand products with slow fulfillment, as improvements in these products may benefit a substantial portion of historical demand.
+
+---
+
+## 12. Monthly Shipping Activity
+
+Monthly shipping activity was analyzed from January 2015 through December 2017.
+
+### Selected Monthly Performance
+
+| Month | Orders | Order Items | Gross Sales |
+|---|---:|---:|---:|
+| August 2016 | 613 | 1,034 | $203,949 |
+| September 2017 | 477 | 935 | $200,518 |
+| October 2017 | 355 | 363 | $96,605 |
+| November 2017 | 346 | 348 | $84,814 |
+| December 2017 | 319 | 323 | $46,069 |
+
+### Key Insights
+
+- August 2016 recorded the highest monthly order count in the output, with 613 orders.
+- Order activity declined significantly during the final quarter of 2017.
+- September 2017 recorded 477 orders.
+- October 2017 declined to 355 orders.
+- November 2017 recorded 346 orders.
+- December 2017 declined further to 319 orders.
+- Gross sales decreased substantially during the same period.
+
+### Cross-Day Finding: Inventory and Order Activity
+
+Day 2 identified a sharp reduction in inventory during October and November 2017.
+
+Day 3 identified a corresponding decline in order activity and gross sales during the final quarter of 2017.
+
+This suggests a period of significant operational change or potential data irregularity.
+
+However, the analysis does not establish whether inventory shortages caused the sales decline.
+
+### Business Recommendation
+
+Investigate the late-2017 decline by comparing order demand, product availability, replenishment records, and dataset completeness.
+
+---
+
+## 13. Shipping Mode Profitability
+
+| Shipping Mode | Gross Sales | Reported Profit | Profit Margin |
+|---|---:|---:|---:|
+| Standard Class | $3,599,380 | $2,327,869 | 64.67% |
+| Second Class | $1,208,191 | $780,178 | 64.57% |
+| First Class | $982,739 | $633,528 | 64.47% |
+| Same Day | $391,166 | $252,617 | 64.58% |
+
+### Key Insights
+
+1. Standard Class generated the highest gross sales and reported profit.
+2. Profit margins were relatively consistent across all four shipping modes.
+3. Standard Class recorded the highest calculated margin at 64.67%.
+4. First Class recorded the lowest calculated margin at 64.47%.
+5. The difference between the highest and lowest margins was only 0.20 percentage points.
+
+### Business Interpretation
+
+The reported profit measure does not separately identify shipping expenses.
+
+Therefore, the results cannot establish which shipping mode is most profitable after logistics costs.
+
+**Business Recommendation:** Incorporate actual shipping charges, carrier expenses, and fulfillment costs into future shipping profitability analysis.
+
+---
+
+## 14. Long Scheduled Shipping Analysis
+
+Query 38 evaluated shipments scheduled for more than five days.
+
+### Results
+
+- No order items were scheduled for more than five days.
+- Every shipping mode recorded a fixed scheduled duration between one and four days.
+- The percentage of items scheduled for more than five days was 0% across all shipping mode and customer market combinations.
+
+### Key Insight
+
+The absence of scheduled durations exceeding five days is a consequence of the recorded shipping mode schedules.
+
+It does not prove that actual deliveries were completed within five days.
+
+### Business Recommendation
+
+Use actual delivery dates, when available, to calculate delivery delays, on-time performance, and service-level compliance.
+
+---
+
+## 15. Logistics Data Quality Validation
+
+Query 40 validated key logistics fields across 30,871 order-item records.
+
+### Confirmed Results
+
+| Validation Check | Result |
+|---|---:|
+| Total Order Items | 30,871 |
+| Missing Shipment Modes | 0 |
+| Negative Scheduled Shipping Days | 0 |
+| Missing Shipment Date Components | 0 |
+| Invalid Shipment Dates | 0 |
+
+The displayed output truncated the values for missing warehouse countries and missing scheduled shipping days. These two checks require confirmation before reporting them as zero.
+
+### Key Insights
+
+- No missing shipment modes were identified.
+- No negative scheduled shipping durations were detected.
+- Shipment date components were populated.
+- No invalid shipment dates were detected by the SQL validation.
+- The fixed shipping schedules and Same Day labeling discrepancy remain important business-definition questions.
+
+### Business Recommendation
+
+Document the shipping mode definitions and validate the remaining data quality fields before using the dataset for production-level operational reporting.
+
+---
+
+## 16. Overall Day 3 Business Conclusions
+
+Day 3 analysis evaluated warehouse operations, shipping mode distribution, regional demand, fulfillment efficiency, and scheduled shipping performance.
+
+### Major Findings
+
+1. USA warehouses processed 6,825 orders, accounting for approximately 61.64% of total orders.
+2. Standard Class was the dominant shipping mode, representing 58.29% of order items.
+3. Scheduled shipping durations were fixed by shipping mode.
+4. Same Day shipping was recorded with a three-day schedule, indicating a potential business-definition or data-mapping issue.
+5. Western Europe recorded the highest order count among customer regions.
+6. Central America generated the highest gross sales among the leading regions.
+7. 28 products were classified as Slow Fulfillment.
+8. Perfect Fitness Perfect Rip Deck combined the highest sales volume with a relatively long fulfillment time of 8.3 days.
+9. Order volume and gross sales declined substantially in the final quarter of 2017.
+10. Initial logistics data quality checks found no missing shipment modes, negative scheduled durations, or invalid shipment dates.
+
+### Strategic Recommendations
+
+**Warehouse Optimization:** Evaluate warehouse capacity, shipment processing efficiency, and regional demand.
+
+**Shipping Mode Management:** Validate shipping mode definitions and assess whether shipping services align with customer expectations.
+
+**Fulfillment Improvement:** Prioritize high-demand products with fulfillment times exceeding seven days.
+
+**Regional Logistics Planning:** Use regional order volume and warehouse allocation data to support logistics planning.
+
+**Operational Monitoring:** Investigate the simultaneous decline in inventory and order activity during late 2017.
+
+**Data Quality Governance:** Validate shipping schedules and logistics field completeness before using the results for operational decision-making.
+
+---
+
+## 17. Next Steps – Day 4
+
+Day 4 will focus on **Sales, Profitability & Demand Analysis**, including:
+
+- Monthly and yearly sales trends.
+- Product category profitability.
+- Customer market profitability.
+- High-revenue and low-profit products.
+- Product demand concentration.
+- Seasonal demand patterns.
+- Revenue growth and decline analysis.
+- Sales performance recommendations.
+
+**Day 3 Status: Completed**
+
 
 
