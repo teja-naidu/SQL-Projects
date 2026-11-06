@@ -779,3 +779,294 @@ SELECT
 FROM product_coverage;
 
 
+-- ============================================================
+-- SQL PROJECT 19: SUPPLY CHAIN & INVENTORY ANALYTICS
+-- DAY 3: WAREHOUSE, SHIPPING & LOGISTICS PERFORMANCE
+-- QUERIES 27-40
+-- ============================================================
+
+
+-- QUERY 27: WAREHOUSE COUNTRY PERFORMANCE
+
+SELECT
+    warehouse_country,
+    COUNT(DISTINCT order_id) AS total_orders,
+    COUNT(*) AS total_order_items,
+    SUM(order_quantity) AS total_units_shipped,
+    ROUND(SUM(gross_sales), 2) AS total_gross_sales,
+    ROUND(SUM(profit), 2) AS total_profit,
+    ROUND(
+        100.0 * SUM(profit) /
+        NULLIF(SUM(gross_sales), 0), 2
+    ) AS profit_margin_pct
+FROM orders_shipments
+GROUP BY warehouse_country
+ORDER BY total_orders DESC;
+
+
+-- QUERY 28: SHIPPING MODE DISTRIBUTION
+
+SELECT
+    shipment_mode,
+    COUNT(DISTINCT order_id) AS total_orders,
+    COUNT(*) AS total_order_items,
+    SUM(order_quantity) AS total_units,
+    ROUND(SUM(gross_sales), 2) AS total_gross_sales,
+    ROUND(
+        100.0 * COUNT(*) /
+        NULLIF(
+            (SELECT COUNT(*) FROM orders_shipments), 0
+        ), 2
+    ) AS shipment_item_share_pct
+FROM orders_shipments
+GROUP BY shipment_mode
+ORDER BY total_order_items DESC;
+
+
+-- QUERY 29: SCHEDULED SHIPPING DAYS BY MODE
+
+SELECT
+    shipment_mode,
+    COUNT(*) AS total_order_items,
+    ROUND(AVG(scheduled_shipping_days), 2)
+        AS avg_scheduled_days,
+    MIN(scheduled_shipping_days)
+        AS min_scheduled_days,
+    MAX(scheduled_shipping_days)
+        AS max_scheduled_days,
+    ROUND(STDDEV_SAMP(scheduled_shipping_days), 2)
+        AS stddev_scheduled_days
+FROM orders_shipments
+GROUP BY shipment_mode
+ORDER BY avg_scheduled_days DESC;
+
+
+-- QUERY 30: SHIPPING MODE BY CUSTOMER MARKET
+
+SELECT
+    customer_market,
+    shipment_mode,
+    COUNT(DISTINCT order_id) AS total_orders,
+    COUNT(*) AS total_order_items,
+    SUM(order_quantity) AS total_units,
+    ROUND(AVG(scheduled_shipping_days), 2)
+        AS avg_scheduled_days,
+    ROUND(SUM(gross_sales), 2) AS gross_sales
+FROM orders_shipments
+GROUP BY customer_market, shipment_mode
+ORDER BY customer_market, total_order_items DESC;
+
+
+-- QUERY 31: TOP 15 CUSTOMER REGIONS BY ORDER VOLUME
+
+SELECT
+    customer_market,
+    customer_region,
+    COUNT(DISTINCT order_id) AS total_orders,
+    COUNT(*) AS total_order_items,
+    SUM(order_quantity) AS total_units,
+    ROUND(SUM(gross_sales), 2) AS gross_sales,
+    ROUND(SUM(profit), 2) AS total_profit
+FROM orders_shipments
+GROUP BY customer_market, customer_region
+ORDER BY total_orders DESC
+LIMIT 15;
+
+
+-- QUERY 32: WAREHOUSE COUNTRY VS CUSTOMER MARKET
+
+SELECT
+    warehouse_country,
+    customer_market,
+    COUNT(DISTINCT order_id) AS total_orders,
+    COUNT(*) AS total_order_items,
+    ROUND(SUM(gross_sales), 2) AS gross_sales,
+    ROUND(AVG(scheduled_shipping_days), 2)
+        AS avg_scheduled_days
+FROM orders_shipments
+GROUP BY warehouse_country, customer_market
+ORDER BY total_orders DESC;
+
+
+-- QUERY 33: WAREHOUSE COUNTRY VS SHIPPING MODE
+
+SELECT
+    warehouse_country,
+    shipment_mode,
+    COUNT(DISTINCT order_id) AS total_orders,
+    COUNT(*) AS total_order_items,
+    ROUND(AVG(scheduled_shipping_days), 2)
+        AS avg_scheduled_days,
+    ROUND(SUM(gross_sales), 2) AS gross_sales
+FROM orders_shipments
+GROUP BY warehouse_country, shipment_mode
+ORDER BY warehouse_country, total_order_items DESC;
+
+
+-- QUERY 34: TOP 15 PRODUCTS BY FULFILLMENT TIME
+
+SELECT
+    product_name,
+    fulfillment_days,
+    CASE
+        WHEN fulfillment_days > 7
+            THEN 'Slow Fulfillment'
+        WHEN fulfillment_days > 4
+            THEN 'Moderate Fulfillment'
+        ELSE 'Fast Fulfillment'
+    END AS fulfillment_category
+FROM fulfillment
+ORDER BY fulfillment_days DESC
+LIMIT 15;
+
+
+-- QUERY 35: FULFILLMENT PERFORMANCE CATEGORIES
+
+SELECT
+    CASE
+        WHEN fulfillment_days > 7
+            THEN 'Slow Fulfillment'
+        WHEN fulfillment_days > 4
+            THEN 'Moderate Fulfillment'
+        ELSE 'Fast Fulfillment'
+    END AS fulfillment_category,
+    COUNT(*) AS total_products,
+    ROUND(AVG(fulfillment_days), 2)
+        AS avg_fulfillment_days,
+    ROUND(MIN(fulfillment_days), 2)
+        AS min_fulfillment_days,
+    ROUND(MAX(fulfillment_days), 2)
+        AS max_fulfillment_days
+FROM fulfillment
+GROUP BY fulfillment_category
+ORDER BY avg_fulfillment_days DESC;
+
+
+-- QUERY 36: MONTHLY SHIPPING ACTIVITY
+
+SELECT
+    order_year_month AS year_month,
+    COUNT(DISTINCT order_id) AS total_orders,
+    COUNT(*) AS total_order_items,
+    SUM(order_quantity) AS total_units,
+    ROUND(SUM(gross_sales), 2) AS gross_sales,
+    ROUND(AVG(scheduled_shipping_days), 2)
+        AS avg_scheduled_days
+FROM orders_shipments
+GROUP BY order_year_month
+ORDER BY year_month;
+
+
+-- QUERY 37: SHIPPING MODE PROFITABILITY
+
+SELECT
+    shipment_mode,
+    COUNT(DISTINCT order_id) AS total_orders,
+    ROUND(SUM(gross_sales), 2) AS gross_sales,
+    ROUND(SUM(profit), 2) AS total_profit,
+    ROUND(
+        100.0 * SUM(profit) /
+        NULLIF(SUM(gross_sales), 0), 2
+    ) AS profit_margin_pct,
+    ROUND(AVG(scheduled_shipping_days), 2)
+        AS avg_scheduled_days
+FROM orders_shipments
+GROUP BY shipment_mode
+ORDER BY total_profit DESC;
+
+
+-- QUERY 38: LONG SCHEDULED SHIPPING SEGMENTS
+
+SELECT
+    shipment_mode,
+    customer_market,
+    COUNT(*) AS total_order_items,
+    COUNT(DISTINCT order_id) AS total_orders,
+    ROUND(AVG(scheduled_shipping_days), 2)
+        AS avg_scheduled_days,
+    COUNT(*) FILTER (
+        WHERE scheduled_shipping_days > 5
+    ) AS items_scheduled_over_5_days,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE scheduled_shipping_days > 5
+        ) / NULLIF(COUNT(*), 0), 2
+    ) AS pct_items_scheduled_over_5_days
+FROM orders_shipments
+GROUP BY shipment_mode, customer_market
+ORDER BY pct_items_scheduled_over_5_days DESC,
+         total_order_items DESC;
+
+
+-- QUERY 39: PRODUCT DEMAND VS FULFILLMENT TIME
+
+WITH product_sales AS (
+    SELECT
+        product_name,
+        SUM(order_quantity) AS total_units_sold,
+        COUNT(DISTINCT order_id) AS total_orders,
+        ROUND(SUM(gross_sales), 2) AS gross_sales
+    FROM orders_shipments
+    GROUP BY product_name
+)
+SELECT
+    p.product_name,
+    p.total_units_sold,
+    p.total_orders,
+    p.gross_sales,
+    f.fulfillment_days,
+    CASE
+        WHEN f.fulfillment_days > 7
+            THEN 'Slow Fulfillment'
+        WHEN f.fulfillment_days > 4
+            THEN 'Moderate Fulfillment'
+        ELSE 'Fast Fulfillment'
+    END AS fulfillment_category
+FROM product_sales p
+LEFT JOIN fulfillment f
+    ON p.product_name = f.product_name
+ORDER BY p.total_units_sold DESC
+LIMIT 20;
+
+
+-- QUERY 40: LOGISTICS DATA QUALITY VALIDATION
+
+SELECT
+    COUNT(*) AS total_order_items,
+
+    COUNT(*) FILTER (
+        WHERE shipment_mode IS NULL
+           OR shipment_mode = ''
+    ) AS missing_shipment_modes,
+
+    COUNT(*) FILTER (
+        WHERE warehouse_country IS NULL
+           OR warehouse_country = ''
+    ) AS missing_warehouse_countries,
+
+    COUNT(*) FILTER (
+        WHERE scheduled_shipping_days IS NULL
+    ) AS missing_scheduled_days,
+
+    COUNT(*) FILTER (
+        WHERE scheduled_shipping_days < 0
+    ) AS negative_scheduled_days,
+
+    COUNT(*) FILTER (
+        WHERE shipment_year IS NULL
+           OR shipment_month IS NULL
+           OR shipment_day IS NULL
+    ) AS missing_shipment_date_parts,
+
+    COUNT(*) FILTER (
+        WHERE TRY_CAST(
+            CAST(shipment_year AS VARCHAR) || '-' ||
+            LPAD(CAST(shipment_month AS VARCHAR), 2, '0') || '-' ||
+            LPAD(CAST(shipment_day AS VARCHAR), 2, '0')
+            AS DATE
+        ) IS NULL
+    ) AS invalid_shipment_dates
+
+FROM orders_shipments;
+
+
