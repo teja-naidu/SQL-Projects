@@ -1070,3 +1070,397 @@ SELECT
 FROM orders_shipments;
 
 
+-- ============================================================
+-- SQL PROJECT 19: SUPPLY CHAIN & INVENTORY ANALYTICS
+-- DAY 4: SALES, PROFITABILITY & DEMAND ANALYTICS
+-- QUERIES 41-55
+-- ============================================================
+
+
+-- ============================================================
+-- QUERY 41: YEARLY SALES & PROFIT PERFORMANCE
+-- ============================================================
+
+SELECT
+    order_year AS sales_year,
+    COUNT(DISTINCT order_id) AS total_orders,
+    COUNT(*) AS total_order_items,
+    SUM(order_quantity) AS total_units_sold,
+    ROUND(SUM(gross_sales), 2) AS total_gross_sales,
+    ROUND(SUM(profit), 2) AS total_profit,
+    ROUND(
+        100.0 * SUM(profit) /
+        NULLIF(SUM(gross_sales), 0),
+        2
+    ) AS profit_margin_pct
+FROM orders_shipments
+GROUP BY order_year
+ORDER BY sales_year;
+
+
+-- ============================================================
+-- QUERY 42: YEAR-OVER-YEAR SALES GROWTH
+-- ============================================================
+
+WITH yearly_sales AS (
+    SELECT
+        order_year AS sales_year,
+        SUM(gross_sales) AS gross_sales,
+        SUM(profit) AS total_profit
+    FROM orders_shipments
+    GROUP BY order_year
+),
+growth AS (
+    SELECT
+        sales_year,
+        gross_sales,
+        total_profit,
+        LAG(gross_sales) OVER (
+            ORDER BY sales_year
+        ) AS previous_year_sales
+    FROM yearly_sales
+)
+SELECT
+    sales_year,
+    ROUND(gross_sales, 2) AS gross_sales,
+    ROUND(total_profit, 2) AS total_profit,
+    ROUND(previous_year_sales, 2)
+        AS previous_year_sales,
+    ROUND(
+        100.0 * (gross_sales - previous_year_sales) /
+        NULLIF(previous_year_sales, 0),
+        2
+    ) AS yoy_sales_growth_pct
+FROM growth
+ORDER BY sales_year;
+
+
+-- ============================================================
+-- QUERY 43: MONTHLY SALES & PROFIT TRENDS
+-- ============================================================
+
+SELECT
+    order_year_month AS year_month,
+    COUNT(DISTINCT order_id) AS total_orders,
+    SUM(order_quantity) AS total_units_sold,
+    ROUND(SUM(gross_sales), 2) AS gross_sales,
+    ROUND(SUM(profit), 2) AS total_profit,
+    ROUND(
+        100.0 * SUM(profit) /
+        NULLIF(SUM(gross_sales), 0),
+        2
+    ) AS profit_margin_pct
+FROM orders_shipments
+GROUP BY order_year_month
+ORDER BY year_month;
+
+
+-- ============================================================
+-- QUERY 44: TOP 10 MONTHS BY GROSS SALES
+-- ============================================================
+
+SELECT
+    order_year_month AS year_month,
+    COUNT(DISTINCT order_id) AS total_orders,
+    SUM(order_quantity) AS total_units_sold,
+    ROUND(SUM(gross_sales), 2) AS gross_sales,
+    ROUND(SUM(profit), 2) AS total_profit
+FROM orders_shipments
+GROUP BY order_year_month
+ORDER BY gross_sales DESC
+LIMIT 10;
+
+
+-- ============================================================
+-- QUERY 45: PRODUCT DEPARTMENT PERFORMANCE
+-- ============================================================
+
+SELECT
+    product_department,
+    COUNT(DISTINCT order_id) AS total_orders,
+    SUM(order_quantity) AS total_units_sold,
+    ROUND(SUM(gross_sales), 2) AS gross_sales,
+    ROUND(SUM(profit), 2) AS total_profit,
+    ROUND(
+        100.0 * SUM(profit) /
+        NULLIF(SUM(gross_sales), 0),
+        2
+    ) AS profit_margin_pct
+FROM orders_shipments
+GROUP BY product_department
+ORDER BY gross_sales DESC;
+
+
+-- ============================================================
+-- QUERY 46: TOP 15 PRODUCT CATEGORIES BY PROFIT
+-- ============================================================
+
+SELECT
+    product_department,
+    product_category,
+    COUNT(DISTINCT order_id) AS total_orders,
+    SUM(order_quantity) AS total_units_sold,
+    ROUND(SUM(gross_sales), 2) AS gross_sales,
+    ROUND(SUM(profit), 2) AS total_profit,
+    ROUND(
+        100.0 * SUM(profit) /
+        NULLIF(SUM(gross_sales), 0),
+        2
+    ) AS profit_margin_pct
+FROM orders_shipments
+GROUP BY
+    product_department,
+    product_category
+ORDER BY total_profit DESC
+LIMIT 15;
+
+
+-- ============================================================
+-- QUERY 47: CUSTOMER MARKET PROFITABILITY
+-- ============================================================
+
+SELECT
+    customer_market,
+    COUNT(DISTINCT order_id) AS total_orders,
+    COUNT(DISTINCT customer_id) AS total_customers,
+    SUM(order_quantity) AS total_units_sold,
+    ROUND(SUM(gross_sales), 2) AS gross_sales,
+    ROUND(SUM(profit), 2) AS total_profit,
+    ROUND(
+        100.0 * SUM(profit) /
+        NULLIF(SUM(gross_sales), 0),
+        2
+    ) AS profit_margin_pct
+FROM orders_shipments
+GROUP BY customer_market
+ORDER BY total_profit DESC;
+
+
+-- ============================================================
+-- QUERY 48: TOP 15 MOST PROFITABLE PRODUCTS
+-- ============================================================
+
+SELECT
+    product_name,
+    SUM(order_quantity) AS total_units_sold,
+    ROUND(SUM(gross_sales), 2) AS gross_sales,
+    ROUND(SUM(profit), 2) AS total_profit,
+    ROUND(
+        100.0 * SUM(profit) /
+        NULLIF(SUM(gross_sales), 0),
+        2
+    ) AS profit_margin_pct
+FROM orders_shipments
+GROUP BY product_name
+ORDER BY total_profit DESC
+LIMIT 15;
+
+
+-- ============================================================
+-- QUERY 49: BOTTOM 15 PRODUCTS BY PROFIT MARGIN
+-- Only products with at least 10 order items
+-- ============================================================
+
+SELECT
+    product_name,
+    COUNT(*) AS total_order_items,
+    SUM(order_quantity) AS total_units_sold,
+    ROUND(SUM(gross_sales), 2) AS gross_sales,
+    ROUND(SUM(profit), 2) AS total_profit,
+    ROUND(
+        100.0 * SUM(profit) /
+        NULLIF(SUM(gross_sales), 0),
+        2
+    ) AS profit_margin_pct
+FROM orders_shipments
+GROUP BY product_name
+HAVING COUNT(*) >= 10
+   AND SUM(gross_sales) > 0
+ORDER BY profit_margin_pct ASC
+LIMIT 15;
+
+
+-- ============================================================
+-- QUERY 50: REVENUE CONCENTRATION - TOP 10 PRODUCTS
+-- ============================================================
+
+WITH product_sales AS (
+    SELECT
+        product_name,
+        SUM(gross_sales) AS gross_sales
+    FROM orders_shipments
+    GROUP BY product_name
+),
+ranked_products AS (
+    SELECT
+        product_name,
+        gross_sales,
+        ROW_NUMBER() OVER (
+            ORDER BY gross_sales DESC, product_name
+        ) AS sales_rank,
+        SUM(gross_sales) OVER ()
+            AS overall_gross_sales
+    FROM product_sales
+)
+SELECT
+    sales_rank,
+    product_name,
+    ROUND(gross_sales, 2) AS gross_sales,
+    ROUND(
+        100.0 * gross_sales /
+        NULLIF(overall_gross_sales, 0),
+        2
+    ) AS revenue_share_pct,
+    ROUND(
+        100.0 * SUM(gross_sales) OVER (
+            ORDER BY sales_rank
+            ROWS BETWEEN UNBOUNDED PRECEDING
+            AND CURRENT ROW
+        ) / NULLIF(overall_gross_sales, 0),
+        2
+    ) AS cumulative_revenue_share_pct
+FROM ranked_products
+ORDER BY sales_rank
+LIMIT 10;
+
+
+-- ============================================================
+-- QUERY 51: MONTH-OVER-MONTH REVENUE GROWTH
+-- ============================================================
+
+WITH monthly_sales AS (
+    SELECT
+        order_year_month AS year_month,
+        SUM(gross_sales) AS gross_sales
+    FROM orders_shipments
+    GROUP BY order_year_month
+),
+monthly_growth AS (
+    SELECT
+        year_month,
+        gross_sales,
+        LAG(gross_sales) OVER (
+            ORDER BY year_month
+        ) AS previous_month_sales
+    FROM monthly_sales
+)
+SELECT
+    year_month,
+    ROUND(gross_sales, 2) AS gross_sales,
+    ROUND(previous_month_sales, 2)
+        AS previous_month_sales,
+    ROUND(
+        gross_sales - previous_month_sales,
+        2
+    ) AS revenue_change,
+    ROUND(
+        100.0 * (gross_sales - previous_month_sales) /
+        NULLIF(previous_month_sales, 0),
+        2
+    ) AS mom_growth_pct
+FROM monthly_growth
+ORDER BY year_month;
+
+
+-- ============================================================
+-- QUERY 52: MONTH-OF-YEAR DEMAND SEASONALITY
+-- ============================================================
+
+SELECT
+    order_month AS sales_month,
+    COUNT(DISTINCT order_id) AS total_orders,
+    SUM(order_quantity) AS total_units_sold,
+    ROUND(SUM(gross_sales), 2) AS gross_sales,
+    ROUND(AVG(gross_sales), 2)
+        AS avg_sales_per_order_item
+FROM orders_shipments
+GROUP BY order_month
+ORDER BY sales_month;
+
+
+-- ============================================================
+-- QUERY 53: AVERAGE ORDER VALUE BY YEAR
+-- ============================================================
+
+WITH order_totals AS (
+    SELECT
+        order_year,
+        order_id,
+        SUM(gross_sales) AS order_gross_sales,
+        SUM(profit) AS order_profit,
+        SUM(order_quantity) AS order_units
+    FROM orders_shipments
+    GROUP BY order_year, order_id
+)
+SELECT
+    order_year AS sales_year,
+    COUNT(*) AS total_orders,
+    ROUND(AVG(order_gross_sales), 2)
+        AS avg_order_value,
+    ROUND(AVG(order_profit), 2)
+        AS avg_profit_per_order,
+    ROUND(AVG(order_units), 2)
+        AS avg_units_per_order
+FROM order_totals
+GROUP BY order_year
+ORDER BY sales_year;
+
+
+-- ============================================================
+-- QUERY 54: TOP 10 CUSTOMERS BY GROSS SALES
+-- ============================================================
+
+SELECT
+    customer_id,
+    COUNT(DISTINCT order_id) AS total_orders,
+    SUM(order_quantity) AS total_units_purchased,
+    ROUND(SUM(gross_sales), 2) AS gross_sales,
+    ROUND(SUM(profit), 2) AS total_profit
+FROM orders_shipments
+WHERE customer_id IS NOT NULL
+GROUP BY customer_id
+ORDER BY gross_sales DESC
+LIMIT 10;
+
+
+-- ============================================================
+-- QUERY 55: SALES DATA QUALITY VALIDATION
+-- ============================================================
+
+SELECT
+    COUNT(*) AS total_order_items,
+
+    COUNT(*) FILTER (
+        WHERE order_id IS NULL
+    ) AS missing_order_ids,
+
+    COUNT(*) FILTER (
+        WHERE customer_id IS NULL
+    ) AS missing_customer_ids,
+
+    COUNT(*) FILTER (
+        WHERE gross_sales IS NULL
+    ) AS missing_gross_sales,
+
+    COUNT(*) FILTER (
+        WHERE profit IS NULL
+    ) AS missing_profit,
+
+    COUNT(*) FILTER (
+        WHERE order_quantity IS NULL
+           OR order_quantity <= 0
+    ) AS invalid_order_quantities,
+
+    COUNT(*) FILTER (
+        WHERE gross_sales < 0
+    ) AS negative_gross_sales,
+
+    COUNT(*) FILTER (
+        WHERE order_year_month IS NULL
+           OR order_month IS NULL
+           OR order_year IS NULL
+    ) AS missing_order_dates
+
+FROM orders_shipments;
+
+
