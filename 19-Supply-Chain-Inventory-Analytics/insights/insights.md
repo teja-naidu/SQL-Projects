@@ -1051,5 +1051,719 @@ Day 4 will focus on **Sales, Profitability & Demand Analysis**, including:
 
 **Day 3 Status: Completed**
 
+---
 
+# Day 4: Sales, Profitability & Demand Analytics
+
+## 1. Objective
+
+The objective of Day 4 is to analyze historical sales performance, profitability, product demand, customer markets, revenue concentration, and seasonal sales patterns.
+
+This analysis uses the `orders_shipments` dataset and focuses on understanding business performance from January 2015 through December 2017.
+
+**Analysis Scope:**
+- SQL Queries: 41–55
+- Analysis Period: January 2015 – December 2017
+- Primary Table: `orders_shipments`
+- Total Order-Item Records: 30,871
+- Product Departments: 11
+- Customer Markets: 5
+
+### Overall Business KPIs
+
+| Metric | Value |
+|---|---:|
+| Total Order-Item Records | 30,871 |
+| Distinct Order IDs | 11,072 |
+| Distinct Order ID + Date Combinations | 19,966 |
+| Total Gross Sales | $6,181,476 |
+| Reported Profit | $3,994,192 |
+| Overall Reported Profit Margin | 64.62% |
+
+**Data Interpretation:** Distinct order IDs do not represent confirmed unique business orders because order IDs are reused across dates. Order-level metrics require additional validation.
+
+---
+
+## 2. Yearly Sales & Profit Performance
+
+**SQL Query 41 – Yearly Sales and Profitability**
+
+| Year | Gross Sales | Reported Profit | Profit Margin |
+|---|---:|---:|---:|
+| 2015 | $2,112,579 | $1,379,939 | 65.32% |
+| 2016 | $2,213,350 | $1,446,057 | 65.33% |
+| 2017 | $1,855,547 | $1,168,196 | 62.96% |
+| **Total** | **$6,181,476** | **$3,994,192** | **64.62%** |
+
+### Key Findings
+
+1. 2016 generated the highest annual gross sales, at approximately $2.21 million.
+2. 2016 also generated the highest reported profit, at approximately $1.45 million.
+3. Gross sales declined to approximately $1.86 million in 2017.
+4. The reported profit margin remained stable between 2015 and 2016.
+5. The reported profit margin declined by 2.37 percentage points between 2016 and 2017.
+
+### Business Interpretation
+
+Business performance improved in 2016 but weakened in 2017.
+
+The 2017 decline affected both gross sales and reported profitability.
+
+**Recommendation:** Investigate the drivers of declining sales and margins, particularly changes in product mix, demand, inventory availability, and reported profit composition.
+
+---
+
+## 3. Year-over-Year Revenue Growth
+
+**SQL Query 42 – Year-over-Year Sales Growth**
+
+| Year | Gross Sales | Previous Year Sales | YoY Growth |
+|---|---:|---:|---:|
+| 2015 | $2,112,579 | — | — |
+| 2016 | $2,213,350 | $2,112,579 | +4.77% |
+| 2017 | $1,855,547 | $2,213,350 | -16.17% |
+
+### Key Findings
+
+- Revenue increased by 4.77% in 2016.
+- Revenue declined by 16.17% in 2017.
+- The 2017 revenue decline amounted to $357,803 compared with 2016.
+- The decline reversed the previous year's positive growth.
+
+### Business Interpretation
+
+The business experienced a significant reversal in revenue growth during 2017.
+
+**Recommendation:** Compare monthly sales, customer demand, product availability, and order composition to determine which factors contributed to the decline.
+
+---
+
+## 4. Monthly Sales & Profit Trends
+
+**SQL Query 43 – Monthly Sales Performance**
+
+Monthly sales were analyzed across all 36 months.
+
+### Selected Monthly Results
+
+| Month | Gross Sales | Reported Profit | Profit Margin |
+|---|---:|---:|---:|
+| January 2015 | $194,792 | $129,546 | 66.50% |
+| August 2016 | $203,949 | $134,801 | 66.10% |
+| September 2017 | $200,518 | $126,684 | 63.18% |
+| October 2017 | $96,605 | $51,105 | 52.90% |
+| November 2017 | $84,814 | $44,248 | 52.17% |
+| December 2017 | $46,069 | $23,793 | 51.65% |
+
+### Key Findings
+
+1. August 2016 recorded the highest monthly gross sales, at $203,949.
+2. September 2017 generated $200,518 in gross sales.
+3. October 2017 revenue dropped substantially to $96,605.
+4. November 2017 revenue declined further to $84,814.
+5. December 2017 recorded the lowest monthly gross sales, at $46,069.
+6. The reported profit margin declined from 63.18% in September 2017 to 51.65% in December 2017.
+
+### Business Interpretation
+
+The final quarter of 2017 experienced a substantial deterioration in revenue and reported profit margins.
+
+This pattern aligns with the late-2017 inventory and order-activity declines identified during Days 2 and 3.
+
+However, the available data does not establish a causal relationship between inventory levels and sales performance.
+
+**Recommendation:** Investigate the final quarter of 2017 for potential demand changes, product availability issues, operational changes, and dataset completeness.
+
+---
+
+## 5. Top 10 Revenue-Generating Months
+
+**SQL Query 44 – Highest Monthly Gross Sales**
+
+| Rank | Month | Gross Sales |
+|---|---|---:|
+| 1 | August 2016 | $203,949 |
+| 2 | September 2017 | $200,518 |
+| 3 | October 2016 | $199,842 |
+| 4 | July 2016 | $199,063 |
+| 5 | November 2016 | $196,108 |
+| 6 | January 2015 | $194,792 |
+| 7 | January 2016 | $193,825 |
+| 8 | July 2017 | $189,340 |
+| 9 | May 2016 | $187,525 |
+| 10 | April 2015 | $185,757 |
+
+### Key Findings
+
+- August 2016 was the strongest revenue month.
+- Several of the highest-performing months occurred in 2016.
+- September 2017 was the second-highest revenue month despite the decline that followed.
+- Strong months occurred at different points throughout the year.
+
+### Business Recommendation
+
+Investigate the products, customer markets, and demand conditions associated with high-revenue months to identify repeatable performance drivers.
+
+---
+
+## 6. Product Department Sales & Profitability
+
+**SQL Query 45 – Department Performance**
+
+| Department | Gross Sales | Reported Profit | Profit Margin |
+|---|---:|---:|---:|
+| Fan Shop | $2,934,670 | $1,641,468 | 55.93% |
+| Apparel | $1,341,243 | $912,034 | 68.00% |
+| Golf | $805,305 | $655,012 | 81.34% |
+| Footwear | $697,686 | $554,792 | 79.52% |
+| Outdoors | $200,834 | $124,969 | 62.23% |
+| Technology | $98,982 | $47,979 | 48.47% |
+| Fitness | $59,268 | $37,363 | 63.04% |
+| Discs Shop | $26,955 | $12,791 | 47.45% |
+| Health and Beauty | $8,497 | $3,944 | 46.42% |
+| Pet Shop | $6,300 | $3,000 | 47.62% |
+| Book Shop | $1,736 | $840 | 48.39% |
+
+### Key Findings
+
+1. Fan Shop generated the highest revenue at approximately $2.93 million.
+2. Apparel was the second-largest revenue contributor.
+3. Golf recorded the highest department-level profit margin at 81.34%.
+4. Footwear recorded the second-highest margin at 79.52%.
+5. Fan Shop generated the most reported profit in absolute dollars despite its lower margin.
+6. Technology, Discs Shop, and Health and Beauty recorded margins below 50%.
+
+### Business Interpretation
+
+High revenue does not necessarily correspond to the highest percentage profitability.
+
+Fan Shop generated substantial sales volume, while Golf and Footwear demonstrated stronger reported profit margins.
+
+**Recommendation:** Evaluate department-level revenue contribution and profit margin together when planning inventory allocation and product strategies.
+
+---
+
+## 7. Product Category Profitability
+
+**SQL Query 46 – Top 15 Categories by Reported Profit**
+
+### Leading Product Categories
+
+| Department | Product Category | Gross Sales | Reported Profit | Profit Margin |
+|---|---|---:|---:|---:|
+| Apparel | Cleats | $778,920 | $631,740 | 81.10% |
+| Fan Shop | Fishing | $1,151,200 | $575,600 | 50.00% |
+| Footwear | Cardio Equipment | $650,270 | $524,390 | 80.64% |
+| Golf | Women's Apparel | $544,300 | $452,750 | 83.18% |
+| Fan Shop | Indoor/Outdoor Games | $508,200 | $427,000 | 84.02% |
+| Fan Shop | Camping & Hiking | $728,100 | $364,050 | 50.00% |
+| Fan Shop | Water Sports | $538,650 | $269,304 | 50.00% |
+| Apparel | Men's Footwear | $501,150 | $250,575 | 50.00% |
+| Golf | Shop By Sport | $234,740 | $184,550 | 78.62% |
+| Technology | Cameras | $86,332 | $41,829 | 48.45% |
+
+### Key Findings
+
+- Cleats generated the highest category-level reported profit, at $631,740.
+- Fishing generated the highest gross sales among the leading categories, at $1,151,200.
+- Indoor/Outdoor Games recorded a high profit margin of 84.02%.
+- Women's Apparel within Golf recorded a margin of 83.18%.
+- Several high-revenue categories had margins of approximately 50%.
+
+### Business Recommendation
+
+Prioritize categories using both total profit contribution and percentage margin, rather than revenue alone.
+
+---
+
+## 8. Customer Market Profitability
+
+**SQL Query 47 – Market-Level Profitability**
+
+| Customer Market | Gross Sales | Reported Profit | Profit Margin |
+|---|---:|---:|---:|
+| LATAM | $1,806,987 | $1,183,753 | 65.51% |
+| Europe | $1,788,124 | $1,136,535 | 63.56% |
+| Pacific Asia | $1,280,575 | $817,516 | 63.84% |
+| North America | $898,898 | $589,130 | 65.54% |
+| Africa | $406,892 | $267,258 | 65.68% |
+
+### Key Findings
+
+1. LATAM generated the highest gross sales and reported profit.
+2. Europe ranked second in gross sales and reported profit.
+3. Pacific Asia generated approximately $1.28 million in revenue.
+4. Africa recorded the highest percentage profit margin at 65.68%.
+5. Europe recorded the lowest market-level margin at 63.56%.
+6. Profit margins remained relatively close across the five markets.
+
+### Business Interpretation
+
+LATAM was the largest contributor to reported profit, while Africa achieved the highest percentage margin.
+
+However, Africa's total revenue was substantially smaller than LATAM's.
+
+**Recommendation:** Use market-level revenue, profit contribution, and margin together when evaluating regional growth opportunities.
+
+---
+
+## 9. Top 15 Products by Reported Profit
+
+**SQL Query 48 – Product Profitability Ranking**
+
+### Leading Products
+
+| Product | Gross Sales | Reported Profit | Margin |
+|---|---:|---:|---:|
+| Perfect Fitness Perfect Rip Deck | $777,120 | $630,924 | 81.19% |
+| Field & Stream Sportsman 16 Gun Fire Safe | $1,151,200 | $575,600 | 50.00% |
+| Nike Men's Free 5.0+ Running Shoe | $645,500 | $520,870 | 80.69% |
+| Nike Men's Dri-FIT Victory Golf Polo | $544,300 | $452,750 | 83.18% |
+| O'Brien Men's Neoprene Life Vest | $508,200 | $427,000 | 84.02% |
+| Diamondback Women's Serene Classic Comfort Bi | $728,100 | $364,050 | 50.00% |
+| Pelican Sunstream 100 Kayak | $536,200 | $268,100 | 50.00% |
+| Nike Men's CJ Elite 2 TD Football Cleat | $501,150 | $250,575 | 50.00% |
+| Under Armour Girls' Toddler Spine Surge Running | $227,560 | $180,420 | 79.28% |
+| Web Camera | $86,332 | $41,829 | 48.45% |
+
+### Key Findings
+
+- Perfect Fitness Perfect Rip Deck generated the highest reported profit, at $630,924.
+- Field & Stream Sportsman 16 Gun Fire Safe generated the highest gross sales, at $1,151,200.
+- Nike Men's Free 5.0+ Running Shoe generated $520,870 in reported profit.
+- O'Brien Men's Neoprene Life Vest recorded the highest margin among these leading products, at 84.02%.
+- Several high-revenue products recorded margins of exactly 50%.
+
+### Cross-Day Insight
+
+Day 3 identified relatively long fulfillment times for two high-profit products:
+
+- Perfect Fitness Perfect Rip Deck: 8.3 days.
+- Nike Men's Free 5.0+ Running Shoe: 9.4 days.
+
+These products combine substantial business value with relatively slow warehouse fulfillment.
+
+**Recommendation:** Prioritize operational reviews of high-profit, high-demand products with extended fulfillment times.
+
+---
+
+## 10. Bottom 15 Products by Profit Margin
+
+**SQL Query 49 – Lowest Profit Margins**
+
+The query included products with at least 10 order-item records and positive gross sales.
+
+### Selected Lowest-Margin Products
+
+| Product | Gross Sales | Reported Profit | Margin |
+|---|---:|---:|---:|
+| GolfBuddy VT3 GPS Watch | $2,200 | $693 | 31.50% |
+| Nike Men's Kobe IX Elite Low Basketball Shoe | $2,800 | $980 | 35.00% |
+| insta-bed Neverflat Air Mattress | $1,650 | $660 | 40.00% |
+| Rock music | $3,654 | $1,540 | 42.15% |
+| Merrell Women's Siren Mid Waterproof Hiking B | $1,755 | $767 | 43.70% |
+| Fitbit The One Wireless Activity & Sleep Tracker | $3,200 | $1,404 | 43.88% |
+| LIJA Women's Mid-Length Panel Golf Shorts | $3,300 | $1,452 | 44.00% |
+| LIJA Women's Button Golf Dress | $1,296 | $576 | 44.44% |
+| Yakima DoubleDown Ace Hitch Mount 4-Bike Rack | $2,268 | $1,020 | 44.97% |
+| Nike Men's Fingertrap Max Training Shoe | $1,625 | $741 | 45.60% |
+| Summer dresses | $14,904 | $6,831 | 45.83% |
+| Merrell Women's Grassbow Sport Waterproof Hiking | $1,430 | $660 | 46.15% |
+| Cleveland Golf Collegiate My Custom Wedge 588 | $2,310 | $1,067 | 46.19% |
+| adidas Brazuca 2017 Official Match Ball | $1,600 | $740 | 46.25% |
+| First aid kit | $8,497 | $3,944 | 46.42% |
+
+### Key Findings
+
+1. GolfBuddy VT3 GPS Watch had the lowest reported margin at 31.50%.
+2. Nike Men's Kobe IX Elite Low Basketball Shoe recorded a margin of 35.00%.
+3. Several low-margin products had relatively small sales volumes.
+4. Summer dresses generated $14,904 in gross sales with a 45.83% margin.
+5. Lower percentage margins do not necessarily indicate negative reported profit.
+
+### Business Recommendation
+
+Review lower-margin products for pricing, discounting, and cost structure opportunities, while considering their absolute profit contribution and demand.
+
+---
+
+## 11. Revenue Concentration Analysis
+
+**SQL Query 50 – Top 10 Products by Revenue**
+
+| Rank | Product | Gross Sales | Revenue Share | Cumulative Share |
+|---|---|---:|---:|---:|
+| 1 | Field & Stream Sportsman 16 Gun Fire Safe | $1,151,200 | 18.62% | 18.62% |
+| 2 | Perfect Fitness Perfect Rip Deck | $777,120 | 12.57% | 31.20% |
+| 3 | Diamondback Women's Serene Classic Comfort Bi | $728,100 | 11.78% | 42.97% |
+| 4 | Nike Men's Free 5.0+ Running Shoe | $645,500 | 10.44% | 53.42% |
+| 5 | Nike Men's Dri-FIT Victory Golf Polo | $544,300 | 8.81% | 62.22% |
+| 6 | Pelican Sunstream 100 Kayak | $536,200 | 8.67% | 70.90% |
+| 7 | O'Brien Men's Neoprene Life Vest | $508,200 | 8.22% | 79.12% |
+| 8 | Nike Men's CJ Elite 2 TD Football Cleat | $501,150 | 8.11% | 87.22% |
+| 9 | Under Armour Girls' Toddler Spine Surge Running | $227,560 | 3.68% | 90.91% |
+| 10 | Web Camera | $86,332 | 1.40% | 92.30% |
+
+### Key Findings
+
+- The highest-revenue product contributed 18.62% of total gross sales.
+- The top two products generated approximately 31.20% of total revenue.
+- The top five products generated approximately 62.22%.
+- The top ten products generated 92.30% of total gross sales.
+- The remaining products collectively generated approximately 7.70%.
+
+### Business Interpretation
+
+Revenue was highly concentrated among a relatively small group of products.
+
+This creates potential business exposure if demand, inventory availability, or fulfillment performance changes for these products.
+
+### Business Recommendation
+
+Monitor top-selling products closely and evaluate opportunities to diversify revenue across additional products.
+
+---
+
+## 12. Month-over-Month Revenue Growth
+
+**SQL Query 51 – Monthly Revenue Growth**
+
+### Selected Growth Results
+
+| Month | Gross Sales | Revenue Change | MoM Growth |
+|---|---:|---:|---:|
+| January 2016 | $193,825 | +$22,362 | +13.04% |
+| July 2016 | $199,063 | +$30,613 | +18.17% |
+| October 2016 | $199,842 | +$26,851 | +15.52% |
+| February 2017 | $184,755 | +$23,025 | +14.24% |
+| September 2017 | $200,518 | +$19,359 | +10.69% |
+| October 2017 | $96,605 | -$103,913 | -51.82% |
+| November 2017 | $84,814 | -$11,791 | -12.21% |
+| December 2017 | $46,069 | -$38,745 | -45.68% |
+
+### Key Findings
+
+1. July 2016 recorded strong month-over-month growth of 18.17%.
+2. October 2016 grew by 15.52%.
+3. September 2017 grew by 10.69%.
+4. October 2017 experienced a 51.82% revenue decline.
+5. November 2017 declined by another 12.21%.
+6. December 2017 declined by a further 45.68%.
+
+### Business Interpretation
+
+The final quarter of 2017 represents the most significant period of sustained revenue deterioration in the analyzed results.
+
+### Business Recommendation
+
+Investigate the sharp decline by examining product availability, sales mix, customer demand, and potential source-data changes.
+
+---
+
+## 13. Monthly Demand Seasonality
+
+**SQL Query 52 – Month-of-Year Sales Patterns**
+
+Sales were aggregated by calendar month across 2015–2017.
+
+| Month | Units Sold | Gross Sales |
+|---|---:|---:|
+| January | 6,215 | $550,347 |
+| February | 5,924 | $526,085 |
+| March | 6,014 | $526,883 |
+| April | 5,988 | $535,921 |
+| May | 5,880 | $531,347 |
+| June | 5,556 | $525,507 |
+| July | 6,045 | $560,527 |
+| August | 5,920 | $562,055 |
+| September | 5,656 | $541,157 |
+| October | 4,603 | $477,650 |
+| November | 4,395 | $450,043 |
+| December | 4,171 | $393,954 |
+
+### Key Findings
+
+- August generated the highest aggregate gross sales, at $562,055.
+- July ranked second, at $560,527.
+- January recorded the highest aggregate units sold, at 6,215.
+- December recorded the lowest aggregate gross sales and units sold.
+- October through December showed weaker aggregate sales compared with most earlier months.
+
+### Important Limitation
+
+The late-2017 revenue decline affects the aggregated October–December results.
+
+Therefore, these results should not be interpreted as definitive evidence of recurring seasonal demand without comparing individual years and investigating the 2017 anomaly.
+
+### Business Recommendation
+
+Perform year-specific seasonal comparisons before using these patterns for demand forecasting or inventory planning.
+
+---
+
+## 14. Average Order Value Analysis
+
+**SQL Query 53 – Average Order Value by Year**
+
+| Year | Distinct Year-Order ID Groups | Calculated Average Order Value | Avg. Reported Profit per Group | Avg. Units per Group |
+|---|---:|---:|---:|---:|
+| 2015 | 4,837 | $436.75 | $285.29 | 4.85 |
+| 2016 | 5,146 | $430.11 | $281.01 | 4.80 |
+| 2017 | 4,718 | $393.29 | $247.60 | 3.86 |
+
+### Key Findings
+
+- The calculated average order value declined across the three years.
+- The 2017 average was approximately $43.46 lower than the 2015 average.
+- The average number of units per year-order group also declined.
+
+### Data Quality Qualification
+
+The query groups records by `order_year` and `order_id`.
+
+Additional validation established that the same order ID can occur on multiple dates within the same year.
+
+Consequently, these values are **averages per year-order ID group**, not verified average values per individual business order.
+
+The apparent trend should be re-evaluated using a validated order-level identifier.
+
+### Business Recommendation
+
+Confirm the source-system business order key before using average order value as an operational KPI.
+
+---
+
+## 15. Top Customers by Gross Sales
+
+**SQL Query 54 – Customer Revenue Ranking**
+
+| Customer ID | Reported Distinct Order IDs | Gross Sales | Reported Profit |
+|---|---:|---:|---:|
+| 9897 | 5 | $4,570 | $2,633 |
+| 11816 | 4 | $3,805 | $2,246 |
+| 9277 | 6 | $3,740 | $2,585 |
+| 3297 | 3 | $3,720 | $2,037 |
+| 5363 | 4 | $3,640 | $1,954 |
+| 2922 | 4 | $3,635 | $2,031 |
+| 6300 | 4 | $3,525 | $2,051 |
+| 8078 | 4 | $3,505 | $2,288 |
+| 6724 | 3 | $3,500 | $2,205 |
+| 5958 | 4 | $3,486 | $2,310 |
+
+### Key Findings
+
+1. Customer 9897 generated the highest gross sales, at $4,570.
+2. Customer 11816 ranked second with $3,805.
+3. Customer 9277 ranked third with $3,740.
+4. The leading customers generated multiple recorded order-item transactions.
+5. Customer-level gross sales and reported profit can be compared without relying on a unique order key.
+
+### Important Limitation
+
+The reported distinct order ID counts may undercount actual customer orders when identifiers are reused.
+
+**Recommendation:** Validate order-level identifiers before calculating customer purchase frequency or repeat-order metrics.
+
+---
+
+## 16. Sales Data Quality Validation
+
+**SQL Query 55 – Sales Data Quality**
+
+### Confirmed Results
+
+| Validation Check | Result |
+|---|---:|
+| Total Order-Item Records | 30,871 |
+| Missing Order IDs | 0 |
+| Missing Customer IDs | 0 |
+| Negative Gross Sales | 0 |
+| Missing Order Date Components | 0 |
+
+The displayed output truncated three additional validation fields:
+
+- Missing gross sales
+- Missing profit
+- Invalid order quantities
+
+These should be confirmed before reporting complete data quality compliance.
+
+### Key Finding
+
+Although the displayed checks did not identify missing identifiers or negative gross sales, additional validation revealed reuse of order IDs across years and dates.
+
+This is a significant data-modeling consideration for order-level analytics.
+
+---
+
+## 17. Additional Validation: Order Identifier Reuse
+
+Additional SQL checks were performed after Query 55 to investigate inconsistent distinct order counts.
+
+### Validation Results
+
+| Metric | Count |
+|---|---:|
+| Total Order-Item Records | 30,871 |
+| Distinct Order IDs | 11,072 |
+| Distinct Year + Order ID Combinations | 14,701 |
+| Distinct Order ID + Full Date Combinations | 19,966 |
+| Distinct Order Item IDs | 30,871 |
+| Order-Date Groups with Multiple Distinct Customers | 0 |
+
+### Finding 1: Order IDs Are Reused Across Years
+
+The same `order_id` appeared in multiple years.
+
+For example, Order IDs 353, 715, and 815 were each observed across three different years.
+
+Therefore, `order_id` alone cannot be treated as a globally unique order identifier.
+
+### Finding 2: Order IDs Are Reused Within Years
+
+Further investigation found that some order IDs occurred on multiple dates within the same year.
+
+Examples include:
+
+| Year | Order ID | Distinct Order Dates |
+|---|---:|---:|
+| 2015 | 8151 | 5 |
+| 2016 | 35676 | 5 |
+| 2017 | 53871 | 5 |
+
+This confirms that combining `order_year` and `order_id` does not uniquely identify an order.
+
+### Finding 3: Date-Based Composite Identifier
+
+Combining `order_id`, `order_year`, `order_month`, and `order_day` produced 19,966 distinct combinations.
+
+A customer consistency check found no such combinations containing multiple distinct customers.
+
+This supports the date-based combination as a candidate analytical key.
+
+However, it does not prove business-order uniqueness because multiple orders from the same customer could share an identifier and date.
+
+### Finding 4: Order Item Identifier Uniqueness
+
+All 30,871 order-item records had distinct `order_item_id` values.
+
+This supports reliable row-level aggregation and item-level analysis.
+
+### Analytical Impact
+
+**Metrics supported by the current data:**
+
+- Gross sales
+- Reported profit
+- Reported profit margins
+- Product-level units sold
+- Department and category revenue
+- Customer-level sales
+- Monthly and yearly revenue
+
+**Metrics requiring further validation:**
+
+- Unique business-order counts
+- Average order value
+- Orders per customer
+- Repeat-order frequency
+- Order-level conversion and purchasing behavior
+
+### Business Recommendation
+
+Confirm the authoritative order identifier in the source system.
+
+Until that identifier is verified, label order counts according to the actual SQL grouping key and avoid interpreting distinct order IDs as unique business orders.
+
+---
+
+## 18. Cross-Day Business Insights
+
+The combined findings from Days 2, 3, and 4 reveal several important patterns.
+
+### Inventory and Revenue Decline
+
+Day 2 identified a substantial reduction in warehouse inventory during late 2017.
+
+Day 3 identified a corresponding reduction in recorded order activity.
+
+Day 4 confirmed that gross sales and reported profit margins declined sharply during the same period.
+
+These findings justify further investigation, but they do not establish that inventory reductions caused the decline in sales.
+
+### High-Demand Products and Fulfillment
+
+Several high-revenue and high-profit products also had relatively long fulfillment times.
+
+Examples:
+
+- Perfect Fitness Perfect Rip Deck: $630,924 reported profit and 8.3 fulfillment days.
+- Nike Men's Free 5.0+ Running Shoe: $520,870 reported profit and 9.4 fulfillment days.
+
+These products represent strong candidates for warehouse process reviews.
+
+### Revenue Concentration
+
+The top ten products generated 92.30% of total gross sales.
+
+This concentration makes the performance of a small number of products especially important to the business.
+
+### Profitability Differences
+
+Fan Shop generated the most revenue, while Golf and Footwear achieved stronger reported profit margins.
+
+This illustrates why revenue and profitability should be evaluated together.
+
+---
+
+## 19. Overall Day 4 Business Conclusions
+
+Day 4 provided a detailed view of sales performance, profitability, product demand, and customer market contributions.
+
+### Major Findings
+
+1. Total gross sales were $6.18 million, with approximately $3.99 million in reported profit.
+2. Revenue increased by 4.77% in 2016 but declined by 16.17% in 2017.
+3. The overall reported profit margin was 64.62%.
+4. Fan Shop generated the highest department-level revenue.
+5. Golf achieved the highest department-level profit margin at 81.34%.
+6. LATAM generated the highest market-level reported profit.
+7. Perfect Fitness Perfect Rip Deck generated the highest product-level reported profit.
+8. The top ten products contributed 92.30% of gross sales.
+9. October–December 2017 experienced a significant decline in revenue and reported profit margins.
+10. Order identifier reuse requires additional care when calculating order-level metrics.
+
+### Strategic Recommendations
+
+**Revenue Monitoring:** Establish monthly and yearly revenue growth monitoring to detect significant performance changes.
+
+**Product Portfolio Management:** Closely monitor high-revenue products and evaluate opportunities to reduce revenue concentration.
+
+**Profitability Optimization:** Compare product and department margins alongside absolute reported profit.
+
+**Inventory Alignment:** Investigate whether inventory availability and replenishment patterns align with product demand.
+
+**Fulfillment Improvement:** Prioritize high-value products with long warehouse fulfillment times.
+
+**Data Quality Governance:** Validate the business order identifier before publishing unique-order and average-order-value KPIs.
+
+---
+
+## 20. Next Steps – Day 5
+
+Day 5 will focus on **Advanced Supply Chain Analytics & Final Reporting**.
+
+Planned analysis includes:
+
+- Product-level demand and inventory alignment.
+- Inventory coverage and replenishment priorities.
+- High-value product risk assessment.
+- Combined sales, profit, fulfillment, and inventory analysis.
+- Warehouse performance opportunities.
+- Final business recommendations.
+- Final project README and GitHub documentation.
+
+
+
+---
 
