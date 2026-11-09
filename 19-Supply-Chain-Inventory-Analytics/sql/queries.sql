@@ -1463,4 +1463,616 @@ SELECT
 
 FROM orders_shipments;
 
+-- ============================================================
+-- SQL PROJECT 19: SUPPLY CHAIN & INVENTORY ANALYTICS
+-- DAY 5: ADVANCED SUPPLY CHAIN ANALYTICS & FINAL REPORTING
+-- QUERIES 56–70
+-- DATABASE: DUCKDB
+-- ============================================================
+
+
+-- ============================================================
+-- QUERY 56: PRODUCT DEMAND VS LATEST INVENTORY
+-- ============================================================
+
+WITH product_demand AS (
+    SELECT
+        product_name,
+        SUM(order_quantity) AS total_units_sold,
+        ROUND(SUM(gross_sales), 2) AS gross_sales,
+        ROUND(SUM(profit), 2) AS total_profit
+    FROM orders_shipments
+    GROUP BY product_name
+),
+latest_inventory AS (
+    SELECT
+        product_name,
+        year_month,
+        warehouse_inventory,
+        inventory_cost_per_unit
+    FROM inventory
+    QUALIFY ROW_NUMBER() OVER (
+        PARTITION BY product_name
+        ORDER BY year_month DESC
+    ) = 1
+)
+SELECT
+    i.product_name,
+    i.year_month AS inventory_month,
+    i.warehouse_inventory AS latest_inventory,
+    COALESCE(d.total_units_sold, 0) AS total_units_sold,
+    COALESCE(d.gross_sales, 0) AS gross_sales,
+    COALESCE(d.total_profit, 0) AS total_profit
+FROM latest_inventory i
+LEFT JOIN product_demand d
+    ON i.product_name = d.product_name
+ORDER BY total_units_sold DESC;
+
+
+-- ============================================================
+-- QUERY 57: INVENTORY COVERAGE BY PRODUCT
+-- ============================================================
+
+WITH monthly_demand AS (
+    SELECT
+        product_name,
+        SUM(order_quantity) / 36.0 AS avg_monthly_demand
+    FROM orders_shipments
+    GROUP BY product_name
+),
+latest_inventory AS (
+    SELECT
+        product_name,
+        warehouse_inventory
+    FROM inventory
+    QUALIFY ROW_NUMBER() OVER (
+        PARTITION BY product_name
+        ORDER BY year_month DESC
+    ) = 1
+)
+SELECT
+    i.product_name,
+    i.warehouse_inventory AS latest_inventory,
+    ROUND(COALESCE(d.avg_monthly_demand, 0), 2)
+        AS avg_monthly_demand,
+    ROUND(
+        i.warehouse_inventory /
+        NULLIF(d.avg_monthly_demand, 0),
+        2
+    ) AS estimated_months_of_coverage
+FROM latest_inventory i
+LEFT JOIN monthly_demand d
+    ON i.product_name = d.product_name
+ORDER BY estimated_months_of_coverage ASC NULLS LAST;
+
+
+-- ============================================================
+-- QUERY 58: INVENTORY RISK SEGMENTATION
+-- ============================================================
+
+WITH demand AS (
+    SELECT
+        product_name,
+        SUM(order_quantity) / 36.0 AS monthly_demand
+    FROM orders_shipments
+    GROUP BY product_name
+),
+stock AS (
+    SELECT
+        product_name,
+        warehouse_inventory
+    FROM inventory
+    QUALIFY ROW_NUMBER() OVER (
+        PARTITION BY product_name
+        ORDER BY year_month DESC
+    ) = 1
+),
+coverage AS (
+    SELECT
+        s.product_name,
+        s.warehouse_inventory,
+        COALESCE(d.monthly_demand, 0) AS monthly_demand,
+        s.warehouse_inventory /
+            NULLIF(d.monthly_demand, 0) AS coverage_months
+    FROM stock s
+    LEFT JOIN demand d
+        ON s.product_name = d.product_name
+)
+SELECT
+    CASE
+        WHEN monthly_demand = 0 THEN 'No Recorded Demand'
+        WHEN coverage_months < 1 THEN 'Critical Risk'
+        WHEN coverage_months < 3 THEN 'High Risk'
+        WHEN coverage_months < 6 THEN 'Moderate Risk'
+        ELSE 'Low Risk'
+    END AS inventory_risk,
+    COUNT(*) AS total_products,
+    SUM(warehouse_inventory) AS total_inventory_units
+FROM coverage
+GROUP BY 1
+ORDER BY
+    CASE inventory_risk
+        WHEN 'Critical Risk' THEN 1
+        WHEN 'High Risk' THEN 2
+        WHEN 'Moderate Risk' THEN 3
+        WHEN 'Low Risk' THEN 4
+        ELSE 5
+    END;
+
+
+-- ============================================================
+-- QUERY 59: REPLENISHMENT PRIORITY PRODUCTS
+-- ============================================================
+
+WITH demand AS (
+    SELECT
+        product_name,
+        SUM(order_quantity) AS total_units_sold,
+        SUM(order_quantity) / 36.0 AS monthly_demand,
+        SUM(gross_sales) AS gross_sales,
+        SUM(profit) AS total_profit
+    FROM orders_shipments
+    GROUP BY product_name
+),
+stock AS (
+    SELECT
+        product_name,
+        warehouse_inventory
+    FROM inventory
+    QUALIFY ROW_NUMBER() OVER (
+        PARTITION BY product_name
+        ORDER BY year_month DESC
+    ) = 1
+)
+SELECT
+    s.product_name,
+    s.warehouse_inventory,
+    d.total_units_sold,
+    ROUND(d.monthly_demand, 2) AS monthly_demand,
+    ROUND(
+        s.warehouse_inventory /
+        NULLIF(d.monthly_demand, 0), 2
+    ) AS coverage_months,
+    ROUND(d.gross_sales, 2) AS gross_sales,
+    ROUND(d.total_profit, 2) AS total_profit
+FROM stock s
+JOIN demand d
+    ON s.product_name = d.product_name
+WHERE d.monthly_demand > 0
+  AND s.warehouse_inventory < d.monthly_demand
+ORDER BY d.total_profit DESC
+LIMIT 20;
+
+
+-- ============================================================
+-- QUERY 60: ESTIMATED REPLENISHMENT REQUIREMENTS
+-- ============================================================
+
+WITH demand AS (
+    SELECT
+        product_name,
+        SUM(order_quantity) / 36.0 AS monthly_demand
+    FROM orders_shipments
+    GROUP BY product_name
+),
+stock AS (
+    SELECT
+        product_name,
+        warehouse_inventory,
+        inventory_cost_per_unit
+    FROM inventory
+    QUALIFY ROW_NUMBER() OVER (
+        PARTITION BY product_name
+        ORDER BY year_month DESC
+    ) = 1
+),
+requirements AS (
+    SELECT
+        s.product_name,
+        s.warehouse_inventory,
+        COALESCE(d.monthly_demand, 0) AS monthly_demand,
+        s.inventory_cost_per_unit,
+        GREATEST(
+            0,
+            CEIL(COALESCE(d.monthly_demand, 0) * 3)
+                - s.warehouse_inventory
+        ) AS units_to_replenish
+    FROM stock s
+    LEFT JOIN demand d
+        ON s.product_name = d.product_name
+)
+SELECT
+    product_name,
+    warehouse_inventory,
+    ROUND(monthly_demand, 2) AS monthly_demand,
+    units_to_replenish,
+    ROUND(
+        units_to_replenish * inventory_cost_per_unit, 2
+    ) AS estimated_replenishment_cost
+FROM requirements
+WHERE units_to_replenish > 0
+ORDER BY estimated_replenishment_cost DESC
+LIMIT 20;
+
+
+-- ============================================================
+-- QUERY 61: INVENTORY VALUE BY RISK SEGMENT
+-- ============================================================
+
+WITH demand AS (
+    SELECT
+        product_name,
+        SUM(order_quantity) / 36.0 AS monthly_demand
+    FROM orders_shipments
+    GROUP BY product_name
+),
+stock AS (
+    SELECT
+        product_name,
+        warehouse_inventory,
+        inventory_cost_per_unit
+    FROM inventory
+    QUALIFY ROW_NUMBER() OVER (
+        PARTITION BY product_name
+        ORDER BY year_month DESC
+    ) = 1
+),
+risk AS (
+    SELECT
+        s.*,
+        COALESCE(d.monthly_demand, 0) AS monthly_demand,
+        CASE
+            WHEN COALESCE(d.monthly_demand, 0) = 0
+                THEN 'No Recorded Demand'
+            WHEN s.warehouse_inventory / d.monthly_demand < 1
+                THEN 'Critical Risk'
+            WHEN s.warehouse_inventory / d.monthly_demand < 3
+                THEN 'High Risk'
+            WHEN s.warehouse_inventory / d.monthly_demand < 6
+                THEN 'Moderate Risk'
+            ELSE 'Low Risk'
+        END AS inventory_risk
+    FROM stock s
+    LEFT JOIN demand d
+        ON s.product_name = d.product_name
+)
+SELECT
+    inventory_risk,
+    COUNT(*) AS total_products,
+    SUM(warehouse_inventory) AS inventory_units,
+    ROUND(
+        SUM(warehouse_inventory * inventory_cost_per_unit),
+        2
+    ) AS inventory_value
+FROM risk
+GROUP BY inventory_risk
+ORDER BY inventory_value DESC;
+
+
+-- ============================================================
+-- QUERY 62: HIGH-PROFIT PRODUCTS WITH SLOW FULFILLMENT
+-- ============================================================
+
+WITH product_performance AS (
+    SELECT
+        product_name,
+        SUM(order_quantity) AS total_units_sold,
+        SUM(gross_sales) AS gross_sales,
+        SUM(profit) AS total_profit
+    FROM orders_shipments
+    GROUP BY product_name
+)
+SELECT
+    p.product_name,
+    p.total_units_sold,
+    ROUND(p.gross_sales, 2) AS gross_sales,
+    ROUND(p.total_profit, 2) AS total_profit,
+    f.fulfillment_days
+FROM product_performance p
+JOIN fulfillment f
+    ON p.product_name = f.product_name
+WHERE f.fulfillment_days > 7
+ORDER BY p.total_profit DESC
+LIMIT 20;
+
+
+-- ============================================================
+-- QUERY 63: PRODUCT PERFORMANCE AND INVENTORY RISK
+-- ============================================================
+
+WITH product_sales AS (
+    SELECT
+        product_name,
+        SUM(order_quantity) AS units_sold,
+        SUM(gross_sales) AS gross_sales,
+        SUM(profit) AS total_profit,
+        SUM(order_quantity) / 36.0 AS monthly_demand
+    FROM orders_shipments
+    GROUP BY product_name
+),
+latest_inventory AS (
+    SELECT
+        product_name,
+        warehouse_inventory
+    FROM inventory
+    QUALIFY ROW_NUMBER() OVER (
+        PARTITION BY product_name
+        ORDER BY year_month DESC
+    ) = 1
+)
+SELECT
+    p.product_name,
+    p.units_sold,
+    ROUND(p.gross_sales, 2) AS gross_sales,
+    ROUND(p.total_profit, 2) AS total_profit,
+    i.warehouse_inventory,
+    ROUND(
+        i.warehouse_inventory /
+        NULLIF(p.monthly_demand, 0), 2
+    ) AS coverage_months,
+    f.fulfillment_days
+FROM product_sales p
+JOIN latest_inventory i
+    ON p.product_name = i.product_name
+LEFT JOIN fulfillment f
+    ON p.product_name = f.product_name
+ORDER BY p.total_profit DESC
+LIMIT 20;
+
+
+-- ============================================================
+-- QUERY 64: PRODUCT OPERATIONAL PRIORITY
+-- ============================================================
+
+WITH demand AS (
+    SELECT
+        product_name,
+        SUM(order_quantity) / 36.0 AS monthly_demand,
+        SUM(profit) AS total_profit
+    FROM orders_shipments
+    GROUP BY product_name
+),
+stock AS (
+    SELECT
+        product_name,
+        warehouse_inventory
+    FROM inventory
+    QUALIFY ROW_NUMBER() OVER (
+        PARTITION BY product_name
+        ORDER BY year_month DESC
+    ) = 1
+),
+combined AS (
+    SELECT
+        d.product_name,
+        d.total_profit,
+        s.warehouse_inventory,
+        s.warehouse_inventory /
+            NULLIF(d.monthly_demand, 0) AS coverage_months,
+        f.fulfillment_days
+    FROM demand d
+    JOIN stock s
+        ON d.product_name = s.product_name
+    LEFT JOIN fulfillment f
+        ON d.product_name = f.product_name
+)
+SELECT
+    product_name,
+    ROUND(total_profit, 2) AS total_profit,
+    warehouse_inventory,
+    ROUND(coverage_months, 2) AS coverage_months,
+    fulfillment_days,
+    CASE
+        WHEN coverage_months < 1
+             AND fulfillment_days > 7
+            THEN 'Critical Priority'
+        WHEN coverage_months < 1
+            THEN 'High Inventory Priority'
+        WHEN fulfillment_days > 7
+            THEN 'Fulfillment Priority'
+        ELSE 'Normal Priority'
+    END AS operational_priority
+FROM combined
+ORDER BY
+    CASE operational_priority
+        WHEN 'Critical Priority' THEN 1
+        WHEN 'High Inventory Priority' THEN 2
+        WHEN 'Fulfillment Priority' THEN 3
+        ELSE 4
+    END,
+    total_profit DESC
+LIMIT 30;
+
+
+-- ============================================================
+-- QUERY 65: WAREHOUSE COUNTRY PERFORMANCE
+-- ============================================================
+
+SELECT
+    warehouse_country,
+    COUNT(*) AS total_order_items,
+    COUNT(DISTINCT (
+        order_id,
+        order_year,
+        order_month,
+        order_day
+    )) AS distinct_order_date_combinations,
+    SUM(order_quantity) AS units_sold,
+    ROUND(SUM(gross_sales), 2) AS gross_sales,
+    ROUND(SUM(profit), 2) AS total_profit,
+    ROUND(
+        100.0 * SUM(profit) /
+        NULLIF(SUM(gross_sales), 0), 2
+    ) AS profit_margin_pct
+FROM orders_shipments
+GROUP BY warehouse_country
+ORDER BY gross_sales DESC;
+
+
+-- ============================================================
+-- QUERY 66: SHIPPING MODE PERFORMANCE
+-- ============================================================
+
+SELECT
+    shipment_mode,
+    COUNT(*) AS total_order_items,
+    SUM(order_quantity) AS total_units,
+    ROUND(AVG(scheduled_shipping_days), 2)
+        AS avg_scheduled_shipping_days,
+    ROUND(SUM(gross_sales), 2) AS gross_sales,
+    ROUND(SUM(profit), 2) AS total_profit,
+    ROUND(
+        100.0 * SUM(profit) /
+        NULLIF(SUM(gross_sales), 0), 2
+    ) AS profit_margin_pct
+FROM orders_shipments
+GROUP BY shipment_mode
+ORDER BY gross_sales DESC;
+
+
+-- ============================================================
+-- QUERY 67: SHIPPING MODE BY CUSTOMER MARKET
+-- ============================================================
+
+SELECT
+    customer_market,
+    shipment_mode,
+    COUNT(*) AS total_order_items,
+    SUM(order_quantity) AS units_sold,
+    ROUND(SUM(gross_sales), 2) AS gross_sales,
+    ROUND(AVG(scheduled_shipping_days), 2)
+        AS avg_scheduled_shipping_days
+FROM orders_shipments
+GROUP BY customer_market, shipment_mode
+ORDER BY customer_market, total_order_items DESC;
+
+
+-- ============================================================
+-- QUERY 68: EXECUTIVE SUPPLY CHAIN KPIS
+-- ============================================================
+
+SELECT
+    COUNT(*) AS total_order_items,
+    COUNT(DISTINCT order_item_id)
+        AS unique_order_item_ids,
+    COUNT(DISTINCT order_id)
+        AS distinct_order_ids,
+    COUNT(DISTINCT (
+        order_id,
+        order_year,
+        order_month,
+        order_day
+    )) AS distinct_order_date_combinations,
+    COUNT(DISTINCT customer_id)
+        AS total_customers,
+    COUNT(DISTINCT product_name)
+        AS products_with_orders,
+    SUM(order_quantity) AS total_units_sold,
+    ROUND(SUM(gross_sales), 2) AS gross_sales,
+    ROUND(SUM(profit), 2) AS total_profit,
+    ROUND(
+        100.0 * SUM(profit) /
+        NULLIF(SUM(gross_sales), 0), 2
+    ) AS profit_margin_pct
+FROM orders_shipments;
+
+
+-- ============================================================
+-- QUERY 69: CROSS-DATASET PRODUCT COVERAGE
+-- ============================================================
+
+WITH all_products AS (
+    SELECT product_name FROM inventory
+    UNION
+    SELECT product_name FROM fulfillment
+    UNION
+    SELECT product_name FROM orders_shipments
+),
+inventory_products AS (
+    SELECT DISTINCT product_name FROM inventory
+),
+fulfillment_products AS (
+    SELECT DISTINCT product_name FROM fulfillment
+),
+order_products AS (
+    SELECT DISTINCT product_name FROM orders_shipments
+)
+SELECT
+    COUNT(*) AS total_distinct_products,
+    COUNT(i.product_name) AS products_in_inventory,
+    COUNT(f.product_name) AS products_in_fulfillment,
+    COUNT(o.product_name) AS products_with_orders,
+    COUNT(*) FILTER (
+        WHERE i.product_name IS NOT NULL
+          AND f.product_name IS NOT NULL
+          AND o.product_name IS NOT NULL
+    ) AS products_in_all_three,
+    COUNT(*) FILTER (
+        WHERE i.product_name IS NOT NULL
+          AND o.product_name IS NULL
+    ) AS inventory_products_without_orders
+FROM all_products a
+LEFT JOIN inventory_products i
+    ON a.product_name = i.product_name
+LEFT JOIN fulfillment_products f
+    ON a.product_name = f.product_name
+LEFT JOIN order_products o
+    ON a.product_name = o.product_name;
+
+
+-- ============================================================
+-- QUERY 70: FINAL DATA QUALITY CHECKS
+-- ============================================================
+
+SELECT
+    'orders_shipments' AS dataset,
+    COUNT(*) AS total_records,
+    COUNT(*) FILTER (
+        WHERE product_name IS NULL
+    ) AS missing_product_names,
+    COUNT(*) FILTER (
+        WHERE order_quantity IS NULL
+           OR order_quantity <= 0
+    ) AS invalid_quantities,
+    COUNT(*) FILTER (
+        WHERE gross_sales IS NULL
+    ) AS missing_sales,
+    COUNT(*) FILTER (
+        WHERE profit IS NULL
+    ) AS missing_profit
+FROM orders_shipments
+
+UNION ALL
+
+SELECT
+    'inventory' AS dataset,
+    COUNT(*) AS total_records,
+    COUNT(*) FILTER (
+        WHERE product_name IS NULL
+    ) AS missing_product_names,
+    COUNT(*) FILTER (
+        WHERE warehouse_inventory IS NULL
+           OR warehouse_inventory < 0
+    ) AS invalid_quantities,
+    COUNT(*) FILTER (
+        WHERE inventory_cost_per_unit IS NULL
+    ) AS missing_sales,
+    NULL AS missing_profit
+FROM inventory
+
+UNION ALL
+
+SELECT
+    'fulfillment' AS dataset,
+    COUNT(*) AS total_records,
+    COUNT(*) FILTER (
+        WHERE product_name IS NULL
+    ) AS missing_product_names,
+    COUNT(*) FILTER (
+        WHERE fulfillment_days IS NULL
+           OR fulfillment_days < 0
+    ) AS invalid_quantities,
+    NULL AS missing_sales,
+    NULL AS missing_profit
+FROM fulfillment;
 
