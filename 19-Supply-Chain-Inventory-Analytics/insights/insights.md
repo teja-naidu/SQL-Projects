@@ -1748,22 +1748,886 @@ Day 4 provided a detailed view of sales performance, profitability, product dema
 **Data Quality Governance:** Validate the business order identifier before publishing unique-order and average-order-value KPIs.
 
 ---
+---
 
-## 20. Next Steps – Day 5
+# Day 5: Advanced Supply Chain Analytics & Final Reporting
 
-Day 5 will focus on **Advanced Supply Chain Analytics & Final Reporting**.
+## 1. Objective
 
-Planned analysis includes:
+The objective of Day 5 is to integrate inventory, historical product demand, reported profitability, fulfillment performance, warehouse operations, and shipping information into a consolidated supply chain analysis.
 
-- Product-level demand and inventory alignment.
-- Inventory coverage and replenishment priorities.
-- High-value product risk assessment.
-- Combined sales, profit, fulfillment, and inventory analysis.
-- Warehouse performance opportunities.
-- Final business recommendations.
-- Final project README and GitHub documentation.
+This final phase identifies potential inventory shortages, replenishment priorities, high-value products requiring operational attention, and opportunities to improve supply chain planning.
 
+### Analysis Scope
 
+- **SQL Queries:** 56–70
+- **Database:** DuckDB
+- **Analysis Period:** January 2015 – December 2017
+- **Inventory Snapshot:** December 2017
+- **Primary Tables:** `orders_shipments`, `inventory`, `fulfillment`
+- **Methodology:** SQL aggregations, common table expressions, window functions, joins, conditional segmentation, and cross-dataset validation
+
+### Executive Business KPIs
+
+| Metric | Result |
+|---|---:|
+| Order-Item Records | 30,871 |
+| Unique Order-Item IDs | 30,871 |
+| Distinct Order IDs | 11,072 |
+| Distinct Order ID + Date Combinations | 19,966 |
+| Total Gross Sales | $6,181,476 |
+| Reported Profit | $3,994,192 |
+| Reported Profit Margin | 64.62% |
+| Inventory Records | 4,200 |
+| Fulfillment Records | 118 |
+| Distinct Products | 118 |
+| Products with Recorded Orders | 113 |
+| Latest Inventory Units | 394 |
+
+**Important:** The source's `profit` field is reported profit, not independently verified net profit. Distinct order IDs and date-order combinations should not be treated as confirmed unique business orders.
 
 ---
 
+## 2. Product Demand vs Latest Inventory
+
+**SQL Query 56 – Product Demand vs Latest Inventory**
+
+This query compares historical units sold, gross sales, and reported profit against the most recent inventory record for each product.
+
+The latest inventory period is December 2017.
+
+### Selected High-Demand Products
+
+| Product | Historical Units Sold | Latest Inventory | Gross Sales | Reported Profit |
+|---|---:|---:|---:|---:|
+| Perfect Fitness Perfect Rip Deck | 12,952 | 0 | $777,120 | $630,924 |
+| Nike Men's Dri-FIT Victory Golf Polo | 10,886 | 2 | $544,300 | $452,750 |
+| O'Brien Men's Neoprene Life Vest | 10,164 | 0 | $508,200 | $427,000 |
+| Nike Men's Free 5.0+ Running Shoe | 6,455 | 1 | $645,500 | $520,870 |
+| Under Armour Girls' Toddler Spine Surge Running | 5,689 | 0 | $227,560 | $180,420 |
+| Nike Men's CJ Elite 2 TD Football Cleat | 3,855 | 0 | $501,150 | $250,575 |
+| Field & Stream Sportsman 16 Gun Fire Safe | 2,878 | 0 | $1,151,200 | $575,600 |
+| Pelican Sunstream 100 Kayak | 2,681 | 0 | $536,200 | $268,100 |
+| Diamondback Women's Serene Classic Comfort Bike | 2,427 | 0 | $728,100 | $364,050 |
+
+### Key Findings
+
+1. Several historically high-demand products had zero inventory in December 2017.
+2. Perfect Fitness Perfect Rip Deck generated the highest recorded unit demand, at 12,952 units, but had no inventory in the latest snapshot.
+3. Nike Men's Dri-FIT Victory Golf Polo sold 10,886 units historically and had only two units in the latest snapshot.
+4. Nike Men's Free 5.0+ Running Shoe generated $520,870 in reported profit but had only one unit remaining.
+5. Field & Stream Sportsman 16 Gun Fire Safe generated $1,151,200 in gross sales and had zero latest inventory.
+
+### Business Interpretation
+
+The December 2017 inventory snapshot shows a substantial mismatch between available stock and historical product demand.
+
+However, historical demand covers the entire three-year period, while inventory represents a single month-end snapshot.
+
+Therefore, this comparison identifies potential planning concerns rather than proving that stock shortages caused lost sales.
+
+### Recommendations
+
+- Review replenishment policies for historically high-demand products.
+- Investigate whether zero-stock products were intentionally discontinued.
+- Compare recent product demand with stock availability before placing new purchase orders.
+- Monitor high-revenue products more closely to identify potential stockout exposure.
+
+---
+
+## 3. Estimated Inventory Coverage
+
+**SQL Query 57 – Inventory Coverage by Product**
+
+This query estimates how many months of historical average demand could be supported by the latest inventory.
+
+### Methodology
+
+Average Monthly Demand:
+
+`Total Historical Units Sold / 36`
+
+Estimated Inventory Coverage:
+
+`Latest Inventory / Average Monthly Demand`
+
+### Selected Results
+
+| Product | Latest Inventory | Average Monthly Demand | Estimated Coverage |
+|---|---:|---:|---:|
+| Perfect Fitness Perfect Rip Deck | 0 | 359.78 | 0.00 months |
+| Nike Men's Dri-FIT Victory Golf Polo | 2 | 302.39 | 0.01 months |
+| O'Brien Men's Neoprene Life Vest | 0 | 282.33 | 0.00 months |
+| Nike Men's Free 5.0+ Running Shoe | 1 | 179.31 | 0.01 months |
+| Pelican Sunstream 100 Kayak | 0 | 74.47 | 0.00 months |
+| Diamondback Women's Serene Classic Comfort Bike | 0 | 67.42 | 0.00 months |
+
+### Key Findings
+
+- Multiple high-demand products had effectively zero estimated inventory coverage.
+- Products with no recorded inventory received zero months of coverage.
+- Products with minimal stock, including Nike Men's Free 5.0+ Running Shoe, had coverage close to zero.
+- Some lower-demand products had substantially greater coverage.
+
+### Business Interpretation
+
+Inventory coverage is unevenly distributed across the product portfolio.
+
+Some historically high-demand products had almost no stock, while certain low-demand products held comparatively larger quantities.
+
+### Limitations
+
+The calculation assumes historical average monthly demand is a useful proxy for future demand.
+
+It does not account for demand seasonality, product discontinuation, future replenishment, lead times, or changes in customer preferences.
+
+### Recommendations
+
+- Use recent demand and demand forecasts for production replenishment planning.
+- Establish product-specific inventory coverage thresholds.
+- Monitor inventory coverage alongside supplier lead times and product profitability.
+
+---
+
+## 4. Inventory Risk Segmentation
+
+**SQL Query 58 – Inventory Risk Segmentation**
+
+Products were classified using estimated months of inventory coverage.
+
+### Risk Classification
+
+| Risk Segment | Coverage Rule |
+|---|---|
+| Critical Risk | Less than 1 month |
+| High Risk | 1 to less than 3 months |
+| Moderate Risk | 3 to less than 6 months |
+| Low Risk | 6 months or more |
+| No Recorded Demand | No historical sales demand |
+
+### Actual Results
+
+| Inventory Risk | Products | Inventory Units |
+|---|---:|---:|
+| Critical Risk | 103 | 12 |
+| High Risk | 3 | 10 |
+| Moderate Risk | 0 | 0 |
+| Low Risk | 7 | 289 |
+| No Recorded Demand | 5 | 83 |
+| **Total** | **118** | **394** |
+
+### Key Findings
+
+1. **103 of 118 products, or 87.29%, were classified as Critical Risk.**
+2. Three additional products were classified as High Risk.
+3. No products fell into the Moderate Risk category.
+4. Seven products were classified as Low Risk.
+5. Five products had no recorded demand.
+6. Critical-risk products collectively held only 12 inventory units.
+7. Low-risk products collectively held 289 inventory units.
+
+### Business Interpretation
+
+The risk distribution is heavily concentrated in the Critical Risk category.
+
+At the same time, most remaining inventory units are associated with products having relatively low historical demand.
+
+This suggests a potential imbalance between historical product demand and latest inventory distribution.
+
+### Recommendations
+
+- Investigate critical-risk products before taking replenishment action.
+- Confirm whether products are active or discontinued.
+- Prioritize commercially important products using demand, profit contribution, and lead time.
+- Review low-demand products for excess stock exposure.
+
+**Important:** Risk categories are based on illustrative analytical thresholds and are not confirmed company inventory policies.
+
+---
+
+## 5. Replenishment Priority Products
+
+**SQL Query 59 – Replenishment Priority Products**
+
+This query identifies products with less than one month of estimated inventory coverage and ranks them by historical reported profit.
+
+### Top Replenishment Candidates
+
+| Product | Latest Inventory | Historical Reported Profit | Estimated Coverage |
+|---|---:|---:|---:|
+| Perfect Fitness Perfect Rip Deck | 0 | $630,924 | 0.00 |
+| Field & Stream Sportsman 16 Gun Fire Safe | 0 | $575,600 | 0.00 |
+| Nike Men's Free 5.0+ Running Shoe | 1 | $520,870 | 0.01 |
+| Nike Men's Dri-FIT Victory Golf Polo | 2 | $452,750 | 0.01 |
+| O'Brien Men's Neoprene Life Vest | 0 | $427,000 | 0.00 |
+| Diamondback Women's Serene Classic Comfort Bike | 0 | $364,050 | 0.00 |
+| Pelican Sunstream 100 Kayak | 0 | $268,100 | 0.00 |
+| Nike Men's CJ Elite 2 TD Football Cleat | 0 | $250,575 | 0.00 |
+| Under Armour Girls' Toddler Spine Surge Running | 0 | $180,420 | 0.00 |
+| Web Camera | 0 | $41,829 | 0.00 |
+
+### Key Findings
+
+- Several of the most profitable historical products also had extremely low inventory coverage.
+- Perfect Fitness Perfect Rip Deck ranked first by reported profit among products meeting the replenishment screening condition.
+- Field & Stream Sportsman 16 Gun Fire Safe generated substantial gross sales and reported profit but had no latest stock.
+- The top candidates collectively represent significant historical business value.
+
+### Business Recommendation
+
+Prioritize these products for review, but confirm current demand, product availability, and supplier constraints before issuing replenishment orders.
+
+---
+
+## 6. Estimated Replenishment Requirements
+
+**SQL Query 60 – Estimated Replenishment Requirements**
+
+This query calculates the quantity required to reach a target of three months of historical average demand.
+
+### Methodology
+
+Target Inventory:
+
+`CEIL(Average Monthly Demand × 3)`
+
+Estimated Replenishment Units:
+
+`MAX(0, Target Inventory - Latest Inventory)`
+
+Estimated Replenishment Cost:
+
+`Replenishment Units × Recorded Inventory Cost per Unit`
+
+### Top Estimated Requirements
+
+| Product | Latest Stock | Units to Replenish | Estimated Cost |
+|---|---:|---:|---:|
+| Nike Men's Dri-FIT Victory Golf Polo | 2 | 906 | $1,171.38 |
+| Perfect Fitness Perfect Rip Deck | 0 | 1,080 | $750.78 |
+| Under Armour Girls' Toddler Spine Surge Running | 0 | 475 | $701.33 |
+| Nike Men's Free 5.0+ Running Shoe | 1 | 537 | $678.34 |
+| O'Brien Men's Neoprene Life Vest | 0 | 847 | $478.82 |
+| Field & Stream Sportsman 16 Gun Fire Safe | 0 | 240 | $333.96 |
+| Diamondback Women's Serene Classic Comfort Bike | 0 | 203 | $313.84 |
+| Nike Men's CJ Elite 2 TD Football Cleat | 0 | 322 | $224.08 |
+| Pelican Sunstream 100 Kayak | 0 | 224 | $45.45 |
+
+### Key Findings
+
+1. Perfect Fitness Perfect Rip Deck required the highest replenishment quantity among the displayed leading products, at 1,080 units.
+2. Nike Men's Dri-FIT Victory Golf Polo had the highest estimated replenishment cost, at $1,171.38.
+3. O'Brien Men's Neoprene Life Vest required an estimated 847 additional units.
+4. Replenishment cost rankings differ from replenishment quantity rankings.
+5. Recorded inventory unit costs are substantially lower than some historical selling prices, so the source cost definitions require verification.
+
+### Business Interpretation
+
+Replenishment planning should consider required quantity, recorded unit cost, historical profitability, supplier lead time, and recent demand.
+
+### Limitations
+
+- Three months of coverage is an illustrative planning target.
+- The calculation does not include supplier minimum order quantities.
+- It does not include procurement lead times, freight, taxes, or handling costs.
+- Inventory unit costs have not been independently verified.
+- Historical average demand may not represent demand after December 2017.
+
+### Recommendations
+
+Validate source cost definitions and demand assumptions before using these estimates for procurement budgeting.
+
+---
+
+## 7. Inventory Value by Risk Segment
+
+**SQL Query 61 – Inventory Value by Risk Segment**
+
+This query estimates the value of December 2017 inventory by risk classification.
+
+### Results
+
+| Risk Segment | Products | Inventory Units | Estimated Inventory Value |
+|---|---:|---:|---:|
+| Low Risk | 7 | 289 | $284.95 |
+| No Recorded Demand | 5 | 83 | $138.48 |
+| Critical Risk | 103 | 12 | $19.87 |
+| High Risk | 3 | 10 | $14.88 |
+| **Total** | **118** | **394** | **$458.18** |
+
+### Key Findings
+
+- Low-risk products accounted for the largest share of remaining inventory value.
+- Products without recorded demand represented $138.48 of estimated inventory value.
+- Critical-risk products collectively held only $19.87 in recorded inventory value.
+- The overall inventory valuation was $458.18 using the supplied unit-cost field.
+
+### Business Interpretation
+
+The latest inventory appears concentrated in products with comparatively low historical demand or no recorded demand.
+
+However, the very low total inventory valuation relative to historical gross sales warrants validation of the unit-cost field's meaning, units, and completeness.
+
+### Recommendations
+
+- Confirm inventory cost definitions and currency.
+- Review stock held for products without recorded demand.
+- Evaluate whether inventory allocations align with active product demand.
+- Avoid using the estimated inventory valuation for financial reporting without source verification.
+
+---
+
+## 8. High-Profit Products with Slow Fulfillment
+
+**SQL Query 62 – High-Profit Products with Slow Fulfillment**
+
+This query identifies products with recorded fulfillment times greater than seven days and ranks them by historical reported profit.
+
+### Leading Products
+
+| Product | Historical Units Sold | Reported Profit | Fulfillment Days |
+|---|---:|---:|---:|
+| Perfect Fitness Perfect Rip Deck | 12,952 | $630,924 | 8.3 |
+| Nike Men's Free 5.0+ Running Shoe | 6,455 | $520,870 | 9.4 |
+| Porcelain crafts | 85 | $19,635 | 7.1 |
+| LIJA Women's Eyelet Sleeveless Golf Polo | 179 | $7,579 | 9.5 |
+| Smart watch | 46 | $7,222 | 9.1 |
+| Titleist Pro V1x Golf Balls | 161 | $5,992 | 9.9 |
+| Under Armour Women's Micro G Skulpt Running Shoe | 145 | $4,752 | 7.5 |
+| TYR Boys' Team Digi Jammer | 127 | $3,760 | 8.0 |
+
+### Key Findings
+
+1. Perfect Fitness Perfect Rip Deck generated the highest reported profit among products with fulfillment times above seven days.
+2. Nike Men's Free 5.0+ Running Shoe also combined high historical profit with relatively slow fulfillment.
+3. Several lower-volume products had fulfillment times approaching ten days.
+4. The results identify potential opportunities for warehouse process improvement.
+
+### Business Interpretation
+
+High-profit products with relatively long fulfillment times deserve operational review because improvements may affect commercially important product lines.
+
+However, the dataset does not include service-level targets or sufficient evidence to determine whether these fulfillment times represent actual SLA violations.
+
+### Recommendations
+
+- Review warehouse handling processes for high-value products.
+- Compare fulfillment duration with agreed service-level targets.
+- Investigate picking, packing, staging, and replenishment processes.
+- Evaluate whether fulfillment times vary with inventory availability.
+
+---
+
+## 9. Combined Product Performance and Inventory Risk
+
+**SQL Query 63 – Product Performance and Inventory Risk**
+
+This query combines historical sales, reported profit, December 2017 inventory, estimated coverage, and fulfillment duration.
+
+### Selected Results
+
+| Product | Reported Profit | Latest Inventory | Coverage Months | Fulfillment Days |
+|---|---:|---:|---:|---:|
+| Perfect Fitness Perfect Rip Deck | $630,924 | 0 | 0.00 | 8.3 |
+| Field & Stream Sportsman 16 Gun Fire Safe | $575,600 | 0 | 0.00 | 4.9 |
+| Nike Men's Free 5.0+ Running Shoe | $520,870 | 1 | 0.01 | 9.4 |
+| Nike Men's Dri-FIT Victory Golf Polo | $452,750 | 2 | 0.01 | 6.6 |
+| O'Brien Men's Neoprene Life Vest | $427,000 | 0 | 0.00 | 5.5 |
+| Diamondback Women's Serene Classic Comfort Bike | $364,050 | 0 | 0.00 | 6.9 |
+| Pelican Sunstream 100 Kayak | $268,100 | 0 | 0.00 | 1.8 |
+
+### Key Findings
+
+- Perfect Fitness Perfect Rip Deck and Nike Men's Free 5.0+ Running Shoe combined low estimated coverage with fulfillment durations greater than seven days.
+- Field & Stream Sportsman 16 Gun Fire Safe had zero latest stock but a shorter recorded fulfillment duration of 4.9 days.
+- Pelican Sunstream 100 Kayak had zero latest stock and a comparatively short fulfillment duration of 1.8 days.
+- Inventory coverage and fulfillment duration vary independently across products.
+
+### Business Interpretation
+
+A combined product-level view is more useful for operational prioritization than inventory, sales, or fulfillment metrics viewed separately.
+
+### Recommendation
+
+Develop a product-level monitoring dashboard combining inventory availability, recent demand, reported profitability, fulfillment duration, and product status.
+
+---
+
+## 10. Product Operational Priority Classification
+
+**SQL Query 64 – Product Operational Priority**
+
+This query assigns operational priorities using estimated inventory coverage and fulfillment duration.
+
+### Classification Logic
+
+| Priority | Condition |
+|---|---|
+| Critical Priority | Coverage below 1 month and fulfillment above 7 days |
+| High Inventory Priority | Coverage below 1 month |
+| Fulfillment Priority | Fulfillment above 7 days |
+| Normal Priority | Neither condition applies |
+
+### Selected Critical-Priority Products
+
+| Product | Reported Profit | Inventory | Fulfillment Days |
+|---|---:|---:|---:|
+| Perfect Fitness Perfect Rip Deck | $630,924 | 0 | 8.3 |
+| Nike Men's Free 5.0+ Running Shoe | $520,870 | 1 | 9.4 |
+| Porcelain crafts | $19,635 | 0 | 7.1 |
+| LIJA Women's Eyelet Sleeveless Golf Polo | $7,579 | 0 | 9.5 |
+| Titleist Pro V1x Golf Balls | $5,992 | 0 | 9.9 |
+| Under Armour Women's Micro G Skulpt Running Shoe | $4,752 | 0 | 7.5 |
+
+### Selected High-Inventory-Priority Products
+
+| Product | Reported Profit | Inventory | Fulfillment Days |
+|---|---:|---:|---:|
+| Field & Stream Sportsman 16 Gun Fire Safe | $575,600 | 0 | 4.9 |
+| Nike Men's Dri-FIT Victory Golf Polo | $452,750 | 2 | 6.6 |
+| O'Brien Men's Neoprene Life Vest | $427,000 | 0 | 5.5 |
+| Diamondback Women's Serene Classic Comfort Bike | $364,050 | 0 | 6.9 |
+| Pelican Sunstream 100 Kayak | $268,100 | 0 | 1.8 |
+
+### Key Findings
+
+1. Perfect Fitness Perfect Rip Deck and Nike Men's Free 5.0+ Running Shoe were the highest-profit Critical Priority products.
+2. Several products with shorter fulfillment durations were classified as High Inventory Priority because of limited estimated coverage.
+3. The classification highlights different types of operational concerns.
+4. The query returns the top 30 products according to its priority and reported-profit ranking, not a complete count of every priority category.
+
+### Business Recommendation
+
+Use the priority model as an initial screening mechanism, then refine it using recent demand, supplier lead times, stockout costs, product lifecycle status, and business-approved service thresholds.
+
+---
+
+## 11. Warehouse Country Performance
+
+**SQL Query 65 – Warehouse Country Performance**
+
+### Results
+
+| Warehouse Country | Order-Item Records | Order-Date Combinations | Gross Sales | Reported Profit | Margin |
+|---|---:|---:|---:|---:|---:|
+| USA | 18,997 | 12,907 | $3,798,206 | $2,458,430 | 64.73% |
+| Puerto Rico | 11,874 | 7,059 | $2,383,270 | $1,535,762 | 64.44% |
+| **Total** | **30,871** | **19,966** | **$6,181,476** | **$3,994,192** | **64.62%** |
+
+### Key Findings
+
+- USA warehouses accounted for approximately 61.44% of gross sales.
+- Puerto Rico warehouses accounted for approximately 38.56%.
+- USA warehouse records generated the larger absolute reported profit.
+- Profit margins were similar across both warehouse countries.
+- The reported margin difference was 0.29 percentage points.
+
+### Business Interpretation
+
+The two warehouse countries had similar reported profit margins despite different sales volumes.
+
+The results alone do not establish which warehouse operated more efficiently because operating costs, capacity, shipping expenses, and actual delivery times are not available.
+
+### Recommendation
+
+Compare warehouse-level inventory availability, fulfillment performance, operating costs, and delivery outcomes before making efficiency or allocation decisions.
+
+---
+
+## 12. Shipping Mode Revenue and Profitability
+
+**SQL Query 66 – Shipping Mode Performance**
+
+### Results
+
+| Shipping Mode | Order-Item Records | Units Sold | Gross Sales | Reported Profit | Margin |
+|---|---:|---:|---:|---:|---:|
+| Standard Class | 17,994 | 38,765 | $3,599,380 | $2,327,869 | 64.67% |
+| Second Class | 6,038 | 13,023 | $1,208,191 | $780,178 | 64.57% |
+| First Class | 4,859 | 10,262 | $982,739 | $633,528 | 64.47% |
+| Same Day | 1,980 | 4,317 | $391,166 | $252,617 | 64.58% |
+
+### Key Findings
+
+1. Standard Class was the most frequently recorded shipping mode.
+2. Standard Class generated approximately 58.23% of gross sales.
+3. Second Class ranked second in revenue.
+4. Same Day represented the smallest share of recorded order items.
+5. Reported profit margins were similar across shipping modes.
+
+### Scheduled Shipping Duration
+
+| Shipping Mode | Average Scheduled Days |
+|---|---:|
+| Standard Class | 4 |
+| Second Class | 2 |
+| First Class | 1 |
+| Same Day | 3 |
+
+### Important Data Quality Finding
+
+Same Day shipping had an average scheduled duration of three days.
+
+This is inconsistent with the usual interpretation of the shipping mode label.
+
+However, the dataset does not establish whether the label refers to dispatch timing, delivery timing, or another business-specific definition.
+
+### Recommendations
+
+- Validate the business meaning of Same Day shipping.
+- Confirm whether scheduled days refer to shipment preparation or delivery.
+- Compare scheduled and actual shipping performance when actual delivery data becomes available.
+- Avoid interpreting reported profit margins as net shipping profitability because shipping costs are not separately provided.
+
+---
+
+## 13. Shipping Mode by Customer Market
+
+**SQL Query 67 – Shipping Mode by Customer Market**
+
+The analysis compares shipping mode usage across Africa, Europe, LATAM, North America, and Pacific Asia.
+
+### Standard Class Performance
+
+| Customer Market | Standard Class Order Items | Standard Class Gross Sales |
+|---|---:|---:|
+| LATAM | 5,361 | $1,062,165 |
+| Europe | 4,979 | $1,026,399 |
+| Pacific Asia | 3,793 | $747,308 |
+| North America | 2,591 | $514,038 |
+| Africa | 1,270 | $249,470 |
+
+### Key Findings
+
+- Standard Class was the most common shipping mode in all five markets.
+- LATAM generated the highest Standard Class gross sales.
+- Europe ranked second in Standard Class revenue.
+- The scheduled shipping duration associated with each shipping mode was consistent across the markets.
+- Same Day shipping was recorded with three scheduled days in every market.
+
+### Business Interpretation
+
+The shipping mode distribution shows a consistent preference for Standard Class across customer markets.
+
+However, customer preferences, shipping costs, and delivery satisfaction cannot be inferred directly from these records.
+
+### Recommendations
+
+- Monitor shipping mode utilization by market.
+- Validate Same Day scheduling definitions.
+- Incorporate actual delivery outcomes and shipping costs into future logistics performance analysis.
+
+---
+
+## 14. Executive Supply Chain KPIs
+
+**SQL Query 68 – Executive Supply Chain KPIs**
+
+The final executive query consolidates key performance indicators from the orders and shipments dataset.
+
+### Confirmed Metrics
+
+| KPI | Result |
+|---|---:|
+| Total Order-Item Records | 30,871 |
+| Unique Order-Item IDs | 30,871 |
+| Distinct Order IDs | 11,072 |
+| Distinct Order-Date Combinations | 19,966 |
+| Total Gross Sales | $6,181,476 |
+| Reported Profit | $3,994,192 |
+| Reported Profit Margin | 64.62% |
+
+### Key Findings
+
+- All 30,871 order-item records had distinct order-item IDs.
+- Gross sales and reported profit reconcile with the Day 4 results.
+- The overall reported profit margin was 64.62%.
+- The distinction between unique order items and unique business orders remains important.
+
+### Business Recommendation
+
+Use these metrics as the foundation for an executive reporting dashboard, while clearly labeling provisional order-level measures.
+
+---
+
+## 15. Cross-Dataset Product Coverage
+
+**SQL Query 69 – Cross-Dataset Product Coverage**
+
+### Results
+
+| Metric | Count |
+|---|---:|
+| Total Distinct Products | 118 |
+| Products in Inventory | 118 |
+| Products in All Three Datasets | 113 |
+| Inventory Products Without Orders | 5 |
+
+### Products Without Recorded Demand
+
+The five products identified in the inventory data without corresponding orders were:
+
+1. Dell Laptop
+2. SOLE E35 Elliptical
+3. Bushnell Pro X7 Jolt Slope Rangefinder
+4. SOLE E25 Elliptical
+5. Bowflex SelectTech 1090 Dumbbells
+
+### Key Findings
+
+- 113 products were represented across inventory, fulfillment, and order datasets.
+- Five inventory products had no recorded sales during the analysis period.
+- These five products collectively held 83 inventory units in December 2017.
+- Their estimated inventory value was $138.48.
+
+### Business Interpretation
+
+Products without recorded orders may represent inactive inventory, newly introduced products, discontinued products, or products whose transactions are absent from the dataset.
+
+The data does not establish which explanation applies.
+
+### Recommendations
+
+- Review product lifecycle status.
+- Validate whether the five products were available for sale during the analysis period.
+- Investigate potential slow-moving or inactive inventory.
+- Consider stock redistribution or clearance only after confirming product status and demand.
+
+---
+
+## 16. Final Data Quality Validation
+
+**SQL Query 70 – Final Data Quality Checks**
+
+### Results
+
+| Dataset | Records | Missing Product Names | Invalid Quantity / Duration | Missing Sales / Unit Cost | Missing Profit |
+|---|---:|---:|---:|---:|---:|
+| Orders & Shipments | 30,871 | 0 | 0 | 0 | 0 |
+| Inventory | 4,200 | 0 | 0 | 0 | Not Applicable |
+| Fulfillment | 118 | 0 | 0 | Not Applicable | Not Applicable |
+
+### Validation Interpretation
+
+The query checked:
+
+**Orders & Shipments**
+- Missing product names
+- Missing or nonpositive order quantities
+- Missing gross sales
+- Missing reported profit
+
+**Inventory**
+- Missing product names
+- Missing or negative inventory quantities
+- Missing inventory unit costs
+
+**Fulfillment**
+- Missing product names
+- Missing or negative fulfillment durations
+
+All applicable checks returned zero issues.
+
+### Additional Data Quality Considerations
+
+Although these checks passed, earlier analysis identified two important concerns:
+
+**1. Order Identifier Reuse**
+
+Order IDs were reused across years and across different dates within the same year.
+
+Therefore, order-level reporting requires an authoritative business order identifier.
+
+**2. Same Day Shipping Definition**
+
+Same Day shipping was associated with three scheduled shipping days.
+
+This requires validation of the shipping mode definition and scheduling rules.
+
+### Business Recommendation
+
+Introduce recurring data quality checks for identifier uniqueness, date validity, source consistency, inventory costs, and shipping definitions.
+
+---
+
+## 17. Consolidated Supply Chain Findings
+
+The combined Day 5 analysis produced five major business findings.
+
+### Finding 1: High Estimated Inventory Risk
+
+103 of 118 products were classified as Critical Risk using historical average monthly demand.
+
+**Implication:** The December 2017 stock distribution warrants investigation, especially for historically important products.
+
+### Finding 2: Revenue and Profit Concentration
+
+Earlier analysis showed that the top ten products generated 92.30% of gross sales.
+
+Day 5 showed that several of those products had very low latest inventory coverage.
+
+**Implication:** Inventory planning for a small group of high-value products may be particularly important.
+
+### Finding 3: High-Profit Products with Long Fulfillment Times
+
+Perfect Fitness Perfect Rip Deck and Nike Men's Free 5.0+ Running Shoe combined high reported profit, low inventory, and fulfillment durations exceeding seven days.
+
+**Implication:** These products are candidates for coordinated inventory and warehouse process reviews.
+
+### Finding 4: Potential Low-Demand Inventory Exposure
+
+Five products had no recorded orders but collectively held 83 inventory units.
+
+**Implication:** Product status and demand should be reviewed before continuing to hold or replenish these products.
+
+### Finding 5: Shipping Data Definition Issues
+
+Same Day shipping consistently showed three scheduled days across customer markets.
+
+**Implication:** Shipping mode definitions should be validated before using them in service-level reporting.
+
+---
+
+## 18. Strategic Business Recommendations
+
+### Priority 1: Validate Critical Inventory Conditions
+
+Review the 103 products classified as Critical Risk and distinguish active stockout exposure from discontinued or inactive products.
+
+### Priority 2: Protect High-Value Product Availability
+
+Focus inventory monitoring on products with high historical sales and reported profit.
+
+Use current demand and product lifecycle status to determine actual replenishment priorities.
+
+### Priority 3: Improve Fulfillment Visibility
+
+Review products with fulfillment durations above seven days, especially those with significant profit contribution.
+
+Compare actual performance against agreed operational targets.
+
+### Priority 4: Review Inventory Without Recorded Demand
+
+Investigate the five products without recorded orders and determine whether their inventory remains commercially relevant.
+
+### Priority 5: Improve Data Governance
+
+Resolve order identifier reuse and clarify Same Day shipping definitions.
+
+Confirm inventory unit-cost semantics before using cost-based results for financial planning.
+
+### Priority 6: Develop Executive Reporting
+
+Create a reporting layer that monitors:
+
+- Gross sales and reported profit
+- Inventory coverage
+- Replenishment screening
+- High-value product availability
+- Fulfillment duration
+- Warehouse performance
+- Shipping mode utilization
+- Data quality exceptions
+
+---
+
+## 19. Analytical Limitations
+
+The following limitations must be considered when interpreting the results.
+
+### Historical Demand Assumption
+
+Inventory coverage calculations use total demand across 36 months divided by 36.
+
+This does not capture changes in recent demand, product seasonality, or product lifecycle.
+
+### Single Inventory Snapshot
+
+The latest inventory values represent December 2017 only.
+
+They should not be interpreted as current stock levels.
+
+### Replenishment Model Assumptions
+
+The three-month target is illustrative and excludes supplier lead times, minimum order quantities, safety stock policies, and procurement constraints.
+
+### Inventory Cost Validation
+
+The recorded inventory unit-cost values produce a total latest inventory valuation of $458.18.
+
+The source definition, currency, and measurement units should be confirmed before financial use.
+
+### Reported Profit Definition
+
+The source-provided `profit` field has not been independently reconciled to all operational and financial costs.
+
+It should not automatically be treated as net profit.
+
+### Order Identifier Reuse
+
+The dataset contains reused order IDs.
+
+The date-based composite identifier is a candidate grouping key, not a verified unique business-order identifier.
+
+### Shipping Performance
+
+The dataset provides scheduled shipping durations but does not establish actual delivery performance or shipping costs.
+
+### Late-2017 Business Changes
+
+The sharp decline in recorded inventory, units sold, and revenue during late 2017 could reflect operational changes, changes in demand, or source-data limitations.
+
+The analysis does not establish causation.
+
+---
+
+## 20. Final Project Conclusions
+
+The five-day Supply Chain & Inventory Analytics project used DuckDB and SQL to analyze inventory, customer demand, product profitability, fulfillment performance, and shipping operations.
+
+### Final Project Highlights
+
+1. Analyzed 30,871 order-item records.
+2. Evaluated 4,200 inventory records.
+3. Integrated 118 fulfillment records.
+4. Analyzed 118 distinct products.
+5. Evaluated $6.18 million in gross sales.
+6. Analyzed $3.99 million in source-reported profit.
+7. Identified 103 products with critical estimated inventory coverage.
+8. Identified high-value products with low inventory and long fulfillment durations.
+9. Identified five inventory products without recorded demand.
+10. Validated cross-dataset product coverage and key data quality fields.
+11. Documented order identifier reuse and shipping mode inconsistencies.
+12. Developed 70 SQL queries across five analytical phases.
+
+### Skills Demonstrated
+
+- SQL data exploration and validation
+- DuckDB analytics
+- Common table expressions
+- Window functions
+- Multi-table joins
+- Conditional risk segmentation
+- Inventory coverage modeling
+- Replenishment estimation
+- Sales and profitability analysis
+- Logistics performance analysis
+- Cross-dataset reconciliation
+- Business insight development
+- Executive reporting
+
+### Final Business Takeaway
+
+The analysis highlights a potential mismatch between historical demand and the December 2017 inventory distribution, particularly among high-value products.
+
+It also identifies opportunities to improve inventory planning, fulfillment visibility, product portfolio management, and data quality governance.
+
+The findings provide an analytical foundation for supply chain decision-making, subject to validation of source definitions, current demand, and operational policies.
+
+**Day 5 Status: Completed**
+
+**Project Status: SQL Analysis Completed**
+
+**Total SQL Queries: 70**
+
+---
