@@ -405,3 +405,545 @@ SELECT
 
 FROM classified;
 
+
+-- ============================================================
+-- PROJECT 21: RETAIL SALES & CUSTOMER SEGMENTATION
+-- DAY 2: SALES PERFORMANCE & REVENUE TRENDS
+-- DATABASE: DUCKDB
+-- QUERIES: 16-30
+-- ============================================================
+
+
+-- ============================================================
+-- QUERY 16: OVERALL GROSS SALES PERFORMANCE
+-- ============================================================
+
+WITH valid_sales AS (
+    SELECT
+        invoice_no,
+        customer_id,
+        quantity,
+        quantity * unit_price AS sales_amount
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+)
+SELECT
+    COUNT(*) AS sale_lines,
+    COUNT(DISTINCT invoice_no) AS total_invoices,
+    COUNT(DISTINCT customer_id) AS known_customers,
+    SUM(quantity) AS total_units,
+    ROUND(SUM(sales_amount), 2) AS gross_sales,
+    ROUND(
+        SUM(sales_amount) /
+        NULLIF(COUNT(DISTINCT invoice_no), 0), 2
+    ) AS avg_invoice_value,
+    ROUND(
+        SUM(quantity) * 1.0 /
+        NULLIF(COUNT(DISTINCT invoice_no), 0), 2
+    ) AS avg_units_per_invoice
+FROM valid_sales;
+
+
+-- ============================================================
+-- QUERY 17: MONTHLY GROSS SALES PERFORMANCE
+-- ============================================================
+
+SELECT
+    DATE_TRUNC('month', invoice_date)::DATE
+        AS sales_month,
+    COUNT(DISTINCT invoice_no) AS total_invoices,
+    COUNT(DISTINCT customer_id) AS known_customers,
+    SUM(quantity) AS units_sold,
+    ROUND(SUM(quantity * unit_price), 2)
+        AS gross_sales
+FROM online_retail
+WHERE quantity > 0
+  AND unit_price > 0
+  AND invoice_no IS NOT NULL
+  AND TRIM(invoice_no) <> ''
+  AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+  AND stock_code IS NOT NULL
+  AND TRIM(stock_code) <> ''
+  AND country IS NOT NULL
+  AND TRIM(country) <> ''
+GROUP BY 1
+ORDER BY sales_month;
+
+
+-- ============================================================
+-- QUERY 18: MONTH-OVER-MONTH SALES GROWTH
+-- ============================================================
+
+WITH monthly_sales AS (
+    SELECT
+        DATE_TRUNC('month', invoice_date)::DATE
+            AS sales_month,
+        SUM(quantity * unit_price) AS gross_sales
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+    GROUP BY 1
+),
+growth AS (
+    SELECT
+        sales_month,
+        gross_sales,
+        LAG(gross_sales) OVER (
+            ORDER BY sales_month
+        ) AS previous_month_sales
+    FROM monthly_sales
+)
+SELECT
+    sales_month,
+    ROUND(gross_sales, 2) AS gross_sales,
+    ROUND(previous_month_sales, 2)
+        AS previous_month_sales,
+    ROUND(
+        100.0 * (gross_sales - previous_month_sales) /
+        NULLIF(previous_month_sales, 0), 2
+    ) AS mom_growth_pct
+FROM growth
+ORDER BY sales_month;
+
+
+-- ============================================================
+-- QUERY 19: TOP 15 SALES DAYS
+-- ============================================================
+
+SELECT
+    invoice_date::DATE AS sales_date,
+    COUNT(DISTINCT invoice_no) AS total_invoices,
+    SUM(quantity) AS units_sold,
+    ROUND(SUM(quantity * unit_price), 2)
+        AS gross_sales
+FROM online_retail
+WHERE quantity > 0
+  AND unit_price > 0
+  AND invoice_no IS NOT NULL
+  AND TRIM(invoice_no) <> ''
+  AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+  AND stock_code IS NOT NULL
+  AND TRIM(stock_code) <> ''
+  AND country IS NOT NULL
+  AND TRIM(country) <> ''
+GROUP BY 1
+ORDER BY gross_sales DESC
+LIMIT 15;
+
+
+-- ============================================================
+-- QUERY 20: SALES PERFORMANCE BY DAY OF WEEK
+-- ============================================================
+
+SELECT
+    DAYOFWEEK(invoice_date) AS weekday_number,
+    DAYNAME(invoice_date) AS weekday_name,
+    COUNT(DISTINCT invoice_no) AS total_invoices,
+    COUNT(DISTINCT invoice_date::DATE)
+        AS active_days,
+    ROUND(SUM(quantity * unit_price), 2)
+        AS gross_sales,
+    ROUND(
+        SUM(quantity * unit_price) /
+        NULLIF(
+            COUNT(DISTINCT invoice_date::DATE), 0
+        ), 2
+    ) AS avg_sales_per_active_day
+FROM online_retail
+WHERE quantity > 0
+  AND unit_price > 0
+  AND invoice_no IS NOT NULL
+  AND TRIM(invoice_no) <> ''
+  AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+  AND stock_code IS NOT NULL
+  AND TRIM(stock_code) <> ''
+  AND country IS NOT NULL
+  AND TRIM(country) <> ''
+GROUP BY 1, 2
+ORDER BY weekday_number;
+
+
+-- ============================================================
+-- QUERY 21: HOURLY SALES PERFORMANCE
+-- ============================================================
+
+SELECT
+    EXTRACT(HOUR FROM invoice_date) AS sales_hour,
+    COUNT(DISTINCT invoice_no) AS total_invoices,
+    SUM(quantity) AS units_sold,
+    ROUND(SUM(quantity * unit_price), 2)
+        AS gross_sales
+FROM online_retail
+WHERE quantity > 0
+  AND unit_price > 0
+  AND invoice_no IS NOT NULL
+  AND TRIM(invoice_no) <> ''
+  AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+  AND stock_code IS NOT NULL
+  AND TRIM(stock_code) <> ''
+  AND country IS NOT NULL
+  AND TRIM(country) <> ''
+GROUP BY 1
+ORDER BY sales_hour;
+
+
+-- ============================================================
+-- QUERY 22: COUNTRY-LEVEL GROSS SALES
+-- ============================================================
+
+SELECT
+    country,
+    COUNT(DISTINCT invoice_no) AS total_invoices,
+    COUNT(DISTINCT customer_id) AS known_customers,
+    SUM(quantity) AS units_sold,
+    ROUND(SUM(quantity * unit_price), 2)
+        AS gross_sales,
+    ROUND(
+        SUM(quantity * unit_price) /
+        NULLIF(COUNT(DISTINCT invoice_no), 0), 2
+    ) AS avg_invoice_value
+FROM online_retail
+WHERE quantity > 0
+  AND unit_price > 0
+  AND invoice_no IS NOT NULL
+  AND TRIM(invoice_no) <> ''
+  AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+  AND stock_code IS NOT NULL
+  AND TRIM(stock_code) <> ''
+  AND country IS NOT NULL
+  AND TRIM(country) <> ''
+GROUP BY country
+ORDER BY gross_sales DESC;
+
+
+-- ============================================================
+-- QUERY 23: UK VS INTERNATIONAL SALES
+-- ============================================================
+
+WITH regional_sales AS (
+    SELECT
+        CASE
+            WHEN country = 'United Kingdom'
+                THEN 'United Kingdom'
+            ELSE 'International'
+        END AS sales_region,
+        invoice_no,
+        customer_id,
+        quantity,
+        quantity * unit_price AS sales_amount
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+)
+SELECT
+    sales_region,
+    COUNT(DISTINCT invoice_no) AS total_invoices,
+    COUNT(DISTINCT customer_id) AS known_customers,
+    ROUND(SUM(sales_amount), 2) AS gross_sales,
+    ROUND(
+        100.0 * SUM(sales_amount) /
+        SUM(SUM(sales_amount)) OVER (), 2
+    ) AS revenue_share_pct
+FROM regional_sales
+GROUP BY sales_region
+ORDER BY gross_sales DESC;
+
+
+-- ============================================================
+-- QUERY 24: AVERAGE ORDER VALUE BY MONTH
+-- ============================================================
+
+WITH invoice_sales AS (
+    SELECT
+        invoice_no,
+        MIN(invoice_date)::DATE AS invoice_date,
+        SUM(quantity * unit_price) AS invoice_value
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+    GROUP BY invoice_no
+)
+SELECT
+    DATE_TRUNC('month', invoice_date)::DATE
+        AS sales_month,
+    COUNT(*) AS total_invoices,
+    ROUND(AVG(invoice_value), 2)
+        AS avg_order_value,
+    ROUND(MEDIAN(invoice_value), 2)
+        AS median_order_value,
+    ROUND(MAX(invoice_value), 2)
+        AS highest_invoice_value
+FROM invoice_sales
+GROUP BY 1
+ORDER BY sales_month;
+
+
+-- ============================================================
+-- QUERY 25: GROSS SALES VS SIGNED TRANSACTION VALUE
+-- ============================================================
+
+WITH classified AS (
+    SELECT
+        quantity,
+        unit_price,
+        invoice_no,
+        CASE
+            WHEN quantity > 0
+             AND unit_price > 0
+             AND invoice_no IS NOT NULL
+             AND TRIM(invoice_no) <> ''
+             AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+             AND stock_code IS NOT NULL
+             AND TRIM(stock_code) <> ''
+             AND country IS NOT NULL
+             AND TRIM(country) <> ''
+                THEN 'Positive Sale'
+
+            WHEN quantity < 0
+              OR UPPER(TRIM(invoice_no)) LIKE 'C%'
+                THEN 'Return or Cancellation'
+
+            ELSE 'Other Adjustment'
+        END AS transaction_type
+    FROM online_retail
+)
+SELECT
+    transaction_type,
+    COUNT(*) AS transaction_rows,
+    COUNT(DISTINCT invoice_no) AS total_invoices,
+    ROUND(SUM(quantity * unit_price), 2)
+        AS signed_amount
+FROM classified
+GROUP BY transaction_type
+ORDER BY transaction_rows DESC;
+
+
+-- ============================================================
+-- QUERY 26: MONTHLY CANCELLATION IMPACT
+-- ============================================================
+
+WITH monthly_transactions AS (
+    SELECT
+        DATE_TRUNC('month', invoice_date)::DATE
+            AS sales_month,
+        SUM(
+            CASE
+                WHEN quantity > 0
+                 AND unit_price > 0
+                 AND invoice_no IS NOT NULL
+                 AND TRIM(invoice_no) <> ''
+                 AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+                 AND stock_code IS NOT NULL
+                 AND TRIM(stock_code) <> ''
+                 AND country IS NOT NULL
+                 AND TRIM(country) <> ''
+                THEN quantity * unit_price
+                ELSE 0
+            END
+        ) AS gross_sales,
+        SUM(
+            CASE
+                WHEN quantity < 0
+                  OR UPPER(TRIM(invoice_no)) LIKE 'C%'
+                THEN quantity * unit_price
+                ELSE 0
+            END
+        ) AS return_signed_amount
+    FROM online_retail
+    GROUP BY 1
+)
+SELECT
+    sales_month,
+    ROUND(gross_sales, 2) AS gross_sales,
+    ROUND(return_signed_amount, 2)
+        AS return_signed_amount,
+    ROUND(
+        gross_sales + return_signed_amount, 2
+    ) AS return_adjusted_sales,
+    ROUND(
+        100.0 * ABS(return_signed_amount) /
+        NULLIF(gross_sales, 0), 2
+    ) AS return_impact_pct
+FROM monthly_transactions
+ORDER BY sales_month;
+
+
+-- ============================================================
+-- QUERY 27: TOP 20 HIGHEST VALUE INVOICES
+-- ============================================================
+
+SELECT
+    invoice_no,
+    MIN(invoice_date) AS first_invoice_timestamp,
+    COUNT(*) AS invoice_lines,
+    SUM(quantity) AS total_units,
+    ROUND(SUM(quantity * unit_price), 2)
+        AS invoice_value
+FROM online_retail
+WHERE quantity > 0
+  AND unit_price > 0
+  AND invoice_no IS NOT NULL
+  AND TRIM(invoice_no) <> ''
+  AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+  AND stock_code IS NOT NULL
+  AND TRIM(stock_code) <> ''
+  AND country IS NOT NULL
+  AND TRIM(country) <> ''
+GROUP BY invoice_no
+ORDER BY invoice_value DESC
+LIMIT 20;
+
+
+-- ============================================================
+-- QUERY 28: TOP 20 STOCK CODES BY GROSS SALES
+-- ============================================================
+
+SELECT
+    stock_code,
+    MAX(description) AS sample_description,
+    COUNT(DISTINCT invoice_no) AS total_invoices,
+    SUM(quantity) AS units_sold,
+    ROUND(SUM(quantity * unit_price), 2)
+        AS gross_sales
+FROM online_retail
+WHERE quantity > 0
+  AND unit_price > 0
+  AND invoice_no IS NOT NULL
+  AND TRIM(invoice_no) <> ''
+  AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+  AND stock_code IS NOT NULL
+  AND TRIM(stock_code) <> ''
+  AND country IS NOT NULL
+  AND TRIM(country) <> ''
+GROUP BY stock_code
+ORDER BY gross_sales DESC
+LIMIT 20;
+
+
+-- ============================================================
+-- QUERY 29: CUSTOMER SALES CONCENTRATION
+-- ============================================================
+
+WITH customer_sales AS (
+    SELECT
+        customer_id,
+        SUM(quantity * unit_price) AS gross_sales
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+      AND customer_id IS NOT NULL
+    GROUP BY customer_id
+),
+ranked_customers AS (
+    SELECT
+        customer_id,
+        gross_sales,
+        ROW_NUMBER() OVER (
+            ORDER BY gross_sales DESC, customer_id
+        ) AS customer_rank,
+        COUNT(*) OVER () AS total_customers
+    FROM customer_sales
+)
+SELECT
+    CASE
+        WHEN customer_rank <=
+             CEIL(total_customers * 0.01)
+            THEN 'Top 1%'
+        WHEN customer_rank <=
+             CEIL(total_customers * 0.05)
+            THEN 'Next 4%'
+        WHEN customer_rank <=
+             CEIL(total_customers * 0.20)
+            THEN 'Next 15%'
+        ELSE 'Remaining 80%'
+    END AS customer_segment,
+    COUNT(*) AS customers,
+    ROUND(SUM(gross_sales), 2)
+        AS segment_sales,
+    ROUND(
+        100.0 * SUM(gross_sales) /
+        SUM(SUM(gross_sales)) OVER (), 2
+    ) AS sales_share_pct
+FROM ranked_customers
+GROUP BY customer_segment
+ORDER BY segment_sales DESC;
+
+
+-- ============================================================
+-- QUERY 30: MONTHLY SALES KPI SUMMARY
+-- ============================================================
+
+WITH valid_sales AS (
+    SELECT
+        DATE_TRUNC('month', invoice_date)::DATE
+            AS sales_month,
+        invoice_no,
+        customer_id,
+        quantity,
+        quantity * unit_price AS sales_amount
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+)
+SELECT
+    sales_month,
+    COUNT(*) AS sale_lines,
+    COUNT(DISTINCT invoice_no) AS invoices,
+    COUNT(DISTINCT customer_id) AS known_customers,
+    SUM(quantity) AS units_sold,
+    ROUND(SUM(sales_amount), 2)
+        AS gross_sales,
+    ROUND(
+        SUM(sales_amount) /
+        NULLIF(COUNT(DISTINCT invoice_no), 0), 2
+    ) AS avg_invoice_value,
+    ROUND(
+        SUM(quantity) * 1.0 /
+        NULLIF(COUNT(DISTINCT invoice_no), 0), 2
+    ) AS avg_units_per_invoice
+FROM valid_sales
+GROUP BY sales_month
+ORDER BY sales_month;
