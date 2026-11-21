@@ -947,3 +947,746 @@ SELECT
 FROM valid_sales
 GROUP BY sales_month
 ORDER BY sales_month;
+
+
+-- ============================================================
+-- PROJECT 21: RETAIL SALES & CUSTOMER SEGMENTATION
+-- DAY 3: CUSTOMER SEGMENTATION & RFM ANALYTICS
+-- QUERIES 31-45
+-- DATABASE: DUCKDB
+-- ============================================================
+
+
+-- ============================================================
+-- QUERY 31: CUSTOMER PURCHASE SUMMARY
+-- ============================================================
+
+WITH customer_sales AS (
+    SELECT
+        customer_id,
+        invoice_no,
+        invoice_date,
+        quantity,
+        quantity * unit_price AS sales_amount
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+      AND customer_id IS NOT NULL
+)
+SELECT
+    COUNT(DISTINCT customer_id) AS total_customers,
+    COUNT(DISTINCT invoice_no) AS known_customer_invoices,
+    ROUND(SUM(sales_amount), 2) AS known_customer_sales,
+    ROUND(
+        SUM(sales_amount) /
+        NULLIF(COUNT(DISTINCT customer_id), 0), 2
+    ) AS avg_sales_per_customer,
+    ROUND(
+        COUNT(DISTINCT invoice_no) * 1.0 /
+        NULLIF(COUNT(DISTINCT customer_id), 0), 2
+    ) AS avg_invoices_per_customer
+FROM customer_sales;
+
+
+-- ============================================================
+-- QUERY 32: REPEAT PURCHASE RATE
+-- ============================================================
+
+WITH customer_frequency AS (
+    SELECT
+        customer_id,
+        COUNT(DISTINCT invoice_no) AS purchase_frequency
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+      AND customer_id IS NOT NULL
+    GROUP BY customer_id
+)
+SELECT
+    COUNT(*) AS total_customers,
+    COUNT(*) FILTER (
+        WHERE purchase_frequency = 1
+    ) AS one_time_customers,
+    COUNT(*) FILTER (
+        WHERE purchase_frequency >= 2
+    ) AS repeat_customers,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE purchase_frequency >= 2
+        ) / NULLIF(COUNT(*), 0), 2
+    ) AS repeat_customer_pct
+FROM customer_frequency;
+
+
+-- ============================================================
+-- QUERY 33: CUSTOMER PURCHASE FREQUENCY DISTRIBUTION
+-- ============================================================
+
+WITH customer_frequency AS (
+    SELECT
+        customer_id,
+        COUNT(DISTINCT invoice_no) AS purchase_frequency
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+      AND customer_id IS NOT NULL
+    GROUP BY customer_id
+)
+SELECT
+    CASE
+        WHEN purchase_frequency = 1 THEN '1 Invoice'
+        WHEN purchase_frequency = 2 THEN '2 Invoices'
+        WHEN purchase_frequency BETWEEN 3 AND 5
+            THEN '3-5 Invoices'
+        WHEN purchase_frequency BETWEEN 6 AND 10
+            THEN '6-10 Invoices'
+        ELSE '11+ Invoices'
+    END AS frequency_group,
+    COUNT(*) AS customers,
+    ROUND(
+        100.0 * COUNT(*) /
+        SUM(COUNT(*)) OVER (), 2
+    ) AS customer_share_pct
+FROM customer_frequency
+GROUP BY 1
+ORDER BY
+    CASE frequency_group
+        WHEN '1 Invoice' THEN 1
+        WHEN '2 Invoices' THEN 2
+        WHEN '3-5 Invoices' THEN 3
+        WHEN '6-10 Invoices' THEN 4
+        ELSE 5
+    END;
+
+
+-- ============================================================
+-- QUERY 34: CUSTOMER RECENCY DISTRIBUTION
+-- ============================================================
+
+WITH customer_recency AS (
+    SELECT
+        customer_id,
+        DATE_DIFF(
+            'day',
+            MAX(invoice_date)::DATE,
+            DATE '2011-12-10'
+        ) AS recency_days
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+      AND customer_id IS NOT NULL
+    GROUP BY customer_id
+)
+SELECT
+    CASE
+        WHEN recency_days <= 30 THEN '0-30 Days'
+        WHEN recency_days <= 60 THEN '31-60 Days'
+        WHEN recency_days <= 90 THEN '61-90 Days'
+        WHEN recency_days <= 180 THEN '91-180 Days'
+        ELSE '181+ Days'
+    END AS recency_group,
+    COUNT(*) AS customers,
+    ROUND(AVG(recency_days), 2) AS avg_recency_days,
+    ROUND(
+        100.0 * COUNT(*) /
+        SUM(COUNT(*)) OVER (), 2
+    ) AS customer_share_pct
+FROM customer_recency
+GROUP BY 1
+ORDER BY MIN(recency_days);
+
+
+-- ============================================================
+-- QUERY 35: CUSTOMER MONETARY VALUE DISTRIBUTION
+-- ============================================================
+
+WITH customer_monetary AS (
+    SELECT
+        customer_id,
+        SUM(quantity * unit_price) AS monetary_value
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+      AND customer_id IS NOT NULL
+    GROUP BY customer_id
+)
+SELECT
+    CASE
+        WHEN monetary_value < 100 THEN 'Below 100'
+        WHEN monetary_value < 500 THEN '100-499'
+        WHEN monetary_value < 1000 THEN '500-999'
+        WHEN monetary_value < 5000 THEN '1000-4999'
+        ELSE '5000+'
+    END AS monetary_group,
+    COUNT(*) AS customers,
+    ROUND(SUM(monetary_value), 2) AS total_sales,
+    ROUND(AVG(monetary_value), 2) AS avg_customer_sales
+FROM customer_monetary
+GROUP BY 1
+ORDER BY MIN(monetary_value);
+
+
+-- ============================================================
+-- QUERY 36: CUSTOMER TENURE AND PURCHASE ACTIVITY
+-- ============================================================
+
+WITH customer_activity AS (
+    SELECT
+        customer_id,
+        MIN(invoice_date)::DATE AS first_purchase_date,
+        MAX(invoice_date)::DATE AS last_purchase_date,
+        COUNT(DISTINCT invoice_no) AS purchase_frequency,
+        SUM(quantity * unit_price) AS monetary_value
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+      AND customer_id IS NOT NULL
+    GROUP BY customer_id
+)
+SELECT
+    CASE
+        WHEN DATE_DIFF(
+            'day', first_purchase_date, last_purchase_date
+        ) = 0 THEN 'Same Day'
+        WHEN DATE_DIFF(
+            'day', first_purchase_date, last_purchase_date
+        ) <= 30 THEN '1-30 Days'
+        WHEN DATE_DIFF(
+            'day', first_purchase_date, last_purchase_date
+        ) <= 90 THEN '31-90 Days'
+        WHEN DATE_DIFF(
+            'day', first_purchase_date, last_purchase_date
+        ) <= 180 THEN '91-180 Days'
+        ELSE '181+ Days'
+    END AS observed_tenure_group,
+    COUNT(*) AS customers,
+    ROUND(AVG(purchase_frequency), 2)
+        AS avg_purchase_frequency,
+    ROUND(SUM(monetary_value), 2) AS gross_sales
+FROM customer_activity
+GROUP BY 1
+ORDER BY MIN(
+    DATE_DIFF(
+        'day', first_purchase_date, last_purchase_date
+    )
+);
+
+
+-- ============================================================
+-- QUERY 37: CUSTOMER RFM SCORES
+-- ============================================================
+
+WITH customer_metrics AS (
+    SELECT
+        customer_id,
+        DATE_DIFF(
+            'day',
+            MAX(invoice_date)::DATE,
+            DATE '2011-12-10'
+        ) AS recency_days,
+        COUNT(DISTINCT invoice_no) AS frequency,
+        SUM(quantity * unit_price) AS monetary
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+      AND customer_id IS NOT NULL
+    GROUP BY customer_id
+),
+rfm_scores AS (
+    SELECT
+        *,
+        NTILE(5) OVER (
+            ORDER BY recency_days DESC, customer_id
+        ) AS r_score,
+        NTILE(5) OVER (
+            ORDER BY frequency ASC, customer_id
+        ) AS f_score,
+        NTILE(5) OVER (
+            ORDER BY monetary ASC, customer_id
+        ) AS m_score
+    FROM customer_metrics
+)
+SELECT
+    customer_id,
+    recency_days,
+    frequency,
+    ROUND(monetary, 2) AS monetary,
+    r_score,
+    f_score,
+    m_score,
+    r_score + f_score + m_score AS rfm_total_score
+FROM rfm_scores
+ORDER BY rfm_total_score DESC, monetary DESC
+LIMIT 30;
+
+
+-- ============================================================
+-- QUERY 38: CUSTOMER RFM SEGMENTATION
+-- ============================================================
+
+WITH customer_metrics AS (
+    SELECT
+        customer_id,
+        DATE_DIFF(
+            'day',
+            MAX(invoice_date)::DATE,
+            DATE '2011-12-10'
+        ) AS recency_days,
+        COUNT(DISTINCT invoice_no) AS frequency,
+        SUM(quantity * unit_price) AS monetary
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+      AND customer_id IS NOT NULL
+    GROUP BY customer_id
+),
+rfm AS (
+    SELECT
+        *,
+        NTILE(5) OVER (
+            ORDER BY recency_days DESC, customer_id
+        ) AS r_score,
+        NTILE(5) OVER (
+            ORDER BY frequency ASC, customer_id
+        ) AS f_score,
+        NTILE(5) OVER (
+            ORDER BY monetary ASC, customer_id
+        ) AS m_score
+    FROM customer_metrics
+),
+segments AS (
+    SELECT
+        *,
+        CASE
+            WHEN r_score >= 4
+             AND f_score >= 4
+             AND m_score >= 4
+                THEN 'Champions'
+            WHEN r_score >= 3
+             AND f_score >= 4
+                THEN 'Loyal Customers'
+            WHEN r_score >= 4
+             AND f_score <= 2
+                THEN 'Recent Low-Frequency'
+            WHEN r_score <= 2
+             AND f_score >= 3
+                THEN 'At Risk'
+            WHEN r_score <= 2
+             AND f_score <= 2
+                THEN 'Hibernating'
+            ELSE 'Potential Loyalists'
+        END AS customer_segment
+    FROM rfm
+)
+SELECT
+    customer_segment,
+    COUNT(*) AS customers,
+    ROUND(AVG(recency_days), 2) AS avg_recency_days,
+    ROUND(AVG(frequency), 2) AS avg_frequency,
+    ROUND(AVG(monetary), 2) AS avg_monetary,
+    ROUND(SUM(monetary), 2) AS total_gross_sales
+FROM segments
+GROUP BY customer_segment
+ORDER BY total_gross_sales DESC;
+
+
+-- ============================================================
+-- QUERY 39: RFM SEGMENT SALES CONTRIBUTION
+-- ============================================================
+
+WITH customer_metrics AS (
+    SELECT
+        customer_id,
+        DATE_DIFF(
+            'day',
+            MAX(invoice_date)::DATE,
+            DATE '2011-12-10'
+        ) AS recency_days,
+        COUNT(DISTINCT invoice_no) AS frequency,
+        SUM(quantity * unit_price) AS monetary
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+      AND customer_id IS NOT NULL
+    GROUP BY customer_id
+),
+rfm AS (
+    SELECT
+        *,
+        NTILE(5) OVER (
+            ORDER BY recency_days DESC, customer_id
+        ) AS r_score,
+        NTILE(5) OVER (
+            ORDER BY frequency ASC, customer_id
+        ) AS f_score,
+        NTILE(5) OVER (
+            ORDER BY monetary ASC, customer_id
+        ) AS m_score
+    FROM customer_metrics
+),
+segments AS (
+    SELECT
+        *,
+        CASE
+            WHEN r_score >= 4
+             AND f_score >= 4
+             AND m_score >= 4
+                THEN 'Champions'
+            WHEN r_score >= 3
+             AND f_score >= 4
+                THEN 'Loyal Customers'
+            WHEN r_score >= 4
+             AND f_score <= 2
+                THEN 'Recent Low-Frequency'
+            WHEN r_score <= 2
+             AND f_score >= 3
+                THEN 'At Risk'
+            WHEN r_score <= 2
+             AND f_score <= 2
+                THEN 'Hibernating'
+            ELSE 'Potential Loyalists'
+        END AS customer_segment
+    FROM rfm
+)
+SELECT
+    customer_segment,
+    COUNT(*) AS customers,
+    ROUND(SUM(monetary), 2) AS gross_sales,
+    ROUND(
+        100.0 * SUM(monetary) /
+        SUM(SUM(monetary)) OVER (), 2
+    ) AS sales_share_pct,
+    ROUND(
+        100.0 * COUNT(*) /
+        SUM(COUNT(*)) OVER (), 2
+    ) AS customer_share_pct
+FROM segments
+GROUP BY customer_segment
+ORDER BY gross_sales DESC;
+
+
+-- ============================================================
+-- QUERY 40: TOP 20 HIGH-VALUE CUSTOMERS
+-- ============================================================
+
+SELECT
+    customer_id,
+    COUNT(DISTINCT invoice_no) AS purchase_frequency,
+    MIN(invoice_date)::DATE AS first_purchase_date,
+    MAX(invoice_date)::DATE AS last_purchase_date,
+    DATE_DIFF(
+        'day',
+        MAX(invoice_date)::DATE,
+        DATE '2011-12-10'
+    ) AS recency_days,
+    ROUND(SUM(quantity * unit_price), 2)
+        AS gross_sales
+FROM online_retail
+WHERE quantity > 0
+  AND unit_price > 0
+  AND invoice_no IS NOT NULL
+  AND TRIM(invoice_no) <> ''
+  AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+  AND stock_code IS NOT NULL
+  AND TRIM(stock_code) <> ''
+  AND country IS NOT NULL
+  AND TRIM(country) <> ''
+  AND customer_id IS NOT NULL
+GROUP BY customer_id
+ORDER BY gross_sales DESC
+LIMIT 20;
+
+
+-- ============================================================
+-- QUERY 41: HIGH-VALUE CUSTOMERS AT RISK
+-- ============================================================
+
+WITH customer_metrics AS (
+    SELECT
+        customer_id,
+        DATE_DIFF(
+            'day',
+            MAX(invoice_date)::DATE,
+            DATE '2011-12-10'
+        ) AS recency_days,
+        COUNT(DISTINCT invoice_no) AS frequency,
+        SUM(quantity * unit_price) AS monetary
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+      AND customer_id IS NOT NULL
+    GROUP BY customer_id
+)
+SELECT
+    customer_id,
+    recency_days,
+    frequency,
+    ROUND(monetary, 2) AS gross_sales
+FROM customer_metrics
+WHERE recency_days > 90
+  AND monetary >= 5000
+ORDER BY monetary DESC
+LIMIT 30;
+
+
+-- ============================================================
+-- QUERY 42: ONE-TIME VS REPEAT CUSTOMER SALES
+-- ============================================================
+
+WITH customer_metrics AS (
+    SELECT
+        customer_id,
+        COUNT(DISTINCT invoice_no) AS frequency,
+        SUM(quantity * unit_price) AS monetary
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+      AND customer_id IS NOT NULL
+    GROUP BY customer_id
+)
+SELECT
+    CASE
+        WHEN frequency = 1 THEN 'One-Time'
+        ELSE 'Repeat'
+    END AS customer_type,
+    COUNT(*) AS customers,
+    ROUND(SUM(monetary), 2) AS gross_sales,
+    ROUND(AVG(monetary), 2) AS avg_customer_sales,
+    ROUND(
+        100.0 * SUM(monetary) /
+        SUM(SUM(monetary)) OVER (), 2
+    ) AS sales_share_pct
+FROM customer_metrics
+GROUP BY 1
+ORDER BY gross_sales DESC;
+
+
+-- ============================================================
+-- QUERY 43: CUSTOMER PURCHASE GAP ANALYSIS
+-- ============================================================
+
+WITH invoice_dates AS (
+    SELECT
+        customer_id,
+        invoice_no,
+        MIN(invoice_date) AS invoice_timestamp
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+      AND customer_id IS NOT NULL
+    GROUP BY customer_id, invoice_no
+),
+ordered_purchases AS (
+    SELECT
+        customer_id,
+        invoice_no,
+        invoice_timestamp,
+        LAG(invoice_timestamp) OVER (
+            PARTITION BY customer_id
+            ORDER BY invoice_timestamp, invoice_no
+        ) AS previous_invoice_timestamp
+    FROM invoice_dates
+),
+purchase_gaps AS (
+    SELECT
+        customer_id,
+        DATE_DIFF(
+            'day',
+            previous_invoice_timestamp,
+            invoice_timestamp
+        ) AS gap_days
+    FROM ordered_purchases
+    WHERE previous_invoice_timestamp IS NOT NULL
+)
+SELECT
+    COUNT(*) AS repeat_purchase_intervals,
+    COUNT(DISTINCT customer_id)
+        AS customers_with_intervals,
+    ROUND(AVG(gap_days), 2)
+        AS avg_gap_days,
+    ROUND(MEDIAN(gap_days), 2)
+        AS median_gap_days,
+    MIN(gap_days) AS min_gap_days,
+    MAX(gap_days) AS max_gap_days
+FROM purchase_gaps;
+
+
+-- ============================================================
+-- QUERY 44: CUSTOMER BEHAVIOR BY COUNTRY
+-- ============================================================
+
+WITH customer_country_sales AS (
+    SELECT
+        country,
+        customer_id,
+        COUNT(DISTINCT invoice_no) AS frequency,
+        SUM(quantity * unit_price) AS monetary
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+      AND customer_id IS NOT NULL
+    GROUP BY country, customer_id
+)
+SELECT
+    country,
+    COUNT(*) AS known_customers,
+    COUNT(*) FILTER (
+        WHERE frequency >= 2
+    ) AS repeat_customers,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE frequency >= 2
+        ) / NULLIF(COUNT(*), 0), 2
+    ) AS repeat_customer_pct,
+    ROUND(SUM(monetary), 2) AS gross_sales,
+    ROUND(AVG(monetary), 2) AS avg_customer_sales
+FROM customer_country_sales
+GROUP BY country
+ORDER BY gross_sales DESC
+LIMIT 20;
+
+
+-- ============================================================
+-- QUERY 45: FINAL CUSTOMER SEGMENTATION KPI SUMMARY
+-- ============================================================
+
+WITH customer_metrics AS (
+    SELECT
+        customer_id,
+        MIN(invoice_date)::DATE AS first_purchase_date,
+        MAX(invoice_date)::DATE AS last_purchase_date,
+        COUNT(DISTINCT invoice_no) AS frequency,
+        SUM(quantity * unit_price) AS monetary
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+      AND customer_id IS NOT NULL
+    GROUP BY customer_id
+)
+SELECT
+    COUNT(*) AS total_customers,
+    COUNT(*) FILTER (
+        WHERE frequency = 1
+    ) AS one_time_customers,
+    COUNT(*) FILTER (
+        WHERE frequency >= 2
+    ) AS repeat_customers,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE frequency >= 2
+        ) / NULLIF(COUNT(*), 0), 2
+    ) AS repeat_customer_pct,
+    ROUND(AVG(frequency), 2)
+        AS avg_purchase_frequency,
+    ROUND(AVG(monetary), 2)
+        AS avg_customer_sales,
+    ROUND(MEDIAN(monetary), 2)
+        AS median_customer_sales,
+    ROUND(SUM(monetary), 2)
+        AS total_known_customer_sales,
+    ROUND(AVG(
+        DATE_DIFF(
+            'day',
+            last_purchase_date,
+            DATE '2011-12-10'
+        )
+    ), 2) AS avg_recency_days
+FROM customer_metrics;
