@@ -1182,3 +1182,690 @@ The analysis also identified substantial return impacts,
 non-merchandise charges, and exceptional invoices
 requiring additional investigation.
 
+
+---
+
+# Day 3 – Customer Segmentation & RFM Analytics
+
+## Objective
+
+The objective of Day 3 is to analyze customer purchasing
+behavior using Recency, Frequency, and Monetary (RFM)
+metrics.
+
+The analysis identifies repeat customers, high-value
+customers, inactive customers, purchasing patterns,
+and customer segments that may benefit from targeted
+retention or engagement strategies.
+
+Queries 31–45 were executed using DuckDB.
+
+### Analysis Definitions
+
+- Recency: Days since a customer's last eligible purchase.
+- Frequency: Number of distinct eligible purchase invoices.
+- Monetary: Total gross positive sales for a customer.
+- Analysis reference date: December 10, 2011.
+- Customer population: Identifiable customers with
+  at least one eligible positive-sale transaction.
+
+All monetary amounts are in dataset currency units.
+
+---
+
+## Query 31 – Customer Purchase Summary
+
+### Findings
+
+- Total identifiable purchasing customers: 4,338
+- Known-customer invoices: 18,532
+- Known-customer gross sales: 8,911,407.90
+- Average gross sales per customer: 2,054.27
+- Average invoices per customer: 4.27
+
+### Business Insights
+
+The dataset contains 4,338 identifiable purchasing
+customers who generated approximately 8.91 million
+in gross positive sales.
+
+The average customer generated 4.27 invoices
+during the observed period.
+
+Average gross sales per customer reached 2,054.27,
+but this value is influenced by high-spending customers.
+
+### Recommendations
+
+- Track customer-level revenue and purchase frequency.
+- Compare average and median customer spending.
+- Identify high-value customers for further analysis.
+- Maintain separate reporting for anonymous sales.
+
+---
+
+## Query 32 – Repeat Purchase Rate
+
+### Findings
+
+- Total customers: 4,338
+- One-time customers: 1,493
+- Repeat customers: 2,845
+- Repeat purchase rate: 65.58%
+
+### Business Insights
+
+Approximately 65.58% of identifiable customers
+completed at least two eligible purchase invoices.
+
+The remaining 34.42% purchased only once
+during the observed dataset period.
+
+Repeat purchasing represents a significant
+component of customer activity.
+
+### Recommendations
+
+- Develop strategies to encourage second purchases.
+- Investigate differences between one-time and
+  repeat customers.
+- Monitor repeat purchase rates by acquisition cohort.
+- Avoid treating all one-time customers as churned.
+
+---
+
+## Query 33 – Purchase Frequency Distribution
+
+### Findings
+
+| Purchase Frequency | Customers | Share |
+|---|---:|---:|
+| 1 invoice | 1,493 | 34.42% |
+| 2 invoices | 835 | 19.25% |
+| 3–5 invoices | 1,138 | 26.23% |
+| 6–10 invoices | 535 | 12.33% |
+| 11+ invoices | 337 | 7.77% |
+
+### Business Insights
+
+The largest individual group consists of customers
+who purchased only once.
+
+A total of 872 customers generated six or more
+purchase invoices.
+
+The 337 customers with at least 11 invoices
+represent a relatively small but highly active
+customer population.
+
+### Recommendations
+
+- Investigate customers with frequent purchases.
+- Encourage one-time buyers to make additional purchases.
+- Compare purchase frequency with monetary contribution.
+- Develop differentiated engagement strategies.
+
+---
+
+## Query 34 – Customer Recency Distribution
+
+### Findings
+
+| Recency | Customers | Share |
+|---|---:|---:|
+| 0–30 days | 1,628 | 37.53% |
+| 31–60 days | 748 | 17.24% |
+| 61–90 days | 513 | 11.83% |
+| 91–180 days | 588 | 13.55% |
+| 181+ days | 861 | 19.85% |
+
+### Business Insights
+
+A total of 1,628 customers purchased within
+30 days of the historical reference date.
+
+Meanwhile, 861 customers had not made an eligible
+purchase for more than 180 days.
+
+A combined 1,449 customers had recency greater
+than 90 days, representing approximately one-third
+of identifiable purchasing customers.
+
+### Recommendations
+
+- Monitor customer inactivity using historical recency.
+- Investigate longer purchase gaps.
+- Prioritize valuable customers with declining activity.
+- Account for customer purchasing cycles before
+  defining churn.
+
+---
+
+## Query 35 – Customer Monetary Value Distribution
+
+### Findings
+
+| Monetary Value | Customers | Gross Sales |
+|---|---:|---:|
+| Below 100 | 155 | 10,346.74 |
+| 100–499 | 1,606 | 447,603.55 |
+| 500–999 | 909 | 649,786.44 |
+| 1,000–4,999 | 1,393 | 3,001,899.65 |
+| 5,000+ | 275 | 4,801,771.52 |
+
+### Business Insights
+
+Only 275 customers generated at least 5,000
+in gross positive sales.
+
+These customers contributed approximately
+53.88% of known-customer gross sales.
+
+This demonstrates substantial spending concentration
+among a relatively small customer group.
+
+### Recommendations
+
+- Prioritize high-value customer retention.
+- Investigate concentration risk.
+- Analyze purchasing frequency within the
+  highest monetary group.
+- Distinguish recurring high spenders from
+  one-time bulk purchasers.
+
+---
+
+## Query 36 – Customer Tenure and Activity
+
+### Findings
+
+| Observed Tenure | Customers | Gross Sales |
+|---|---:|---:|
+| Same day | 1,548 | 704,741.62 |
+| 1–30 days | 191 | 162,592.64 |
+| 31–90 days | 411 | 409,801.45 |
+| 91–180 days | 548 | 767,699.69 |
+| 181+ days | 1,640 | 6,866,572.50 |
+
+### Business Insights
+
+Customers with an observed purchase span exceeding
+180 days generated 6.87 million in gross sales.
+
+This group had an average purchase frequency
+of 8.16 invoices.
+
+Customers whose first and last observed purchases
+occurred on the same day generated substantially
+less aggregate revenue.
+
+Longer observed purchasing relationships are
+associated with higher purchasing activity
+in this dataset.
+
+### Recommendations
+
+- Analyze purchasing behavior over time.
+- Identify long-term high-value customers.
+- Compare customer tenure with frequency and spending.
+- Avoid treating observed purchase span as the
+  customer's complete relationship lifetime.
+
+---
+
+## Query 37 – Customer RFM Scores
+
+### Findings
+
+The RFM model assigns each customer three scores:
+
+- Recency score: 1–5
+- Frequency score: 1–5
+- Monetary score: 1–5
+
+Higher scores indicate stronger relative performance
+under the chosen ranking method.
+
+The maximum combined RFM score is 15.
+
+Examples of customers receiving a score of 15:
+
+| Customer ID | Frequency | Monetary |
+|---|---:|---:|
+| 14646 | 73 | 280,206.02 |
+| 18102 | 60 | 259,657.30 |
+| 17450 | 46 | 194,550.79 |
+| 14911 | 201 | 143,825.06 |
+| 14156 | 55 | 117,379.63 |
+
+### Business Insights
+
+High-scoring customers combine recent purchases,
+frequent transactions, and high spending.
+
+Customer 14646 generated 280,206.02 across
+73 invoices.
+
+Customer 14911 completed 201 invoices,
+demonstrating exceptionally frequent purchasing.
+
+### Recommendations
+
+- Use RFM scores to identify strong customers.
+- Monitor changes in customer RFM scores over time.
+- Investigate whether high monetary scores result
+  from recurring purchases or exceptional orders.
+- Validate segmentation boundaries before
+  operational deployment.
+
+---
+
+## Query 38 – RFM Customer Segmentation
+
+### Findings
+
+| Segment | Customers | Gross Sales |
+|---|---:|---:|
+| Champions | 946 | 5,746,144.46 |
+| Loyal Customers | 505 | 939,911.31 |
+| At Risk | 659 | 822,090.05 |
+| Potential Loyalists | 842 | 739,795.46 |
+| Hibernating | 1,077 | 525,901.52 |
+| Recent Low-Frequency | 309 | 137,565.10 |
+
+### Business Insights
+
+Champions generated the highest gross sales,
+contributing approximately 5.75 million.
+
+Loyal Customers represent another important
+repeat-purchasing segment.
+
+The At Risk segment contains 659 customers
+with relatively weak recency scores despite
+meaningful purchasing histories.
+
+Hibernating is the largest segment by customer
+count, with 1,077 customers.
+
+### Recommendations
+
+- Champions: Focus on retention and relationship quality.
+- Loyal Customers: Encourage continued engagement.
+- At Risk: Investigate declining purchase activity.
+- Potential Loyalists: Encourage additional purchases.
+- Hibernating: Evaluate reactivation opportunities.
+- Recent Low-Frequency: Support early repeat purchasing.
+
+---
+
+## Query 39 – RFM Segment Revenue Contribution
+
+### Findings
+
+| Segment | Customers | Sales Share |
+|---|---:|---:|
+| Champions | 946 | 64.48% |
+| Loyal Customers | 505 | 10.55% |
+| At Risk | 659 | 9.23% |
+| Potential Loyalists | 842 | 8.30% |
+| Hibernating | 1,077 | 5.90% |
+| Recent Low-Frequency | 309 | 1.54% |
+
+### Business Insights
+
+Champions represent 21.81% of customers
+but generate 64.48% of gross sales.
+
+Champions and Loyal Customers together contribute
+75.03% of known-customer gross sales.
+
+This demonstrates a strong dependence on
+high-performing customer segments.
+
+### Recommendations
+
+- Prioritize retention of Champions and Loyal Customers.
+- Monitor high-value customer concentration.
+- Develop segment-specific engagement strategies.
+- Measure the effectiveness of future retention initiatives.
+
+---
+
+## Query 40 – Top High-Value Customers
+
+### Findings
+
+| Customer ID | Invoices | Gross Sales |
+|---|---:|---:|
+| 14646 | 73 | 280,206.02 |
+| 18102 | 60 | 259,657.30 |
+| 17450 | 46 | 194,550.79 |
+| 16446 | 2 | 168,472.50 |
+| 14911 | 201 | 143,825.06 |
+
+### Business Insights
+
+Customer 14646 generated the highest
+known-customer gross sales.
+
+Customer 18102 followed closely.
+
+Customer 16446 generated 168,472.50
+from only two invoices.
+
+This demonstrates that high monetary value
+does not always correspond to high frequency.
+
+### Recommendations
+
+- Distinguish recurring high-value customers
+  from exceptional large-order customers.
+- Evaluate customer concentration risk.
+- Investigate whether top customers maintain
+  consistent purchasing patterns.
+
+---
+
+## Query 41 – High-Value Customers at Risk
+
+### Findings
+
+The screening rule identifies customers with:
+
+- Recency greater than 90 days.
+- Gross positive sales of at least 5,000.
+
+The query returned 10 customers.
+
+Examples:
+
+| Customer ID | Recency Days | Gross Sales |
+|---|---:|---:|
+| 12346 | 326 | 77,183.60 |
+| 15749 | 236 | 44,534.30 |
+| 15098 | 183 | 39,916.50 |
+| 16180 | 101 | 10,254.18 |
+| 12590 | 212 | 9,864.26 |
+
+### Business Insights
+
+Several historically high-spending customers
+had long gaps since their last recorded purchases.
+
+Customer 12346 had gross positive sales
+of 77,183.60 but only one eligible purchase invoice.
+
+These cases require return-adjusted validation
+before interpreting their commercial value.
+
+### Recommendations
+
+- Investigate high-value customers with long inactivity.
+- Review returns and cancellations associated with
+  their original purchases.
+- Evaluate whether customers have naturally
+  infrequent bulk-purchasing cycles.
+- Avoid classifying inactivity as confirmed churn.
+
+---
+
+## Query 42 – One-Time vs Repeat Customers
+
+### Findings
+
+| Customer Type | Customers | Gross Sales | Sales Share |
+|---|---:|---:|---:|
+| Repeat | 2,845 | 8,295,096.17 | 93.08% |
+| One-Time | 1,493 | 616,311.73 | 6.92% |
+
+### Business Insights
+
+Repeat customers generated 93.08% of
+known-customer gross positive sales.
+
+One-time customers contributed only 6.92%.
+
+Average customer sales were:
+
+- Repeat customers: 2,915.68
+- One-time customers: 412.80
+
+Repeat purchasing is strongly associated
+with higher customer-level spending.
+
+### Recommendations
+
+- Encourage customers to make a second purchase.
+- Investigate successful repeat-purchasing patterns.
+- Evaluate retention opportunities using cohort analysis.
+- Measure incremental value rather than assuming
+  repeat purchasing itself causes higher spending.
+
+---
+
+## Query 43 – Customer Purchase Gap Analysis
+
+### Findings
+
+- Repeat purchase intervals: 14,194
+- Customers with intervals: 2,845
+- Average gap: 39.97 days
+- Median gap: 22 days
+- Minimum gap: 0 days
+- Maximum gap: 366 days
+
+### Business Insights
+
+The median observed interval between consecutive
+eligible invoices was 22 days.
+
+The mean interval was approximately 40 days,
+indicating a distribution influenced by longer gaps.
+
+Some customers completed multiple invoices
+on the same day.
+
+### Recommendations
+
+- Investigate purchase timing distributions.
+- Explore engagement windows around typical
+  purchasing intervals.
+- Segment purchase gaps by customer value.
+- Validate whether repeated same-day invoices
+  represent separate purchasing occasions.
+
+---
+
+## Query 44 – Customer Behavior by Country
+
+### Findings
+
+| Country | Customers | Repeat Rate |
+|---|---:|---:|
+| United Kingdom | 3,920 | 65.56% |
+| Netherlands | 9 | 55.56% |
+| EIRE | 3 | 100.00% |
+| Germany | 94 | 72.34% |
+| France | 87 | 67.82% |
+| Australia | 9 | 100.00% |
+| Spain | 30 | 63.33% |
+| Switzerland | 21 | 71.43% |
+| Belgium | 25 | 72.00% |
+| Sweden | 8 | 50.00% |
+
+### Business Insights
+
+The United Kingdom contains the largest identifiable
+customer population.
+
+Germany recorded a repeat purchase rate of 72.34%.
+
+France recorded a repeat purchase rate of 67.82%.
+
+EIRE and Australia showed 100% repeat rates
+within their small identifiable customer populations.
+
+Small sample sizes limit the reliability of
+cross-country comparisons.
+
+### Recommendations
+
+- Compare retention behavior across major markets.
+- Investigate international customers with high spending.
+- Apply minimum customer-count thresholds before
+  ranking countries by repeat purchase rate.
+- Evaluate customer identification gaps by country.
+
+---
+
+## Query 45 – Final Customer Segmentation Summary
+
+### Findings
+
+- Total customers: 4,338
+- One-time customers: 1,493
+- Repeat customers: 2,845
+- Repeat purchase rate: 65.58%
+- Average purchase frequency: 4.27
+- Average customer sales: 2,054.27
+- Median customer sales: 674.49
+- Total known-customer gross sales: 8,911,407.90
+- Average customer recency: 93.06 days
+
+### Business Insights
+
+The repeat purchase rate indicates that a majority
+of identifiable customers completed multiple invoices.
+
+Average customer spending substantially exceeds
+median customer spending, reflecting a skewed
+distribution.
+
+Average historical recency was 93.06 days.
+
+Customer behavior varies significantly across
+frequency, spending, and inactivity dimensions.
+
+### Recommendations
+
+- Monitor repeat purchasing and recency together.
+- Use median spending to complement average spending.
+- Build RFM dashboards and historical segment snapshots.
+- Investigate changes in customer behavior over time.
+
+---
+
+## Overall Day 3 Business Recommendations
+
+### 1. Protect High-Value Customers
+
+Champions and Loyal Customers collectively generate
+75.03% of known-customer gross sales.
+
+Prioritize understanding their purchase behavior
+and retention requirements.
+
+### 2. Improve Repeat Purchasing
+
+One-time customers represent 34.42%
+of identifiable purchasing customers.
+
+Investigate opportunities to encourage second purchases.
+
+### 3. Investigate At-Risk Customers
+
+The RFM At Risk segment contains 659 customers.
+
+Review their purchase histories and inactivity patterns
+before designing reactivation strategies.
+
+### 4. Develop Segment-Specific Engagement
+
+Different customer groups require different approaches.
+
+Potential Loyalists may benefit from additional
+engagement, while Hibernating customers require
+a separate reactivation assessment.
+
+### 5. Improve Customer Analytics
+
+Track recency, frequency, monetary value,
+purchase gaps, and customer concentration
+through consistent reporting definitions.
+
+---
+
+## Assumptions and Limitations
+
+1. The analysis includes only identifiable customers
+   with eligible positive-sale transactions.
+
+2. Anonymous transactions are excluded from RFM analysis.
+
+3. Monetary value represents gross positive sales,
+   not return-adjusted or recognized net revenue.
+
+4. RFM recency uses December 10, 2011,
+   as the historical reference date.
+
+5. RFM quintiles are rank-based and use customer IDs
+   to break ties.
+
+6. Customers with identical frequency values may
+   receive different quintile scores near boundaries.
+
+7. Customer segments are analytical classifications,
+   not confirmed lifecycle statuses.
+
+8. At-risk and hibernating classifications do not
+   prove customer churn.
+
+9. Observed customer tenure does not represent
+   complete relationship lifetime.
+
+10. Purchase gaps are measured between eligible
+    invoice timestamps.
+
+11. Multiple same-day invoices can produce
+    zero-day purchase gaps.
+
+12. Country-level customer populations may be small.
+
+13. High-value customers may have substantial
+    cancellations or returns excluded from gross sales.
+
+14. RFM segment results depend on the chosen
+    scoring and segmentation rules.
+
+15. Historical customer behavior does not establish
+    current customer status.
+
+---
+
+## Day 3 Conclusion
+
+Day 3 successfully evaluated purchasing frequency,
+customer recency, monetary value, RFM scores,
+customer segments, high-value customers,
+and purchase intervals.
+
+The dataset contains 4,338 identifiable
+purchasing customers.
+
+Of these, 2,845 are repeat customers,
+representing a 65.58% repeat purchase rate.
+
+Repeat customers generate 93.08%
+of known-customer gross sales.
+
+The Champions segment contributes 64.48%
+of known-customer gross sales.
+
+The median observed purchase gap is 22 days.
+
+These findings demonstrate the importance
+of customer retention, repeat purchasing,
+and differentiated customer engagement.
+
+
