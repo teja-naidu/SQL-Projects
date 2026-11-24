@@ -1690,3 +1690,695 @@ SELECT
         )
     ), 2) AS avg_recency_days
 FROM customer_metrics;
+
+
+-- ============================================================
+-- PROJECT 21: RETAIL SALES & CUSTOMER SEGMENTATION
+-- DAY 4: PRODUCT PERFORMANCE & MARKET BASKET ANALYTICS
+-- QUERIES 46-60
+-- DATABASE: DUCKDB
+-- ============================================================
+
+
+-- ============================================================
+-- QUERY 46: PRODUCT PORTFOLIO OVERVIEW
+-- ============================================================
+
+WITH valid_sales AS (
+    SELECT
+        stock_code,
+        description,
+        invoice_no,
+        quantity,
+        quantity * unit_price AS sales_amount
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+)
+SELECT
+    COUNT(DISTINCT stock_code) AS unique_stock_codes,
+    COUNT(DISTINCT description) AS unique_descriptions,
+    COUNT(*) AS positive_sale_lines,
+    COUNT(DISTINCT invoice_no) AS total_invoices,
+    SUM(quantity) AS total_units_sold,
+    ROUND(SUM(sales_amount), 2) AS gross_sales,
+    ROUND(
+        SUM(sales_amount) /
+        NULLIF(COUNT(DISTINCT stock_code), 0), 2
+    ) AS avg_sales_per_stock_code
+FROM valid_sales;
+
+
+-- ============================================================
+-- QUERY 47: TOP 20 PRODUCTS BY GROSS SALES
+-- ============================================================
+
+SELECT
+    stock_code,
+    MAX(description) AS sample_description,
+    COUNT(DISTINCT invoice_no) AS invoice_count,
+    SUM(quantity) AS units_sold,
+    ROUND(SUM(quantity * unit_price), 2) AS gross_sales,
+    ROUND(
+        SUM(quantity * unit_price) /
+        NULLIF(SUM(quantity), 0), 2
+    ) AS weighted_avg_unit_price
+FROM online_retail
+WHERE quantity > 0
+  AND unit_price > 0
+  AND invoice_no IS NOT NULL
+  AND TRIM(invoice_no) <> ''
+  AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+  AND stock_code IS NOT NULL
+  AND TRIM(stock_code) <> ''
+  AND country IS NOT NULL
+  AND TRIM(country) <> ''
+GROUP BY stock_code
+ORDER BY gross_sales DESC
+LIMIT 20;
+
+
+-- ============================================================
+-- QUERY 48: MOST FREQUENTLY PURCHASED PRODUCTS
+-- ============================================================
+
+SELECT
+    stock_code,
+    MAX(description) AS sample_description,
+    COUNT(DISTINCT invoice_no) AS invoice_count,
+    SUM(quantity) AS units_sold,
+    ROUND(SUM(quantity * unit_price), 2) AS gross_sales
+FROM online_retail
+WHERE quantity > 0
+  AND unit_price > 0
+  AND invoice_no IS NOT NULL
+  AND TRIM(invoice_no) <> ''
+  AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+  AND stock_code IS NOT NULL
+  AND TRIM(stock_code) <> ''
+  AND country IS NOT NULL
+  AND TRIM(country) <> ''
+GROUP BY stock_code
+ORDER BY invoice_count DESC
+LIMIT 20;
+
+
+-- ============================================================
+-- QUERY 49: PRODUCT REVENUE AND UNIT VOLUME COMPARISON
+-- ============================================================
+
+WITH product_metrics AS (
+    SELECT
+        stock_code,
+        MAX(description) AS sample_description,
+        SUM(quantity) AS units_sold,
+        SUM(quantity * unit_price) AS gross_sales
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+    GROUP BY stock_code
+),
+scored AS (
+    SELECT
+        *,
+        NTILE(4) OVER (
+            ORDER BY gross_sales, stock_code
+        ) AS revenue_quartile,
+        NTILE(4) OVER (
+            ORDER BY units_sold, stock_code
+        ) AS volume_quartile
+    FROM product_metrics
+)
+SELECT
+    CASE
+        WHEN revenue_quartile = 4
+         AND volume_quartile = 4
+            THEN 'High Revenue - High Volume'
+        WHEN revenue_quartile = 4
+         AND volume_quartile < 4
+            THEN 'High Revenue - Lower Volume'
+        WHEN revenue_quartile < 4
+         AND volume_quartile = 4
+            THEN 'Lower Revenue - High Volume'
+        ELSE 'Other Products'
+    END AS product_group,
+    COUNT(*) AS stock_codes,
+    SUM(units_sold) AS total_units,
+    ROUND(SUM(gross_sales), 2) AS gross_sales
+FROM scored
+GROUP BY 1
+ORDER BY gross_sales DESC;
+
+
+-- ============================================================
+-- QUERY 50: PRODUCT REVENUE CONCENTRATION
+-- ============================================================
+
+WITH product_sales AS (
+    SELECT
+        stock_code,
+        SUM(quantity * unit_price) AS gross_sales
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+    GROUP BY stock_code
+),
+ranked AS (
+    SELECT
+        stock_code,
+        gross_sales,
+        ROW_NUMBER() OVER (
+            ORDER BY gross_sales DESC, stock_code
+        ) AS product_rank,
+        COUNT(*) OVER () AS total_products
+    FROM product_sales
+),
+grouped AS (
+    SELECT
+        CASE
+            WHEN product_rank <= CEIL(total_products * 0.01)
+                THEN 'Top 1%'
+            WHEN product_rank <= CEIL(total_products * 0.05)
+                THEN 'Next 4%'
+            WHEN product_rank <= CEIL(total_products * 0.20)
+                THEN 'Next 15%'
+            ELSE 'Remaining 80%'
+        END AS product_group,
+        gross_sales
+    FROM ranked
+)
+SELECT
+    product_group,
+    COUNT(*) AS stock_codes,
+    ROUND(SUM(gross_sales), 2) AS gross_sales,
+    ROUND(
+        100.0 * SUM(gross_sales) /
+        SUM(SUM(gross_sales)) OVER (), 2
+    ) AS sales_share_pct
+FROM grouped
+GROUP BY product_group
+ORDER BY gross_sales DESC;
+
+
+-- ============================================================
+-- QUERY 51: LOW-FREQUENCY PRODUCTS
+-- ============================================================
+
+SELECT
+    stock_code,
+    MAX(description) AS sample_description,
+    COUNT(DISTINCT invoice_no) AS invoice_count,
+    SUM(quantity) AS units_sold,
+    ROUND(SUM(quantity * unit_price), 2) AS gross_sales
+FROM online_retail
+WHERE quantity > 0
+  AND unit_price > 0
+  AND invoice_no IS NOT NULL
+  AND TRIM(invoice_no) <> ''
+  AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+  AND stock_code IS NOT NULL
+  AND TRIM(stock_code) <> ''
+  AND country IS NOT NULL
+  AND TRIM(country) <> ''
+GROUP BY stock_code
+HAVING COUNT(DISTINCT invoice_no) <= 3
+ORDER BY invoice_count ASC, gross_sales ASC
+LIMIT 30;
+
+
+-- ============================================================
+-- QUERY 52: PRODUCTS WITH HIGHEST RETURN VALUE
+-- ============================================================
+
+SELECT
+    stock_code,
+    MAX(description) AS sample_description,
+    COUNT(*) AS return_lines,
+    COUNT(DISTINCT invoice_no) AS return_invoices,
+    SUM(ABS(quantity)) AS returned_units,
+    ROUND(
+        SUM(ABS(quantity * unit_price)), 2
+    ) AS absolute_return_value
+FROM online_retail
+WHERE quantity < 0
+  AND stock_code IS NOT NULL
+  AND TRIM(stock_code) <> ''
+GROUP BY stock_code
+ORDER BY absolute_return_value DESC
+LIMIT 20;
+
+
+-- ============================================================
+-- QUERY 53: RETURN-ADJUSTED PRODUCT PERFORMANCE
+-- ============================================================
+
+WITH product_transactions AS (
+    SELECT
+        stock_code,
+        MAX(description) AS sample_description,
+        SUM(
+            CASE
+                WHEN quantity > 0
+                 AND unit_price > 0
+                 AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+                THEN quantity * unit_price
+                ELSE 0
+            END
+        ) AS gross_sales,
+        SUM(
+            CASE
+                WHEN quantity < 0
+                THEN quantity * unit_price
+                ELSE 0
+            END
+        ) AS return_signed_amount
+    FROM online_retail
+    WHERE stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+    GROUP BY stock_code
+)
+SELECT
+    stock_code,
+    sample_description,
+    ROUND(gross_sales, 2) AS gross_sales,
+    ROUND(return_signed_amount, 2)
+        AS return_signed_amount,
+    ROUND(
+        gross_sales + return_signed_amount, 2
+    ) AS return_adjusted_sales,
+    ROUND(
+        100.0 * ABS(return_signed_amount) /
+        NULLIF(gross_sales, 0), 2
+    ) AS return_impact_pct
+FROM product_transactions
+WHERE gross_sales > 0
+ORDER BY return_adjusted_sales DESC
+LIMIT 20;
+
+
+-- ============================================================
+-- QUERY 54: PRODUCT PERFORMANCE BY COUNTRY
+-- ============================================================
+
+WITH country_product_sales AS (
+    SELECT
+        country,
+        stock_code,
+        MAX(description) AS sample_description,
+        COUNT(DISTINCT invoice_no) AS invoice_count,
+        SUM(quantity * unit_price) AS gross_sales
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+    GROUP BY country, stock_code
+),
+ranked AS (
+    SELECT
+        *,
+        ROW_NUMBER() OVER (
+            PARTITION BY country
+            ORDER BY gross_sales DESC, stock_code
+        ) AS product_rank
+    FROM country_product_sales
+)
+SELECT
+    country,
+    stock_code,
+    sample_description,
+    invoice_count,
+    ROUND(gross_sales, 2) AS gross_sales
+FROM ranked
+WHERE product_rank <= 3
+  AND country IN (
+      'United Kingdom',
+      'Netherlands',
+      'EIRE',
+      'Germany',
+      'France',
+      'Australia'
+  )
+ORDER BY country, product_rank;
+
+
+-- ============================================================
+-- QUERY 55: MARKET BASKET SIZE DISTRIBUTION
+-- ============================================================
+
+WITH basket_items AS (
+    SELECT
+        invoice_no,
+        COUNT(DISTINCT stock_code) AS unique_products,
+        SUM(quantity) AS total_units,
+        SUM(quantity * unit_price) AS basket_value
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+    GROUP BY invoice_no
+)
+SELECT
+    CASE
+        WHEN unique_products = 1 THEN '1 Product'
+        WHEN unique_products BETWEEN 2 AND 5
+            THEN '2-5 Products'
+        WHEN unique_products BETWEEN 6 AND 10
+            THEN '6-10 Products'
+        WHEN unique_products BETWEEN 11 AND 20
+            THEN '11-20 Products'
+        ELSE '21+ Products'
+    END AS basket_group,
+    COUNT(*) AS invoices,
+    ROUND(AVG(basket_value), 2)
+        AS avg_basket_value,
+    ROUND(AVG(total_units), 2)
+        AS avg_units_per_basket,
+    ROUND(SUM(basket_value), 2)
+        AS gross_sales
+FROM basket_items
+GROUP BY 1
+ORDER BY MIN(unique_products);
+
+
+-- ============================================================
+-- QUERY 56: TOP 20 FREQUENTLY PURCHASED PRODUCT PAIRS
+-- ============================================================
+
+WITH basket_products AS (
+    SELECT DISTINCT
+        invoice_no,
+        stock_code
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+),
+product_pairs AS (
+    SELECT
+        a.stock_code AS product_a,
+        b.stock_code AS product_b,
+        COUNT(*) AS basket_count
+    FROM basket_products a
+    JOIN basket_products b
+      ON a.invoice_no = b.invoice_no
+     AND a.stock_code < b.stock_code
+    GROUP BY 1, 2
+)
+SELECT
+    product_a,
+    product_b,
+    basket_count
+FROM product_pairs
+ORDER BY basket_count DESC, product_a, product_b
+LIMIT 20;
+
+
+-- ============================================================
+-- QUERY 57: PRODUCT ASSOCIATION RULES
+-- ============================================================
+
+WITH basket_products AS (
+    SELECT DISTINCT
+        invoice_no,
+        stock_code
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+),
+basket_count AS (
+    SELECT COUNT(DISTINCT invoice_no) AS total_baskets
+    FROM basket_products
+),
+product_counts AS (
+    SELECT
+        stock_code,
+        COUNT(*) AS product_baskets
+    FROM basket_products
+    GROUP BY stock_code
+),
+pair_counts AS (
+    SELECT
+        a.stock_code AS product_a,
+        b.stock_code AS product_b,
+        COUNT(*) AS pair_baskets
+    FROM basket_products a
+    JOIN basket_products b
+      ON a.invoice_no = b.invoice_no
+     AND a.stock_code <> b.stock_code
+    GROUP BY 1, 2
+)
+SELECT
+    p.product_a,
+    p.product_b,
+    p.pair_baskets,
+    ROUND(
+        100.0 * p.pair_baskets /
+        NULLIF(b.total_baskets, 0), 2
+    ) AS support_pct,
+    ROUND(
+        100.0 * p.pair_baskets /
+        NULLIF(a.product_baskets, 0), 2
+    ) AS confidence_pct,
+    ROUND(
+        p.pair_baskets * b.total_baskets * 1.0 /
+        NULLIF(
+            a.product_baskets * c.product_baskets, 0
+        ), 2
+    ) AS lift
+FROM pair_counts p
+JOIN product_counts a
+  ON p.product_a = a.stock_code
+JOIN product_counts c
+  ON p.product_b = c.stock_code
+CROSS JOIN basket_count b
+WHERE p.pair_baskets >= 30
+ORDER BY lift DESC, p.pair_baskets DESC
+LIMIT 30;
+
+
+-- ============================================================
+-- QUERY 58: CROSS-SELL OPPORTUNITIES FOR POPULAR PRODUCTS
+-- ============================================================
+
+WITH basket_products AS (
+    SELECT DISTINCT
+        invoice_no,
+        stock_code
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+),
+popular_products AS (
+    SELECT
+        stock_code,
+        COUNT(*) AS product_baskets
+    FROM basket_products
+    GROUP BY stock_code
+    ORDER BY product_baskets DESC
+    LIMIT 20
+),
+cross_sell AS (
+    SELECT
+        a.stock_code AS anchor_product,
+        b.stock_code AS recommended_product,
+        COUNT(*) AS pair_baskets
+    FROM basket_products a
+    JOIN basket_products b
+      ON a.invoice_no = b.invoice_no
+     AND a.stock_code <> b.stock_code
+    JOIN popular_products p
+      ON a.stock_code = p.stock_code
+    GROUP BY 1, 2
+)
+SELECT
+    c.anchor_product,
+    c.recommended_product,
+    c.pair_baskets,
+    ROUND(
+        100.0 * c.pair_baskets /
+        NULLIF(p.product_baskets, 0), 2
+    ) AS confidence_pct
+FROM cross_sell c
+JOIN popular_products p
+  ON c.anchor_product = p.stock_code
+WHERE c.pair_baskets >= 30
+QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY c.anchor_product
+    ORDER BY c.pair_baskets DESC, c.recommended_product
+) <= 3
+ORDER BY c.anchor_product, c.pair_baskets DESC;
+
+
+-- ============================================================
+-- QUERY 59: PRODUCT CO-PURCHASE NETWORK SUMMARY
+-- ============================================================
+
+WITH basket_products AS (
+    SELECT DISTINCT
+        invoice_no,
+        stock_code
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+),
+pair_counts AS (
+    SELECT
+        a.stock_code AS product_a,
+        b.stock_code AS product_b,
+        COUNT(*) AS pair_baskets
+    FROM basket_products a
+    JOIN basket_products b
+      ON a.invoice_no = b.invoice_no
+     AND a.stock_code < b.stock_code
+    GROUP BY 1, 2
+),
+significant_pairs AS (
+    SELECT *
+    FROM pair_counts
+    WHERE pair_baskets >= 30
+),
+product_connections AS (
+    SELECT
+        product_a AS stock_code,
+        product_b AS connected_product,
+        pair_baskets
+    FROM significant_pairs
+
+    UNION ALL
+
+    SELECT
+        product_b AS stock_code,
+        product_a AS connected_product,
+        pair_baskets
+    FROM significant_pairs
+)
+SELECT
+    stock_code,
+    COUNT(DISTINCT connected_product)
+        AS connected_products,
+    SUM(pair_baskets) AS total_pair_occurrences
+FROM product_connections
+GROUP BY stock_code
+ORDER BY connected_products DESC,
+         total_pair_occurrences DESC
+LIMIT 20;
+
+
+-- ============================================================
+-- QUERY 60: FINAL PRODUCT PERFORMANCE KPI SUMMARY
+-- ============================================================
+
+WITH valid_sales AS (
+    SELECT
+        invoice_no,
+        stock_code,
+        quantity,
+        quantity * unit_price AS sales_amount
+    FROM online_retail
+    WHERE quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+),
+basket_metrics AS (
+    SELECT
+        invoice_no,
+        COUNT(DISTINCT stock_code) AS unique_products,
+        SUM(quantity) AS units,
+        SUM(sales_amount) AS basket_value
+    FROM valid_sales
+    GROUP BY invoice_no
+)
+SELECT
+    (SELECT COUNT(DISTINCT stock_code)
+     FROM valid_sales) AS unique_stock_codes,
+
+    (SELECT COUNT(*)
+     FROM valid_sales) AS positive_sale_lines,
+
+    (SELECT COUNT(*)
+     FROM basket_metrics) AS total_baskets,
+
+    (SELECT SUM(quantity)
+     FROM valid_sales) AS total_units_sold,
+
+    (SELECT ROUND(SUM(sales_amount), 2)
+     FROM valid_sales) AS gross_sales,
+
+    (SELECT ROUND(AVG(unique_products), 2)
+     FROM basket_metrics) AS avg_unique_products_per_basket,
+
+    (SELECT ROUND(MEDIAN(unique_products), 2)
+     FROM basket_metrics) AS median_unique_products_per_basket,
+
+    (SELECT ROUND(AVG(basket_value), 2)
+     FROM basket_metrics) AS avg_basket_value;
