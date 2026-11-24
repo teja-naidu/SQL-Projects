@@ -1869,3 +1869,768 @@ of customer retention, repeat purchasing,
 and differentiated customer engagement.
 
 
+---
+
+# Day 4 – Product Performance & Market Basket Analytics
+
+## Objective
+
+The objective of Day 4 is to evaluate product sales
+performance, revenue concentration, return-related
+transactions, basket composition, product associations,
+and potential cross-selling opportunities.
+
+Queries 46–60 were executed using DuckDB.
+
+### Analysis Scope
+
+- Dataset: Online Retail
+- Positive-sale lines: 530,104
+- Eligible invoices: 19,960
+- Active stock codes: 3,922
+- Gross positive sales: 10,666,684.54
+- Analysis period: December 2010 to December 2011
+
+Monetary values are expressed in dataset currency units.
+
+Eligible positive sales require positive quantity and
+unit price, a non-cancellation invoice identifier,
+a valid stock code, and a nonblank country.
+
+Stock codes are used as product identifiers. Some codes
+represent postage, fees, discounts, or adjustments rather
+than physical merchandise.
+
+---
+
+## Query 46 – Product Portfolio Overview
+
+### Findings
+
+| Metric | Result |
+|---|---:|
+| Unique stock codes | 3,922 |
+| Unique descriptions | 4,026 |
+| Positive-sale lines | 530,104 |
+| Eligible invoices | 19,960 |
+| Units sold | 5,588,376 |
+| Gross positive sales | 10,666,684.54 |
+| Average sales per stock code | 2,719.71 |
+
+### Business Insights
+
+The dataset contains 3,922 stock codes associated with
+eligible positive sales.
+
+The number of descriptions exceeds the number of stock
+codes, indicating that some stock codes have multiple
+descriptions across transactions.
+
+Total gross positive sales reached 10.67 million.
+
+The average revenue per stock code is 2,719.71, but
+this average masks substantial variation in performance.
+
+### Recommendations
+
+- Establish a consistent product master reference.
+- Review stock codes with multiple descriptions.
+- Separate merchandise from service and adjustment codes.
+- Compare product-level revenue with purchase frequency.
+
+---
+
+## Query 47 – Top Products by Gross Sales
+
+### Findings
+
+| Stock Code | Product / Entry | Gross Sales |
+|---|---|---:|
+| DOT | DOTCOM POSTAGE | 206,248.77 |
+| 22423 | REGENCY CAKESTAND 3 TIER | 174,484.74 |
+| 23843 | PAPER CRAFT, LITTLE BIRDIE | 168,469.60 |
+| 85123A | WHITE HANGING HEART T-LIGHT HOLDER | 104,518.80 |
+| 47566 | PARTY BUNTING | 99,504.33 |
+| 85099B | JUMBO BAG RED RETROSPOT | 94,340.05 |
+| 23166 | MEDIUM CERAMIC TOP STORAGE JAR | 81,700.92 |
+| M | Manual | 78,110.27 |
+| POST | POSTAGE | 78,101.88 |
+| 23084 | RABBIT NIGHT LIGHT | 66,964.99 |
+
+### Business Insights
+
+DOTCOM POSTAGE recorded the highest gross positive
+transaction value, but it is a service-related entry.
+
+REGENCY CAKESTAND 3 TIER was a leading physical
+merchandise product.
+
+PAPER CRAFT, LITTLE BIRDIE generated 168,469.60
+from one invoice containing 80,995 units.
+
+This exceptional transaction also appears in the
+negative-quantity analysis and requires separate review.
+
+The rankings include Manual and POSTAGE entries,
+which should not be interpreted as merchandise demand.
+
+### Recommendations
+
+- Create separate merchandise-only sales rankings.
+- Review exceptional bulk transactions.
+- Investigate consistently high-selling products.
+- Avoid prioritizing service codes for inventory decisions.
+
+---
+
+## Query 48 – Most Frequently Purchased Products
+
+### Findings
+
+| Stock Code | Product | Invoices |
+|---|---|---:|
+| 85123A | WHITE HANGING HEART T-LIGHT HOLDER | 2,198 |
+| 85099B | JUMBO BAG RED RETROSPOT | 2,089 |
+| 22423 | REGENCY CAKESTAND 3 TIER | 1,988 |
+| 47566 | PARTY BUNTING | 1,685 |
+| 20725 | LUNCH BAG RED SPOTTY | 1,565 |
+| 84879 | ASSORTED COLOUR BIRD ORNAMENT | 1,455 |
+| 22197 | SMALL POPCORN HOLDER | 1,392 |
+| 22720 | SET OF 3 CAKE TINS PANTRY DESIGN | 1,385 |
+| 21212 | PACK OF 72 RETROSPOT CAKE CASES | 1,320 |
+| 22383 | LUNCH BAG SUKI DESIGN | 1,284 |
+
+### Business Insights
+
+WHITE HANGING HEART T-LIGHT HOLDER appeared in
+2,198 eligible invoices, making it the most frequently
+purchased stock code by distinct invoice count.
+
+JUMBO BAG RED RETROSPOT appeared in 2,089 invoices.
+
+Several bags, lunch bags, and household accessories
+appeared frequently across customer baskets.
+
+High invoice frequency does not necessarily imply
+the highest revenue or unit volume.
+
+### Recommendations
+
+- Monitor frequently purchased products separately
+  from highest-revenue products.
+- Evaluate stock availability for frequently ordered items.
+- Investigate opportunities for related-product placement.
+- Compare invoice frequency with return-adjusted sales.
+
+---
+
+## Query 49 – Product Revenue and Volume Comparison
+
+### Findings
+
+| Product Group | Stock Codes | Units | Gross Sales |
+|---|---:|---:|---:|
+| High Revenue - High Volume | 669 | 3,817,334 | 7,389,116.16 |
+| High Revenue - Lower Volume | 311 | 236,864 | 1,599,233.06 |
+| Lower Revenue - High Volume | 311 | 797,442 | 412,388.26 |
+| Other Products | 2,631 | 736,736 | 1,265,947.06 |
+
+### Business Insights
+
+The 669 products classified as both high revenue and
+high volume generated approximately 69.27% of total
+gross positive sales.
+
+The high-revenue, lower-volume group generated
+approximately 1.60 million.
+
+The lower-revenue, high-volume group sold 797,442
+units but generated only 412,388.26.
+
+Revenue and volume rankings capture different aspects
+of product performance.
+
+### Recommendations
+
+- Monitor high-revenue, high-volume products closely.
+- Investigate pricing and unit economics for high-volume,
+  lower-revenue products.
+- Evaluate inventory priorities using multiple metrics.
+- Do not interpret revenue quartiles as profit margins.
+
+---
+
+## Query 50 – Product Revenue Concentration
+
+### Findings
+
+| Product Group | Stock Codes | Gross Sales | Sales Share |
+|---|---:|---:|---:|
+| Top 1% | 40 | 2,281,126.37 | 21.39% |
+| Next 4% | 157 | 2,784,825.79 | 26.11% |
+| Next 15% | 588 | 3,411,523.20 | 31.98% |
+| Remaining 80% | 3,137 | 2,189,209.18 | 20.52% |
+
+### Business Insights
+
+The top 40 stock codes generated 21.39% of gross sales.
+
+The top 5% of products collectively generated 47.50%.
+
+The top 20% collectively generated 79.48%.
+
+The remaining 80% contributed 20.52%.
+
+This demonstrates substantial revenue concentration
+across the product portfolio.
+
+### Recommendations
+
+- Prioritize analysis of the top-performing product group.
+- Review long-tail product performance.
+- Investigate product assortment opportunities.
+- Recalculate concentration after excluding
+  non-merchandise codes and unusual adjustments.
+
+---
+
+## Query 51 – Low-Frequency Products
+
+### Findings
+
+The query identified stock codes purchased in three
+or fewer distinct invoices.
+
+Examples from the lowest-revenue results:
+
+| Stock Code | Product | Invoices | Gross Sales |
+|---|---|---:|---:|
+| 84227 | HEN HOUSE W CHICK IN NEST | 1 | 0.42 |
+| 51014c | FEATHER PEN, COAL BLACK | 1 | 0.83 |
+| 21268 | VINTAGE BLUE TINSEL REEL | 1 | 0.84 |
+| 90084 | PINK CRYSTAL GUITAR PHONE CHARM | 1 | 0.85 |
+| 84206B | CAT WITH SUNGLASSES BLANK CARD | 1 | 0.95 |
+
+### Business Insights
+
+Several products appeared in only one invoice and
+generated very low gross sales.
+
+These products may represent slow-moving merchandise,
+short-lived listings, discontinued items, or products
+introduced near the end of the observation period.
+
+The output is limited to 30 selected products and
+does not establish the total number of slow movers.
+
+### Recommendations
+
+- Investigate low-frequency products before delisting.
+- Review product launch and discontinuation dates.
+- Consider seasonality and product availability.
+- Combine sales frequency with inventory and cost data.
+
+---
+
+## Query 52 – Products with Highest Return-Related Values
+
+### Findings
+
+| Stock Code | Entry | Absolute Negative-Quantity Value |
+|---|---|---:|
+| AMAZONFEE | AMAZON FEE | 235,281.59 |
+| 23843 | PAPER CRAFT, LITTLE BIRDIE | 168,469.60 |
+| M | Manual | 146,784.46 |
+| 23166 | MEDIUM CERAMIC TOP STORAGE JAR | 77,479.64 |
+| POST | POSTAGE | 11,871.24 |
+| 22423 | REGENCY CAKESTAND 3 TIER | 9,722.55 |
+| CRUK | CRUK Commission | 7,933.43 |
+| BANK CHARGES | Bank Charges | 7,340.64 |
+| 85123A | WHITE HANGING HEART T-LIGHT HOLDER | 6,624.30 |
+| 21108 | FAIRY CAKE FLANNEL ASSORTED COLOUR | 6,591.42 |
+
+### Business Insights
+
+AMAZONFEE recorded the highest absolute value among
+negative-quantity transactions.
+
+Manual entries and bank charges also appeared among
+the largest negative-quantity values.
+
+These records cannot all be interpreted as customer
+product returns.
+
+PAPER CRAFT, LITTLE BIRDIE recorded 80,995 negative
+units with an absolute transaction value of 168,469.60.
+
+MEDIUM CERAMIC TOP STORAGE JAR recorded 74,494
+negative units and an absolute value of 77,479.64.
+
+### Recommendations
+
+- Separate physical returns from financial adjustments.
+- Investigate unusually large quantity reversals.
+- Establish a transaction-type classification.
+- Validate return-related values before using them
+  for product quality or refund-rate reporting.
+
+---
+
+## Query 53 – Return-Adjusted Product Performance
+
+### Findings
+
+| Stock Code | Gross Sales | Return-Adjusted Sales | Return Impact |
+|---|---:|---:|---:|
+| DOT | 206,248.77 | 206,245.48 | 0.00% |
+| 22423 | 174,484.74 | 164,762.19 | 5.57% |
+| 47566 | 99,504.33 | 98,302.98 | 1.21% |
+| 85123A | 104,518.80 | 97,894.50 | 6.34% |
+| 85099B | 94,340.05 | 92,356.03 | 2.10% |
+| 23084 | 66,964.99 | 66,756.59 | 0.31% |
+| POST | 78,101.88 | 66,230.64 | 15.20% |
+| 22086 | 64,952.29 | 63,791.94 | 1.79% |
+
+### Business Insights
+
+REGENCY CAKESTAND 3 TIER generated 174,484.74 in
+gross sales and 164,762.19 after signed adjustments.
+
+WHITE HANGING HEART T-LIGHT HOLDER recorded a
+6.34% return-related impact.
+
+POSTAGE recorded a 15.20% impact, but this is
+not a physical product return rate.
+
+The exceptional PAPER CRAFT, LITTLE BIRDIE
+transaction did not appear among the top 20
+return-adjusted results.
+
+### Recommendations
+
+- Compare gross and return-adjusted performance.
+- Investigate stock codes with substantial adjustments.
+- Review transaction descriptions for correction entries.
+- Avoid treating the calculated impact percentage
+  as a verified customer return rate.
+
+---
+
+## Query 54 – Product Performance by Country
+
+### Findings
+
+| Country | Leading Stock Code | Gross Sales |
+|---|---|---:|
+| Australia | 23084 | 3,375.84 |
+| EIRE | 22423 | 7,844.25 |
+| France | POST | 15,454.00 |
+| Germany | POST | 21,001.00 |
+| Netherlands | 23084 | 9,568.48 |
+| United Kingdom | DOT | 206,248.77 |
+
+### Business Insights
+
+RABBIT NIGHT LIGHT was the leading stock code by
+gross sales in Australia and the Netherlands.
+
+REGENCY CAKESTAND 3 TIER led in EIRE.
+
+POSTAGE was the leading entry in France and Germany.
+
+DOTCOM POSTAGE led in the United Kingdom.
+
+The country rankings therefore mix merchandise
+demand with service-related charges.
+
+### Recommendations
+
+- Produce country-specific merchandise rankings.
+- Exclude postage from product demand comparisons.
+- Investigate regional product preferences.
+- Consider differences in market size and invoice volume.
+
+---
+
+## Query 55 – Market Basket Size Distribution
+
+### Findings
+
+| Basket Size | Invoices | Average Basket Value | Gross Sales |
+|---|---:|---:|---:|
+| 1 Product | 1,641 | 399.12 | 654,962.24 |
+| 2–5 Products | 2,867 | 284.55 | 815,806.90 |
+| 6–10 Products | 2,979 | 363.31 | 1,082,300.96 |
+| 11–20 Products | 5,009 | 404.27 | 2,024,971.24 |
+| 21+ Products | 7,464 | 815.73 | 6,088,643.20 |
+
+### Business Insights
+
+The 21+ product group contains 7,464 invoices.
+
+This group generated approximately 57.08% of total
+gross positive sales.
+
+Its average basket value was 815.73.
+
+The 1-product group had a relatively high average
+basket value of 399.12, indicating that a single
+stock code can still represent a substantial order.
+
+Basket size and value are associated, but the
+relationship is not strictly increasing across groups.
+
+### Recommendations
+
+- Investigate large multi-product baskets.
+- Compare basket value with customer segments.
+- Explore recommendations for smaller baskets.
+- Account for bulk quantities and service entries.
+
+---
+
+## Query 56 – Most Frequent Product Pairs
+
+### Findings
+
+| Product A | Product B | Shared Invoices |
+|---|---|---:|
+| 22386 | 85099B | 825 |
+| 22697 | 22699 | 767 |
+| 21931 | 85099B | 724 |
+| 22411 | 85099B | 680 |
+| 20725 | 22383 | 655 |
+| 20725 | 20727 | 641 |
+| 22726 | 22727 | 640 |
+| 22697 | 22698 | 632 |
+| 20725 | 22384 | 606 |
+| 22698 | 22699 | 598 |
+
+### Business Insights
+
+JUMBO BAG PINK POLKADOT and JUMBO BAG RED
+RETROSPOT appeared together in 825 invoices.
+
+JUMBO STORAGE BAG SUKI and JUMBO BAG RED
+RETROSPOT appeared together in 724 invoices.
+
+Several lunch bag stock codes frequently appeared
+in the same baskets.
+
+Repeated co-purchasing may reflect complementary
+products, coordinated assortments, or customers
+buying different variants of similar products.
+
+### Recommendations
+
+- Evaluate product-pair recommendation opportunities.
+- Review whether frequent pairs represent variants.
+- Consider related-product placement.
+- Validate performance through controlled experiments.
+
+---
+
+## Query 57 – Product Association Rules
+
+### Findings
+
+Selected high-lift rules:
+
+| Product A | Product B | Pair Baskets | Confidence | Lift |
+|---|---|---:|---:|---:|
+| 23556 | 23554 | 40 | 75.47% | 264.28 |
+| 84931A | 84931B | 33 | 64.71% | 263.58 |
+| 84997b | 84997c | 53 | 79.10% | 254.67 |
+| 84997d | 84997c | 55 | 75.34% | 242.55 |
+| 84997d | 84997b | 59 | 80.82% | 240.78 |
+
+### Business Insights
+
+Some product combinations have very high lift values.
+
+For example, stock codes 23556 and 23554 have
+a lift of 264.28 and occur together in 40 invoices.
+
+However, their support is only 0.20% of all
+eligible baskets.
+
+High lift can occur when relatively uncommon
+products are frequently purchased together.
+
+Association confidence is directional:
+confidence(A -> B) can differ from confidence(B -> A).
+
+Lift is symmetric for the same product pair.
+
+### Recommendations
+
+- Consider support, confidence, and lift together.
+- Validate high-lift combinations against product descriptions.
+- Apply minimum support thresholds.
+- Evaluate whether related variants or bundled products
+  explain strong associations.
+- Test recommendations before deployment.
+
+---
+
+## Query 58 – Cross-Selling Opportunities
+
+### Findings
+
+Selected directional recommendations:
+
+| Anchor Product | Recommended Product | Shared Baskets | Confidence |
+|---|---|---:|---:|
+| 22386 | 85099B | 825 | 67.73% |
+| 21931 | 85099B | 724 | 61.15% |
+| 22411 | 85099B | 680 | 57.87% |
+| 22383 | 20725 | 655 | 51.01% |
+| 20727 | 20725 | 641 | 50.35% |
+| 22086 | 22910 | 552 | 47.59% |
+| 23203 | 85099B | 577 | 46.87% |
+| 22469 | 22470 | 493 | 41.05% |
+
+### Business Insights
+
+Among baskets containing JUMBO BAG PINK POLKADOT,
+67.73% also contained JUMBO BAG RED RETROSPOT.
+
+Among baskets containing JUMBO STORAGE BAG SUKI,
+61.15% also contained JUMBO BAG RED RETROSPOT.
+
+Several lunch bag and storage bag combinations
+showed relatively strong directional confidence.
+
+These patterns provide candidates for recommendation
+experiments rather than proven incremental sales gains.
+
+### Recommendations
+
+- Evaluate "Frequently Bought Together" suggestions.
+- Investigate coordinated product collections.
+- Use directional confidence for recommendation ranking.
+- Validate candidate products against availability
+  and current assortment data.
+- Measure incremental revenue through experiments.
+
+---
+
+## Query 59 – Product Co-Purchase Network
+
+### Findings
+
+| Stock Code | Connected Products | Pair Occurrences |
+|---|---:|---:|
+| 85123A | 1,449 | 108,348 |
+| 85099B | 1,434 | 118,405 |
+| DOT | 1,409 | 103,501 |
+| 22197 | 1,357 | 96,683 |
+| 22961 | 1,326 | 90,904 |
+| 22423 | 1,319 | 94,901 |
+| 21212 | 1,270 | 91,637 |
+| 22457 | 1,266 | 81,676 |
+
+### Business Insights
+
+WHITE HANGING HEART T-LIGHT HOLDER had the
+highest number of qualifying product connections.
+
+JUMBO BAG RED RETROSPOT had the highest total
+pair occurrences among the displayed results.
+
+DOTCOM POSTAGE also appeared as a highly connected
+stock code.
+
+This confirms that service entries can distort
+product co-purchase network analysis.
+
+Total pair occurrences represent sums across
+different pair relationships, not unique invoices.
+
+### Recommendations
+
+- Exclude non-merchandise codes from recommendation networks.
+- Investigate highly connected merchandise products.
+- Explore product groups and purchasing communities.
+- Compare co-purchase frequency with commercial value.
+
+---
+
+## Query 60 – Final Product Performance KPIs
+
+### Findings
+
+| Metric | Result |
+|---|---:|
+| Unique stock codes | 3,922 |
+| Positive-sale lines | 530,104 |
+| Eligible baskets | 19,960 |
+| Units sold | 5,588,376 |
+| Gross positive sales | 10,666,684.54 |
+| Average unique products per basket | 26.03 |
+| Median unique products per basket | 15.00 |
+| Average basket value | 534.40 |
+
+### Business Insights
+
+The dataset contains 19,960 eligible purchase baskets.
+
+The average basket includes 26.03 unique stock codes.
+
+The median basket contains 15 unique stock codes,
+indicating that larger baskets increase the average.
+
+Average gross basket value is 534.40.
+
+These results suggest that multi-product purchasing
+is an important characteristic of the dataset.
+
+### Recommendations
+
+- Track basket size and basket value together.
+- Monitor product assortment performance.
+- Compare basket behavior across customer segments.
+- Validate product-only KPIs after excluding service codes.
+
+---
+
+## Overall Day 4 Business Recommendations
+
+### 1. Prioritize High-Performing Merchandise
+
+The top 20% of stock codes generate 79.48%
+of gross positive sales.
+
+Investigate these products for inventory,
+availability, and merchandising decisions.
+
+### 2. Separate Merchandise from Financial Entries
+
+Postage, fees, discounts, and manual adjustments
+appear in product sales and return rankings.
+
+Create a classification layer before using these
+metrics for operational decisions.
+
+### 3. Investigate Exceptional Reversals
+
+The PAPER CRAFT, LITTLE BIRDIE transaction has
+matching gross positive and negative-quantity
+absolute values.
+
+Review the transaction history before interpreting
+the stock code as a high-performing product.
+
+### 4. Evaluate Product Recommendations
+
+Frequently purchased product pairs provide
+candidates for cross-selling experiments.
+
+Prioritize combinations with sufficient transaction
+volume and meaningful directional confidence.
+
+### 5. Improve Product Portfolio Reporting
+
+Monitor revenue, invoice frequency, unit volume,
+return-adjusted sales, and basket associations
+through separate but connected product metrics.
+
+### 6. Analyze Large Baskets
+
+The 21+ product group generates approximately
+57.08% of gross positive sales.
+
+Investigate the characteristics of customers
+and invoices associated with these baskets.
+
+---
+
+## Assumptions and Limitations
+
+1. Product-level analysis uses stock codes as
+   identifiers.
+
+2. Multiple descriptions may exist for one stock code.
+
+3. MAX(description) selects a representative string
+   and does not guarantee the canonical product name.
+
+4. Gross sales exclude negative-quantity transactions.
+
+5. Some stock codes represent postage, discounts,
+   fees, or administrative adjustments.
+
+6. Product revenue rankings are not merchandise-only.
+
+7. Product profitability cannot be calculated because
+   costs and margins are unavailable.
+
+8. Return-related calculations include financial
+   adjustments and cannot be interpreted as verified
+   customer return rates.
+
+9. Negative-quantity rows with negative unit prices
+   can contribute positive signed values.
+
+10. Return-adjusted sales are analytical transaction
+    values, not audited recognized revenue.
+
+11. Exceptional bulk transactions may distort rankings.
+
+12. Basket analysis groups transactions by invoice
+    identifier, including invoices with multiple
+    timestamps identified during Day 1.
+
+13. Product pairs are based on distinct stock codes
+    per invoice, not purchased quantities.
+
+14. Association rules describe historical co-occurrence
+    and do not establish causal relationships.
+
+15. High-lift pairs may have low support.
+
+16. Association rule results are directional, and
+    reverse-direction rules may have different confidence.
+
+17. The network uses a minimum pair frequency of
+    30 invoices.
+
+18. Cross-selling recommendations have not been
+    validated through experiments.
+
+19. Inventory levels, product costs, stockouts,
+    and product availability are not included.
+
+20. Historical purchasing patterns do not necessarily
+    represent current customer demand.
+
+---
+
+## Day 4 Conclusion
+
+Day 4 successfully analyzed product performance,
+revenue concentration, return-related transactions,
+basket composition, product associations,
+cross-selling candidates, and product networks.
+
+The dataset contains 3,922 active stock codes,
+19,960 eligible baskets, and 10.67 million
+in gross positive sales.
+
+The top 20% of stock codes contribute 79.48%
+of gross sales.
+
+The most frequent observed product pair is
+22386 and 85099B, appearing together in
+825 eligible invoices.
+
+Average basket size is 26.03 distinct products,
+while median basket size is 15.
+
+The analysis also identifies the importance
+of separating merchandise from financial entries
+and reviewing exceptional transaction reversals.
+
+These findings establish a foundation for product
+portfolio optimization and future cross-selling
+experiments.
