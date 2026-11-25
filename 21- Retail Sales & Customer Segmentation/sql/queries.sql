@@ -2382,3 +2382,841 @@ SELECT
 
     (SELECT ROUND(AVG(basket_value), 2)
      FROM basket_metrics) AS avg_basket_value;
+
+
+-- ============================================================
+-- PROJECT 21: RETAIL SALES & CUSTOMER SEGMENTATION
+-- DAY 5: COHORT, RETENTION & CUSTOMER VALUE ANALYTICS
+-- QUERIES 61-75
+-- DATABASE: DUCKDB
+-- ============================================================
+
+
+-- ============================================================
+-- QUERY 61: CUSTOMER ACQUISITION COHORTS
+-- ============================================================
+
+WITH valid_sales AS (
+    SELECT
+        customer_id,
+        invoice_no,
+        invoice_date,
+        quantity * unit_price AS sales_amount
+    FROM online_retail
+    WHERE customer_id IS NOT NULL
+      AND quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+),
+customer_first_purchase AS (
+    SELECT
+        customer_id,
+        DATE_TRUNC('month', MIN(invoice_date))
+            AS cohort_month
+    FROM valid_sales
+    GROUP BY customer_id
+),
+customer_sales AS (
+    SELECT
+        customer_id,
+        SUM(sales_amount) AS gross_sales,
+        COUNT(DISTINCT invoice_no) AS invoices
+    FROM valid_sales
+    GROUP BY customer_id
+)
+SELECT
+    CAST(c.cohort_month AS DATE) AS cohort_month,
+    COUNT(*) AS acquired_customers,
+    SUM(s.invoices) AS total_invoices,
+    ROUND(SUM(s.gross_sales), 2)
+        AS observed_lifetime_gross_sales,
+    ROUND(AVG(s.gross_sales), 2)
+        AS avg_observed_sales_per_customer
+FROM customer_first_purchase c
+JOIN customer_sales s
+  ON c.customer_id = s.customer_id
+GROUP BY c.cohort_month
+ORDER BY cohort_month;
+
+
+-- ============================================================
+-- QUERY 62: MONTHLY NEW VS RETURNING CUSTOMERS
+-- ============================================================
+
+WITH valid_sales AS (
+    SELECT DISTINCT
+        customer_id,
+        DATE_TRUNC('month', invoice_date)
+            AS purchase_month
+    FROM online_retail
+    WHERE customer_id IS NOT NULL
+      AND quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+),
+first_purchase AS (
+    SELECT
+        customer_id,
+        MIN(purchase_month) AS cohort_month
+    FROM valid_sales
+    GROUP BY customer_id
+)
+SELECT
+    CAST(v.purchase_month AS DATE) AS purchase_month,
+    COUNT(DISTINCT v.customer_id) AS active_customers,
+    COUNT(DISTINCT CASE
+        WHEN v.purchase_month = f.cohort_month
+        THEN v.customer_id
+    END) AS new_customers,
+    COUNT(DISTINCT CASE
+        WHEN v.purchase_month > f.cohort_month
+        THEN v.customer_id
+    END) AS returning_customers
+FROM valid_sales v
+JOIN first_purchase f
+  ON v.customer_id = f.customer_id
+GROUP BY v.purchase_month
+ORDER BY purchase_month;
+
+
+-- ============================================================
+-- QUERY 63: MONTHLY CUSTOMER RETENTION
+-- ============================================================
+
+WITH monthly_activity AS (
+    SELECT DISTINCT
+        customer_id,
+        DATE_TRUNC('month', invoice_date)
+            AS purchase_month
+    FROM online_retail
+    WHERE customer_id IS NOT NULL
+      AND quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+),
+retention AS (
+    SELECT
+        a.purchase_month,
+        COUNT(DISTINCT a.customer_id)
+            AS active_customers,
+        COUNT(DISTINCT b.customer_id)
+            AS retained_next_month
+    FROM monthly_activity a
+    LEFT JOIN monthly_activity b
+      ON a.customer_id = b.customer_id
+     AND b.purchase_month =
+         a.purchase_month + INTERVAL '1 month'
+    GROUP BY a.purchase_month
+)
+SELECT
+    CAST(purchase_month AS DATE) AS purchase_month,
+    active_customers,
+    CASE
+        WHEN purchase_month =
+             DATE_TRUNC('month', (
+                 SELECT MAX(purchase_month)
+                 FROM monthly_activity
+             ))
+        THEN NULL
+        ELSE retained_next_month
+    END AS retained_next_month,
+    CASE
+        WHEN purchase_month =
+             (SELECT MAX(purchase_month)
+              FROM monthly_activity)
+        THEN NULL
+        ELSE ROUND(
+            100.0 * retained_next_month /
+            NULLIF(active_customers, 0), 2
+        )
+    END AS next_month_retention_pct
+FROM retention
+ORDER BY purchase_month;
+
+
+-- ============================================================
+-- QUERY 64: COHORT RETENTION MATRIX
+-- ============================================================
+
+WITH monthly_activity AS (
+    SELECT DISTINCT
+        customer_id,
+        DATE_TRUNC('month', invoice_date)
+            AS purchase_month
+    FROM online_retail
+    WHERE customer_id IS NOT NULL
+      AND quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+),
+cohorts AS (
+    SELECT
+        customer_id,
+        MIN(purchase_month) AS cohort_month
+    FROM monthly_activity
+    GROUP BY customer_id
+),
+cohort_activity AS (
+    SELECT
+        c.cohort_month,
+        DATE_DIFF(
+            'month',
+            c.cohort_month,
+            m.purchase_month
+        ) AS month_number,
+        COUNT(DISTINCT m.customer_id)
+            AS active_customers
+    FROM cohorts c
+    JOIN monthly_activity m
+      ON c.customer_id = m.customer_id
+    GROUP BY c.cohort_month, month_number
+),
+cohort_sizes AS (
+    SELECT
+        cohort_month,
+        COUNT(*) AS cohort_size
+    FROM cohorts
+    GROUP BY cohort_month
+)
+SELECT
+    CAST(a.cohort_month AS DATE) AS cohort_month,
+    s.cohort_size,
+    a.month_number,
+    a.active_customers,
+    ROUND(
+        100.0 * a.active_customers /
+        NULLIF(s.cohort_size, 0), 2
+    ) AS retention_pct
+FROM cohort_activity a
+JOIN cohort_sizes s
+  ON a.cohort_month = s.cohort_month
+WHERE a.month_number BETWEEN 0 AND 12
+ORDER BY cohort_month, month_number;
+
+
+-- ============================================================
+-- QUERY 65: COHORT REVENUE PERFORMANCE
+-- ============================================================
+
+WITH valid_sales AS (
+    SELECT
+        customer_id,
+        invoice_no,
+        DATE_TRUNC('month', invoice_date)
+            AS purchase_month,
+        quantity * unit_price AS sales_amount
+    FROM online_retail
+    WHERE customer_id IS NOT NULL
+      AND quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+),
+cohorts AS (
+    SELECT
+        customer_id,
+        MIN(purchase_month) AS cohort_month
+    FROM valid_sales
+    GROUP BY customer_id
+),
+cohort_sizes AS (
+    SELECT
+        cohort_month,
+        COUNT(*) AS cohort_size
+    FROM cohorts
+    GROUP BY cohort_month
+)
+SELECT
+    CAST(c.cohort_month AS DATE) AS cohort_month,
+    DATE_DIFF(
+        'month',
+        c.cohort_month,
+        v.purchase_month
+    ) AS month_number,
+    s.cohort_size,
+    COUNT(DISTINCT v.customer_id)
+        AS purchasing_customers,
+    COUNT(DISTINCT v.invoice_no)
+        AS invoices,
+    ROUND(SUM(v.sales_amount), 2)
+        AS gross_sales,
+    ROUND(
+        SUM(v.sales_amount) /
+        NULLIF(s.cohort_size, 0), 2
+    ) AS sales_per_original_cohort_customer
+FROM valid_sales v
+JOIN cohorts c
+  ON v.customer_id = c.customer_id
+JOIN cohort_sizes s
+  ON c.cohort_month = s.cohort_month
+GROUP BY c.cohort_month,
+         DATE_DIFF(
+             'month',
+             c.cohort_month,
+             v.purchase_month
+         ),
+         s.cohort_size
+ORDER BY cohort_month, month_number;
+
+
+-- ============================================================
+-- QUERY 66: CUSTOMER LIFETIME VALUE PROXY
+-- ============================================================
+
+WITH customer_metrics AS (
+    SELECT
+        customer_id,
+        COUNT(DISTINCT invoice_no) AS invoices,
+        MIN(invoice_date) AS first_purchase,
+        MAX(invoice_date) AS last_purchase,
+        SUM(quantity * unit_price)
+            AS observed_gross_sales
+    FROM online_retail
+    WHERE customer_id IS NOT NULL
+      AND quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+    GROUP BY customer_id
+)
+SELECT
+    customer_id,
+    invoices,
+    DATE_DIFF(
+        'day', first_purchase, last_purchase
+    ) AS observed_purchase_span_days,
+    ROUND(observed_gross_sales, 2)
+        AS observed_gross_sales,
+    ROUND(
+        observed_gross_sales /
+        NULLIF(invoices, 0), 2
+    ) AS avg_invoice_value
+FROM customer_metrics
+ORDER BY observed_gross_sales DESC
+LIMIT 30;
+
+
+-- ============================================================
+-- QUERY 67: CUSTOMER LIFETIME VALUE SEGMENTS
+-- ============================================================
+
+WITH customer_metrics AS (
+    SELECT
+        customer_id,
+        COUNT(DISTINCT invoice_no) AS invoices,
+        SUM(quantity * unit_price)
+            AS observed_gross_sales
+    FROM online_retail
+    WHERE customer_id IS NOT NULL
+      AND quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+    GROUP BY customer_id
+)
+SELECT
+    CASE
+        WHEN observed_gross_sales >= 10000
+            THEN '10,000+'
+        WHEN observed_gross_sales >= 5000
+            THEN '5,000-9,999'
+        WHEN observed_gross_sales >= 1000
+            THEN '1,000-4,999'
+        WHEN observed_gross_sales >= 500
+            THEN '500-999'
+        ELSE 'Below 500'
+    END AS observed_value_segment,
+    COUNT(*) AS customers,
+    SUM(invoices) AS invoices,
+    ROUND(SUM(observed_gross_sales), 2)
+        AS gross_sales,
+    ROUND(AVG(observed_gross_sales), 2)
+        AS avg_sales_per_customer
+FROM customer_metrics
+GROUP BY 1
+ORDER BY gross_sales DESC;
+
+
+-- ============================================================
+-- QUERY 68: CUSTOMER REVENUE CONCENTRATION
+-- ============================================================
+
+WITH customer_sales AS (
+    SELECT
+        customer_id,
+        SUM(quantity * unit_price) AS gross_sales
+    FROM online_retail
+    WHERE customer_id IS NOT NULL
+      AND quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+    GROUP BY customer_id
+),
+ranked AS (
+    SELECT
+        customer_id,
+        gross_sales,
+        ROW_NUMBER() OVER (
+            ORDER BY gross_sales DESC, customer_id
+        ) AS customer_rank,
+        COUNT(*) OVER () AS total_customers
+    FROM customer_sales
+),
+grouped AS (
+    SELECT
+        CASE
+            WHEN customer_rank <= CEIL(total_customers * 0.01)
+                THEN 'Top 1%'
+            WHEN customer_rank <= CEIL(total_customers * 0.05)
+                THEN 'Next 4%'
+            WHEN customer_rank <= CEIL(total_customers * 0.20)
+                THEN 'Next 15%'
+            ELSE 'Remaining 80%'
+        END AS customer_group,
+        gross_sales
+    FROM ranked
+)
+SELECT
+    customer_group,
+    COUNT(*) AS customers,
+    ROUND(SUM(gross_sales), 2) AS gross_sales,
+    ROUND(
+        100.0 * SUM(gross_sales) /
+        SUM(SUM(gross_sales)) OVER (), 2
+    ) AS sales_share_pct
+FROM grouped
+GROUP BY customer_group
+ORDER BY gross_sales DESC;
+
+
+-- ============================================================
+-- QUERY 69: CUSTOMER REACTIVATION ANALYSIS
+-- ============================================================
+
+WITH monthly_activity AS (
+    SELECT DISTINCT
+        customer_id,
+        DATE_TRUNC('month', invoice_date)
+            AS purchase_month
+    FROM online_retail
+    WHERE customer_id IS NOT NULL
+      AND quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+),
+activity_history AS (
+    SELECT
+        customer_id,
+        purchase_month,
+        LAG(purchase_month) OVER (
+            PARTITION BY customer_id
+            ORDER BY purchase_month
+        ) AS previous_purchase_month
+    FROM monthly_activity
+)
+SELECT
+    CAST(purchase_month AS DATE) AS purchase_month,
+    COUNT(DISTINCT CASE
+        WHEN previous_purchase_month IS NULL
+        THEN customer_id
+    END) AS first_time_customers,
+    COUNT(DISTINCT CASE
+        WHEN DATE_DIFF(
+            'month',
+            previous_purchase_month,
+            purchase_month
+        ) = 1
+        THEN customer_id
+    END) AS consecutive_month_returners,
+    COUNT(DISTINCT CASE
+        WHEN DATE_DIFF(
+            'month',
+            previous_purchase_month,
+            purchase_month
+        ) >= 2
+        THEN customer_id
+    END) AS reactivated_after_gap
+FROM activity_history
+GROUP BY purchase_month
+ORDER BY purchase_month;
+
+
+-- ============================================================
+-- QUERY 70: CUSTOMER INACTIVITY RISK PROXY
+-- ============================================================
+
+WITH customer_metrics AS (
+    SELECT
+        customer_id,
+        COUNT(DISTINCT invoice_no) AS invoices,
+        MAX(invoice_date) AS last_purchase,
+        SUM(quantity * unit_price) AS gross_sales
+    FROM online_retail
+    WHERE customer_id IS NOT NULL
+      AND quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+    GROUP BY customer_id
+),
+scored AS (
+    SELECT
+        *,
+        DATE_DIFF(
+            'day',
+            last_purchase,
+            TIMESTAMP '2011-12-10'
+        ) AS recency_days
+    FROM customer_metrics
+)
+SELECT
+    CASE
+        WHEN recency_days <= 30
+            THEN 'Recently Active (0-30 Days)'
+        WHEN recency_days <= 90
+            THEN 'Moderate Inactivity (31-90 Days)'
+        WHEN recency_days <= 180
+            THEN 'High Inactivity (91-180 Days)'
+        ELSE 'Extended Inactivity (181+ Days)'
+    END AS inactivity_segment,
+    COUNT(*) AS customers,
+    ROUND(SUM(gross_sales), 2)
+        AS historical_gross_sales,
+    ROUND(AVG(invoices), 2)
+        AS avg_purchase_frequency,
+    ROUND(AVG(recency_days), 2)
+        AS avg_recency_days
+FROM scored
+GROUP BY 1
+ORDER BY MIN(recency_days);
+
+
+-- ============================================================
+-- QUERY 71: CUSTOMER PURCHASING LIFECYCLE
+-- ============================================================
+
+WITH customer_metrics AS (
+    SELECT
+        customer_id,
+        MIN(invoice_date) AS first_purchase,
+        MAX(invoice_date) AS last_purchase,
+        COUNT(DISTINCT invoice_no) AS invoices,
+        SUM(quantity * unit_price) AS gross_sales
+    FROM online_retail
+    WHERE customer_id IS NOT NULL
+      AND quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+    GROUP BY customer_id
+),
+classified AS (
+    SELECT
+        *,
+        DATE_DIFF(
+            'day', first_purchase, last_purchase
+        ) AS observed_span_days
+    FROM customer_metrics
+)
+SELECT
+    CASE
+        WHEN invoices = 1
+            THEN 'One-Time Buyer'
+        WHEN observed_span_days <= 30
+            THEN 'Repeat Within 30 Days'
+        WHEN observed_span_days <= 90
+            THEN 'Repeat Within 31-90 Days'
+        WHEN observed_span_days <= 180
+            THEN 'Repeat Within 91-180 Days'
+        ELSE 'Long-Term Repeat Buyer'
+    END AS lifecycle_segment,
+    COUNT(*) AS customers,
+    ROUND(SUM(gross_sales), 2) AS gross_sales,
+    ROUND(AVG(invoices), 2) AS avg_invoices,
+    ROUND(AVG(observed_span_days), 2)
+        AS avg_observed_span_days
+FROM classified
+GROUP BY 1
+ORDER BY gross_sales DESC;
+
+
+-- ============================================================
+-- QUERY 72: COHORT REPEAT PURCHASE CONVERSION
+-- ============================================================
+
+WITH valid_sales AS (
+    SELECT
+        customer_id,
+        invoice_no,
+        invoice_date
+    FROM online_retail
+    WHERE customer_id IS NOT NULL
+      AND quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+),
+customer_metrics AS (
+    SELECT
+        customer_id,
+        DATE_TRUNC('month', MIN(invoice_date))
+            AS cohort_month,
+        COUNT(DISTINCT invoice_no) AS invoices
+    FROM valid_sales
+    GROUP BY customer_id
+)
+SELECT
+    CAST(cohort_month AS DATE) AS cohort_month,
+    COUNT(*) AS acquired_customers,
+    COUNT(*) FILTER (
+        WHERE invoices >= 2
+    ) AS repeat_customers,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE invoices >= 2
+        ) / NULLIF(COUNT(*), 0), 2
+    ) AS observed_repeat_conversion_pct
+FROM customer_metrics
+GROUP BY cohort_month
+ORDER BY cohort_month;
+
+
+-- ============================================================
+-- QUERY 73: CUSTOMER RETENTION BY COUNTRY
+-- ============================================================
+
+WITH valid_sales AS (
+    SELECT
+        customer_id,
+        country,
+        invoice_no,
+        invoice_date
+    FROM online_retail
+    WHERE customer_id IS NOT NULL
+      AND quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+),
+customer_home_country AS (
+    SELECT
+        customer_id,
+        ARG_MIN(country, invoice_date)
+            AS acquisition_country
+    FROM valid_sales
+    GROUP BY customer_id
+),
+customer_frequency AS (
+    SELECT
+        customer_id,
+        COUNT(DISTINCT invoice_no) AS invoices
+    FROM valid_sales
+    GROUP BY customer_id
+)
+SELECT
+    h.acquisition_country AS country,
+    COUNT(*) AS customers,
+    COUNT(*) FILTER (
+        WHERE f.invoices >= 2
+    ) AS repeat_customers,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE f.invoices >= 2
+        ) / NULLIF(COUNT(*), 0), 2
+    ) AS repeat_purchase_rate_pct,
+    ROUND(AVG(f.invoices), 2)
+        AS avg_invoices_per_customer
+FROM customer_home_country h
+JOIN customer_frequency f
+  ON h.customer_id = f.customer_id
+GROUP BY h.acquisition_country
+ORDER BY customers DESC
+LIMIT 20;
+
+
+-- ============================================================
+-- QUERY 74: MONTHLY CUSTOMER ENGAGEMENT KPIS
+-- ============================================================
+
+WITH valid_sales AS (
+    SELECT
+        DATE_TRUNC('month', invoice_date)
+            AS purchase_month,
+        customer_id,
+        invoice_no,
+        quantity * unit_price AS sales_amount
+    FROM online_retail
+    WHERE customer_id IS NOT NULL
+      AND quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+)
+SELECT
+    CAST(purchase_month AS DATE) AS purchase_month,
+    COUNT(DISTINCT customer_id) AS active_customers,
+    COUNT(DISTINCT invoice_no) AS invoices,
+    ROUND(SUM(sales_amount), 2)
+        AS known_customer_gross_sales,
+    ROUND(
+        SUM(sales_amount) /
+        NULLIF(COUNT(DISTINCT customer_id), 0), 2
+    ) AS sales_per_active_customer,
+    ROUND(
+        COUNT(DISTINCT invoice_no) * 1.0 /
+        NULLIF(COUNT(DISTINCT customer_id), 0), 2
+    ) AS invoices_per_active_customer
+FROM valid_sales
+GROUP BY purchase_month
+ORDER BY purchase_month;
+
+
+-- ============================================================
+-- QUERY 75: FINAL CUSTOMER ANALYTICS KPI SUMMARY
+-- ============================================================
+
+WITH valid_sales AS (
+    SELECT
+        customer_id,
+        invoice_no,
+        invoice_date,
+        quantity * unit_price AS sales_amount
+    FROM online_retail
+    WHERE customer_id IS NOT NULL
+      AND quantity > 0
+      AND unit_price > 0
+      AND invoice_no IS NOT NULL
+      AND TRIM(invoice_no) <> ''
+      AND UPPER(TRIM(invoice_no)) NOT LIKE 'C%'
+      AND stock_code IS NOT NULL
+      AND TRIM(stock_code) <> ''
+      AND country IS NOT NULL
+      AND TRIM(country) <> ''
+),
+customer_metrics AS (
+    SELECT
+        customer_id,
+        COUNT(DISTINCT invoice_no) AS invoices,
+        MIN(invoice_date) AS first_purchase,
+        MAX(invoice_date) AS last_purchase,
+        SUM(sales_amount) AS gross_sales
+    FROM valid_sales
+    GROUP BY customer_id
+)
+SELECT
+    COUNT(*) AS identifiable_customers,
+    COUNT(*) FILTER (
+        WHERE invoices = 1
+    ) AS one_time_customers,
+    COUNT(*) FILTER (
+        WHERE invoices >= 2
+    ) AS repeat_customers,
+    ROUND(
+        100.0 * COUNT(*) FILTER (
+            WHERE invoices >= 2
+        ) / NULLIF(COUNT(*), 0), 2
+    ) AS repeat_purchase_rate_pct,
+    SUM(invoices) AS total_customer_invoices,
+    ROUND(SUM(gross_sales), 2)
+        AS known_customer_gross_sales,
+    ROUND(AVG(gross_sales), 2)
+        AS avg_observed_customer_value,
+    ROUND(MEDIAN(gross_sales), 2)
+        AS median_observed_customer_value,
+    ROUND(AVG(invoices), 2)
+        AS avg_purchase_frequency,
+    ROUND(
+        AVG(
+            DATE_DIFF(
+                'day',
+                last_purchase,
+                TIMESTAMP '2011-12-10'
+            )
+        ), 2
+    ) AS avg_recency_days,
+    ROUND(
+        AVG(
+            DATE_DIFF(
+                'day',
+                first_purchase,
+                last_purchase
+            )
+        ), 2
+    ) AS avg_observed_purchase_span_days
+FROM customer_metrics;
