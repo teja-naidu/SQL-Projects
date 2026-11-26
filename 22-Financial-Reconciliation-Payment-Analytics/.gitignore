@@ -1,0 +1,19 @@
+# DuckDB database files
+*.duckdb
+*.duckdb.wal
+*.db
+
+# Query output files
+day*_output.txt
+
+# Temporary files
+*.tmp
+*.log
+
+# System files
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Financial and payroll datasets
+data/*.csv
